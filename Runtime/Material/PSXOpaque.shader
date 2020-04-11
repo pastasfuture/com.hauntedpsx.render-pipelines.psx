@@ -84,7 +84,7 @@
                     o.vertex.xy *= w; // Unapply divide by W, as the hardware will automatically perform this transform between the vertex and fragment shaders.
                 }
 
-                float2 uv = TRANSFORM_TEX(v.uv, _MainTex);
+                float2 uv = v.uv;
 
                 if (_IsPSXQualityEnabled)
                 {
@@ -162,7 +162,8 @@
                 float interpolatorNormalization = 1.0f / i.uvw.z;
 
                 float2 uv = i.uvw.xy * interpolatorNormalization;
-                float4 color = SAMPLE_TEXTURE2D(_MainTex, s_point_clamp_sampler, uv);
+                float2 uvColor = TRANSFORM_TEX(uv, _MainTex);
+                float4 color = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uvColor);
 
                 // Perform alpha cutoff transparency (i.e: discard pixels in the holes of a chain link fence texture, or in the negative space of a leaf texture).
                 // Any alpha value < 0.5 will trigger the pixel to be discarded, any alpha value greater than or equal to 0.5 will trigger the pixel to be preserved.
@@ -183,7 +184,8 @@
                 }
 
                 // Convert to sRGB 5:6:5 color space, then from sRGB to Linear.
-                float3 emissive = SAMPLE_TEXTURE2D(_EmissiveTexture, s_point_clamp_sampler, uv).rgb;
+                float2 uvEmissive = TRANSFORM_TEX(uv, _EmissiveTexture);
+                float3 emissive = SAMPLE_TEXTURE2D(_EmissiveTexture, sampler_EmissiveTexture, uvEmissive).rgb;
                 emissive = floor(emissive * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
                 emissive = SRGBToLinear(emissive);
                 emissive *= _EmissiveIntensity;

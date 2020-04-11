@@ -91,8 +91,10 @@ float4x4 OptimizeProjectionMatrix(float4x4 M)
 
 CBUFFER_START(UnityPerMaterial)
 TEXTURE2D(_MainTex);
+SAMPLER(sampler_MainTex);
 float4 _MainTex_ST;
 TEXTURE2D(_EmissiveTexture);
+SAMPLER(sampler_EmissiveTexture);
 float4 _EmissiveTexture_ST;
 float _EmissiveIntensity;
 CBUFFER_END
