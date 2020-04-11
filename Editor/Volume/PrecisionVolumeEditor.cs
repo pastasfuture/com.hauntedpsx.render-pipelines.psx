@@ -16,7 +16,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public override void OnEnable()
         {
-            var o = new PropertyFetcher<PSXPrecisionVolume>(serializedObject);
+            var o = new PropertyFetcher<PrecisionVolume>(serializedObject);
             m_Geometry = Unpack(o.Find(x => x.geometry));
             m_Color = Unpack(o.Find(x => x.color));
             m_FramebufferDitherIsEnabled = Unpack(o.Find(x => x.framebufferDitherIsEnabled));

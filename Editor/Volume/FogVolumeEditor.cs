@@ -15,7 +15,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public override void OnEnable()
         {
-            var o = new PropertyFetcher<PSXFogVolume>(serializedObject);
+            var o = new PropertyFetcher<FogVolume>(serializedObject);
             m_Color = Unpack(o.Find(x => x.color));
             m_DistanceMin = Unpack(o.Find(x => x.distanceMin));
             m_DistanceMax = Unpack(o.Find(x => x.distanceMax));

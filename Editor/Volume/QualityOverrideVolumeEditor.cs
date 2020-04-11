@@ -13,7 +13,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public override void OnEnable()
         {
-            var o = new PropertyFetcher<PSXQualityOverrideVolume>(serializedObject);
+            var o = new PropertyFetcher<QualityOverrideVolume>(serializedObject);
             m_IsPSXQualityEnabled = Unpack(o.Find(x => x.isPSXQualityEnabled));
         }
 

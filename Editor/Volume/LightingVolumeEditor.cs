@@ -15,7 +15,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public override void OnEnable()
         {
-            var o = new PropertyFetcher<PSXLightingVolume>(serializedObject);
+            var o = new PropertyFetcher<LightingVolume>(serializedObject);
             m_LightingIsEnabled = Unpack(o.Find(x => x.lightingIsEnabled));
             m_BakedLightingMultipler = Unpack(o.Find(x => x.bakedLightingMultiplier));
             m_VertexColorLightingMultiplier = Unpack(o.Find(x => x.vertexColorLightingMultiplier));

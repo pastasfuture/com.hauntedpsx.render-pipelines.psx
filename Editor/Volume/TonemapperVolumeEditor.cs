@@ -20,7 +20,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public override void OnEnable()
         {
-            var o = new PropertyFetcher<PSXTonemapperVolume>(serializedObject);
+            var o = new PropertyFetcher<TonemapperVolume>(serializedObject);
             m_Contrast = Unpack(o.Find(x => x.contrast));
             m_Shoulder = Unpack(o.Find(x => x.shoulder));
             m_GraypointIn = Unpack(o.Find(x => x.graypointIn));
