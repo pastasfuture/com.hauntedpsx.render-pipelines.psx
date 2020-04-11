@@ -17,6 +17,8 @@ MonoBehaviour:
   textures:
     whiteNoise1024RGBTex:
     - {fileID: 2800000, guid: 6228fe2e439c7704a8e26b3e19ab5e9f, type: 3}
+    framebufferDitherTex:
+    - {fileID: 2800000, guid: 4a3e96c03e7d7c34a8fb8f59764f1945, type: 3}
     blueNoise16LTex:
     - {fileID: 2800000, guid: efa2ea5416a18da46b64f1266464ffc7, type: 3}
     - {fileID: 2800000, guid: 0330b95d1d741fc4281eac4aec9d2eae, type: 3}
