@@ -42,7 +42,7 @@ float4x4 unity_MatrixInvV;
 float4x4 unity_MatrixVP;
 float4x4 unity_MatrixInvVP;
 
-// CBUFFER_START(UnityPerDraw)
+CBUFFER_START(UnityPerDraw)
 float4x4 unity_ObjectToWorld;
 float4x4 unity_WorldToObject;
 float4 unity_WorldTransformParams; // w is usually 1.0, or -1.0 for odd-negative scale transforms
@@ -59,7 +59,7 @@ real4 unity_SHBr;
 real4 unity_SHBg;
 real4 unity_SHBb;
 real4 unity_SHC;
-// CBUFFER_END
+CBUFFER_END
 
 float4x4 OptimizeProjectionMatrix(float4x4 M)
 {
