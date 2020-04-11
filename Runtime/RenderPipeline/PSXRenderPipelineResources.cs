@@ -22,7 +22,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             [Reload("Runtime/RenderPipelineResources/Texture/WhiteNoise1024RGB.png")]
             public Texture2D[] whiteNoise1024RGBTex;
 
-            [Reload("Runtime/RenderPipelineResources/Texture/BlueNoise16/L/LDR_LLL1_{0}.png", 0, 32)]
+            [Reload("Runtime/RenderPipelineResources/Texture/Bayer/BayerL4x4.png")]
             public Texture2D[] framebufferDitherTex;
 
             [Reload("Runtime/RenderPipelineResources/Texture/BlueNoise16/L/LDR_LLL1_{0}.png", 0, 32)]
