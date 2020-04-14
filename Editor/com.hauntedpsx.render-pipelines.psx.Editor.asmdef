@@ -1,14 +1,15 @@
 {
     "name": "com.hauntedpsx.render-pipelines.psx.Editor",
     "references": [
-        "Unity.RenderPipelines.Core.Runtime",
-        "Unity.RenderPipelines.Core.Editor"
+        "GUID:df380645f10b7bc4b97d4f5eb6303d95",
+        "GUID:3eae0364be2026648bf74846acb8a731",
+        "GUID:b03a6ff99fbd6d7428c7551a122d3626"
     ],
-    "includePlatforms": [],
-    "excludePlatforms": [
+    "includePlatforms": [
         "Editor"
     ],
-    "allowUnsafeCode": false,
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,

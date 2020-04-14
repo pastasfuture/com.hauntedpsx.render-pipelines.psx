@@ -1,3 +1,4 @@
+using UnityEditor;
 using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -25,7 +26,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         {
             PropertyField(m_LightingIsEnabled, EditorGUIUtility.TrTextContent("Lighting Is Enabled"));
             PropertyField(m_BakedLightingMultipler, EditorGUIUtility.TrTextContent("Baked Lighting Multiplier"));
-            PropertyField(m_IndirectLightIntensity, EditorGUIUtility.TrTextContent("Vertex Color Lighting Multiplier"));
+            PropertyField(m_VertexColorLightingMultiplier, EditorGUIUtility.TrTextContent("Vertex Color Lighting Multiplier"));
         }
     }
 }

@@ -1,5 +1,5 @@
 {
-    "name": "com.hauntedpsx.render-pipelines.psx",
+    "name": "com.hauntedpsx.render-pipelines.psx.Runtime",
     "references": [
         "Unity.RenderPipelines.Core.Runtime"
     ],
