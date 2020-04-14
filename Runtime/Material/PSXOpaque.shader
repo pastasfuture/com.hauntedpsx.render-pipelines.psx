@@ -108,7 +108,10 @@
                     float2 lightmapUV = v.lightmapUV.xy * unity_LightmapST.xy + unity_LightmapST.zw;
                     o.lighting = SRGBToLinear(SampleLightmap(lightmapUV, normalWS));
                 #else
-                    o.lighting = SRGBToLinear(SampleSH(normalWS));
+                    // TODO: Track down why we need this scale factor for probes. I have a suspision it is because we are working in
+                    // gamma space, and that the supporting code is meant to be executed in linear, but we will see.
+                    const float PROBE_SCALE_FACTOR = 12.0f;
+                    o.lighting = SRGBToLinear(SampleSH(normalWS)) * PROBE_SCALE_FACTOR;
                 #endif
 
                     o.lighting *= _BakedLightingMultiplier;
