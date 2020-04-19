@@ -170,7 +170,11 @@ half4 LitPassFragment(Varyings i) : SV_Target
     // Apply tonemapping and gamma correction.
     // This is a departure from classic PS1 games, but it allows for greater flexibility, giving artists more controls for creating the final look and feel of their game.
     // Otherwise, they would need to spend a lot more time in the texturing phase, getting the textures alone to produce the mood they are aiming for.
-    color.rgb = TonemapperGeneric(color.rgb);
+    if (_TonemapperIsEnabled)
+    {
+        color.rgb = TonemapperGeneric(color.rgb);
+    }
+    
     color.rgb = LinearToSRGB(color.rgb);
 
     // Convert the final color value to 5:6:5 color space (default) - this will actually be whatever color space the user specified in the Precision Volume Override.

@@ -80,6 +80,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _FogDistanceScaleBias = Shader.PropertyToID("_FogDistanceScaleBias");
         public static readonly int _LightingIsEnabled = Shader.PropertyToID("_LightingIsEnabled");
         public static readonly int _IsPSXQualityEnabled = Shader.PropertyToID("_IsPSXQualityEnabled");
+        public static readonly int _TonemapperIsEnabled = Shader.PropertyToID("_TonemapperIsEnabled");
         public static readonly int _TonemapperContrast = Shader.PropertyToID("_TonemapperContrast");
         public static readonly int _TonemapperShoulder = Shader.PropertyToID("_TonemapperShoulder");
         public static readonly int _TonemapperWhitepoint = Shader.PropertyToID("_TonemapperWhitepoint"); 

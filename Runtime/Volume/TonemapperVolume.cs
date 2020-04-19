@@ -7,6 +7,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
     [Serializable, VolumeComponentMenu("HauntedPS1/TonemapperVolume")]
     public class TonemapperVolume : VolumeComponent
     {
+        public BoolParameter isEnabled = new BoolParameter(false);
         public ClampedFloatParameter contrast = new ClampedFloatParameter(0.5f, 0.0f, 1.0f);
         public ClampedFloatParameter shoulder = new ClampedFloatParameter(0.5f, 0.0f, 1.0f);
         public ClampedFloatParameter graypointIn = new ClampedFloatParameter(0.18f, 0.0f, 1.0f);

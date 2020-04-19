@@ -10,6 +10,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
     [VolumeComponentEditor(typeof(TonemapperVolume))]
     public class TonemapperVolumeEditor : VolumeComponentEditor
     {
+        SerializedDataParameter m_IsEnabled;
         SerializedDataParameter m_Contrast;
         SerializedDataParameter m_Shoulder;
         SerializedDataParameter m_GraypointIn;
@@ -22,6 +23,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public override void OnEnable()
         {
             var o = new PropertyFetcher<TonemapperVolume>(serializedObject);
+            m_IsEnabled = Unpack(o.Find(x => x.isEnabled));
             m_Contrast = Unpack(o.Find(x => x.contrast));
             m_Shoulder = Unpack(o.Find(x => x.shoulder));
             m_GraypointIn = Unpack(o.Find(x => x.graypointIn));
@@ -34,6 +36,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public override void OnInspectorGUI()
         {
+            PropertyField(m_IsEnabled, EditorGUIUtility.TrTextContent("Enabled", "Controls whether or not Tonemapping is enabled.\nDisabled is more faithful to PS1 content, as tonemapping was not popularized in games at the time.\nEnabled gives more creative control."));
             PropertyField(m_Contrast, EditorGUIUtility.TrTextContent("Contrast", "Controls the contrast of the tonemapper."));
             PropertyField(m_Shoulder, EditorGUIUtility.TrTextContent("Shoulder", "Controls speed at which raw (radiance) values approach a tonemapped pixel value of 1.0."));
             PropertyField(m_GraypointIn, EditorGUIUtility.TrTextContent("Graypoint In", "Controls the raw (radiance) value to place our graypoint compensation handle. Useful for ambient room light compensation."));

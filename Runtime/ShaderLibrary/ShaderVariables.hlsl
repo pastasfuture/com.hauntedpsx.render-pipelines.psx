@@ -26,6 +26,7 @@ float _BakedLightingMultiplier;
 float _VertexColorLightingMultiplier;
 
 // Post Processing
+int _TonemapperIsEnabled;
 float _TonemapperContrast;
 float _TonemapperShoulder;
 float _TonemapperWhitepoint;

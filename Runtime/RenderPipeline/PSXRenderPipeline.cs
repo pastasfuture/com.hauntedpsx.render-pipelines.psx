@@ -215,6 +215,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 var volumeSettings = VolumeManager.instance.stack.GetComponent<TonemapperVolume>();
                 if (!volumeSettings) volumeSettings = TonemapperVolume.@default;
 
+                int isEnabled = volumeSettings.isEnabled.value ? 1 : 0;
                 float contrast = Mathf.Lerp(1e-5f, 1.95f, volumeSettings.contrast.value);
                 float shoulder = Mathf.Lerp(0.9f, 1.1f, volumeSettings.shoulder.value);
                 float whitepoint = volumeSettings.whitepoint.value;
@@ -235,6 +236,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 float saturation = Mathf.Lerp(0.0f, 32.0f, volumeSettings.saturation.value);
                 float crossTalkSaturation = Mathf.Lerp(1e-5f, 32.0f, volumeSettings.crossTalkSaturation.value);
 
+                cmd.SetGlobalInt(PSXShaderIDs._TonemapperIsEnabled, isEnabled);
                 cmd.SetGlobalFloat(PSXShaderIDs._TonemapperContrast, contrast);
                 cmd.SetGlobalFloat(PSXShaderIDs._TonemapperShoulder, shoulder);
                 cmd.SetGlobalVector(PSXShaderIDs._TonemapperGraypointCoefficients, graypointCoefficients);
