@@ -137,4 +137,30 @@ float3 NoiseDitherRemapTriangularDistribution(float3 v)
     );
 }
 
+float3 ComputeFramebufferDiscretization(float3 color, float2 positionSS)
+{
+    float framebufferDither = 0.5f;
+    if (_FramebufferDitherIsEnabled > 0.5f)
+    {
+        uint2 framebufferDitherTexelCoord = (uint2)floor(frac(positionSS * _FramebufferDitherSize.zw) * _FramebufferDitherSize.xy);
+        framebufferDither = LOAD_TEXTURE2D_LOD(_FramebufferDitherTexture, framebufferDitherTexelCoord, 0).a;
+        framebufferDither = NoiseDitherRemapTriangularDistribution(framebufferDither);
+    }
+    return floor(color.xyz * _PrecisionColor.rgb + framebufferDither) * _PrecisionColorInverse.rgb;
+}
+
+float FetchAlphaClippingDither(float2 positionSS)
+{
+    float dither = 0.5f;
+
+    if (_AlphaClippingDitherIsEnabled > 0.5f)
+    {
+        uint2 alphaClippingDitherTexelCoord = (uint2)floor(frac(positionSS * _AlphaClippingDitherSize.zw) * _AlphaClippingDitherSize.xy);
+        dither = LOAD_TEXTURE2D_LOD(_AlphaClippingDitherTexture, alphaClippingDitherTexelCoord, 0).a;
+        dither = min(0.999f, dither);
+    }
+
+    return dither;
+}
+
 #endif

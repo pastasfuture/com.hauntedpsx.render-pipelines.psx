@@ -93,10 +93,12 @@ CBUFFER_START(UnityPerMaterial)
 TEXTURE2D(_MainTex);
 SAMPLER(sampler_MainTex);
 float4 _MainTex_ST;
-TEXTURE2D(_EmissiveTexture);
-SAMPLER(sampler_EmissiveTexture);
-float4 _EmissiveTexture_ST;
-float _EmissiveIntensity;
+float4 _MainColor;
+TEXTURE2D(_EmissionTexture);
+SAMPLER(sampler_EmissionTexture);
+float4 _EmissionTexture_ST;
+float3 _EmissionColor;
+float _AlphaClippingDitherIsEnabled;
 CBUFFER_END
 
 // These are the samplers available in the HDRenderPipeline.
@@ -117,4 +119,8 @@ TEXTURE2D(unity_LightmapInd);
 TEXTURE2D(_FramebufferDitherTexture);
 float4 _FramebufferDitherSize;
 int _FramebufferDitherIsEnabled;
+
+
+TEXTURE2D(_AlphaClippingDitherTexture);
+float4 _AlphaClippingDitherSize;
 #endif

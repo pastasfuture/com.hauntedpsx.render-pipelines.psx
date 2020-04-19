@@ -331,13 +331,22 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             }
         }
 
-        static void PushGlobalRasterizationParameters(Camera camera, CommandBuffer cmd, int rasterizationWidth, int rasterizationHeight)
+        void PushGlobalRasterizationParameters(Camera camera, CommandBuffer cmd, int rasterizationWidth, int rasterizationHeight)
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushGlobalRasterizationParameters))
             {
                 cmd.ClearRenderTarget(clearDepth: true, clearColor: true, backgroundColor: GetFogColorFromFogVolume());
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._Time, new Vector4(Time.timeSinceLevelLoad / 20.0f, Time.timeSinceLevelLoad, Time.timeSinceLevelLoad * 2.0f, Time.timeSinceLevelLoad * 3.0f));
+            
+                Texture2D alphaClippingDitherTex = GetAlphaClippingDitherTexFromAssetAndFrame(asset, (uint)Time.frameCount);
+                cmd.SetGlobalTexture(PSXShaderIDs._AlphaClippingDitherTexture, alphaClippingDitherTex);
+                cmd.SetGlobalVector(PSXShaderIDs._AlphaClippingDitherSize, new Vector4(
+                    alphaClippingDitherTex.width,
+                    alphaClippingDitherTex.height,
+                    1.0f / alphaClippingDitherTex.width,
+                    1.0f / alphaClippingDitherTex.height
+                ));
             }  
         }
 
@@ -368,7 +377,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         static Texture2D GetFramebufferDitherTexFromAssetAndFrame(PSXRenderPipelineAsset asset, uint frameCount)
         {
             Texture2D ditherTexture = Texture2D.grayTexture;
-            if (asset.renderPipelineResources.textures.framebufferDitherTex.Length > 0)
+            if (asset.renderPipelineResources.textures.framebufferDitherTex != null && asset.renderPipelineResources.textures.framebufferDitherTex.Length > 0)
             {
                 uint ditherTextureIndex = frameCount % (uint)asset.renderPipelineResources.textures.framebufferDitherTex.Length;
                 ditherTexture = asset.renderPipelineResources.textures.framebufferDitherTex[ditherTextureIndex];
@@ -377,10 +386,22 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             return ditherTexture;
         }
 
+        static Texture2D GetAlphaClippingDitherTexFromAssetAndFrame(PSXRenderPipelineAsset asset, uint frameCount)
+        {
+            Texture2D ditherTexture = Texture2D.grayTexture;
+            if (asset.renderPipelineResources.textures.alphaClippingDitherTex != null && asset.renderPipelineResources.textures.alphaClippingDitherTex.Length > 0)
+            {
+                uint ditherTextureIndex = frameCount % (uint)asset.renderPipelineResources.textures.alphaClippingDitherTex.Length;
+                ditherTexture = asset.renderPipelineResources.textures.alphaClippingDitherTex[ditherTextureIndex];
+            }
+
+            return ditherTexture;
+        }
+
         static Texture2D GetWhiteNoise1024RGBTexFromAssetAndFrame(PSXRenderPipelineAsset asset, uint frameCount)
         {
             Texture2D whiteNoiseTexture = Texture2D.grayTexture;
-            if (asset.renderPipelineResources.textures.whiteNoise1024RGBTex.Length > 0)
+            if (asset.renderPipelineResources.textures.whiteNoise1024RGBTex != null && asset.renderPipelineResources.textures.whiteNoise1024RGBTex.Length > 0)
             {
                 uint whiteNoiseTextureIndex = frameCount % (uint)asset.renderPipelineResources.textures.whiteNoise1024RGBTex.Length;
                 whiteNoiseTexture = asset.renderPipelineResources.textures.whiteNoise1024RGBTex[whiteNoiseTextureIndex];
@@ -392,7 +413,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         static Texture2D GetBlueNoise16RGBTexFromAssetAndFrame(PSXRenderPipelineAsset asset, uint frameCount)
         {
             Texture2D blueNoiseTexture = Texture2D.grayTexture;
-            if (asset.renderPipelineResources.textures.blueNoise16RGBTex.Length > 0)
+            if (asset.renderPipelineResources.textures.blueNoise16RGBTex != null && asset.renderPipelineResources.textures.blueNoise16RGBTex.Length > 0)
             {
                 uint blueNoiseTextureIndex = frameCount % (uint)asset.renderPipelineResources.textures.blueNoise16RGBTex.Length;
                 blueNoiseTexture = asset.renderPipelineResources.textures.blueNoise16RGBTex[blueNoiseTextureIndex];
@@ -468,7 +489,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 criteria = SortingCriteria.CommonOpaque
             };
 
-            var drawingSettings = new DrawingSettings(PSXShaderPassNames.s_Opaque, sortingSettings)
+            var drawingSettings = new DrawingSettings(PSXShaderPassNames.s_PSXLit, sortingSettings)
             {
                 // TODO: Only enable lightmap data sending if requested in the render pipeline asset.
                 perObjectData = k_RendererConfigurationBakedLighting
@@ -493,7 +514,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 criteria = SortingCriteria.CommonTransparent
             };
 
-            var drawingSettings = new DrawingSettings(PSXShaderPassNames.s_Transparent, sortingSettings)
+            var drawingSettings = new DrawingSettings(PSXShaderPassNames.s_PSXLit, sortingSettings)
             {
                 // TODO: Only enable lightmap data sending if requested in the render pipeline asset.
                 perObjectData = k_RendererConfigurationBakedLighting

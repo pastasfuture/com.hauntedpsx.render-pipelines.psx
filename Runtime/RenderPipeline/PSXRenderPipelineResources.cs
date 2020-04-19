@@ -25,6 +25,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             [Reload("Runtime/RenderPipelineResources/Texture/Bayer/BayerL4x4.png")]
             public Texture2D[] framebufferDitherTex;
 
+            [Reload("Runtime/RenderPipelineResources/Texture/Bayer/BayerL4x4.png")]
+            public Texture2D[] alphaClippingDitherTex;
+
             [Reload("Runtime/RenderPipelineResources/Texture/BlueNoise16/L/LDR_LLL1_{0}.png", 0, 32)]
             public Texture2D[] blueNoise16LTex;
             

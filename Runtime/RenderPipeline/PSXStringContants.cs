@@ -35,13 +35,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
     internal static class PSXShaderPassNames
     {
         // ShaderPass string - use to have consistent naming through the codebase.
-        public static readonly string s_OpaqueStr = "PSXOpaque";
-        public static readonly string s_TransparentStr = "PSXTransparent";
+        public static readonly string s_PSXLitStr = "PSXLit";
         public static readonly string s_SRPDefaultUnlitStr = "SRPDefaultUnlit";
 
         // ShaderPass name
-        public static readonly ShaderTagId s_Opaque = new ShaderTagId(s_OpaqueStr);
-        public static readonly ShaderTagId s_Transparent = new ShaderTagId(s_TransparentStr);
+        public static readonly ShaderTagId s_PSXLit = new ShaderTagId(s_PSXLitStr);
         public static readonly ShaderTagId s_SRPDefaultUnlit = new ShaderTagId(s_SRPDefaultUnlitStr);
     }
 
@@ -91,5 +89,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _TonemapperCrossTalkSaturation = Shader.PropertyToID("_TonemapperCrossTalkSaturation");
         public static readonly int _BakedLightingMultiplier = Shader.PropertyToID("_BakedLightingMultiplier");
         public static readonly int _VertexColorLightingMultiplier = Shader.PropertyToID("_VertexColorLightingMultiplier");
+        public static readonly int _AlphaClippingDitherTexture = Shader.PropertyToID("_AlphaClippingDitherTexture");
+        public static readonly int _AlphaClippingDitherSize = Shader.PropertyToID("_AlphaClippingDitherSize");
     }
 }
