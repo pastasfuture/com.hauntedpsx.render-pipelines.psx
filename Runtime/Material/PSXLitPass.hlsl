@@ -165,6 +165,11 @@ half4 LitPassFragment(Varyings i) : SV_Target
 
     float3 fogColor = i.fog.rgb * interpolatorNormalization;
     float fogAlpha = i.fog.a * interpolatorNormalization;
+
+#if defined(_ALPHAPREMULTIPLY_ON) || defined(_ALPHAMODULATE_ON)
+    fogAlpha *= color.a;
+#endif
+
     color.rgb = lerp(color.rgb, fogColor, fogAlpha);
     
     // Apply tonemapping and gamma correction.
