@@ -9,6 +9,7 @@
         _AlphaClippingDitherIsEnabled("_AlphaClippingDitherIsEnabled", Float) = 0.0
 
         // Blending state
+        [HideInInspector] _LightingMode("__lightingMode", Float) = 0.0
         [HideInInspector] _Surface("__surface", Float) = 0.0
         [HideInInspector] _Blend("__blend", Float) = 0.0
         [HideInInspector] _AlphaClip("__clip", Float) = 0.0
@@ -43,6 +44,8 @@
 
             // -------------------------------------
             // Material Keywords
+            #pragma shader_feature _LIGHTING_BAKED_ON
+            #pragma shader_feature _LIGHTING_VERTEX_COLOR_ON
             #pragma shader_feature _EMISSION
             #pragma shader_feature _ALPHATEST_ON
             #pragma shader_feature _ _ALPHAPREMULTIPLY_ON _ALPHAMODULATE_ON

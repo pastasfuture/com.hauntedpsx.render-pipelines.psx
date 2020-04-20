@@ -9,6 +9,14 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
     {
         #region EnumsAndClasses
 
+        public enum LightingMode
+        {
+            LitBaked = 0,
+            LitVertexColor,
+            LitBakedAndVertexColor,
+            Unlit
+        }
+
         public enum SurfaceType
         {
             Opaque,
@@ -17,8 +25,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public enum BlendMode
         {
-            Alpha,   // Old school alpha-blending mode, fresnel does not affect amount of transparency
-            Premultiply, // Physically plausible transparency mode, implemented as alpha pre-multiply
+            AlphaPostmultiply, // Old school alpha-blending mode.
+            AlphaPremultiply, // Physically plausible transparency mode, implemented as alpha pre-multiply
             Additive,
             Multiply
         }
@@ -32,7 +40,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected class Styles
         {
-            // Catergories
+            // Categories
             public static readonly GUIContent SurfaceOptions =
                 new GUIContent("Surface Options", "Controls how HPSXRP renders the Material on a screen.");
 
@@ -41,6 +49,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent AdvancedLabel = new GUIContent("Advanced",
                 "These settings affect behind-the-scenes rendering and underlying calculations.");
+
+            public static readonly GUIContent LightingMode =
+                new GUIContent("Lighting Mode", "Controls how lighting is applied to the material.\nLitBaked: Lighting is sampled from lightmaps and probes.\nLitVertexColor: Lighting is sampled from vertex color data.\nLitBakedAndVertexColor: Lighting from LitBaked mode and LitVertexColor mode is added together.\nUnlit: No lighting is applied.");
 
             public static readonly GUIContent surfaceType = new GUIContent("Surface Type",
                 "Select a surface type for your texture. Choose between Opaque or Transparent.");
@@ -76,6 +87,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         #region Variables
 
         protected MaterialEditor materialEditor { get; set; }
+
+        protected MaterialProperty lightingModeProp { get; set; }
 
         protected MaterialProperty surfaceTypeProp { get; set; }
 
@@ -122,6 +135,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public virtual void FindProperties(MaterialProperty[] properties)
         {
+            lightingModeProp = FindProperty("_LightingMode", properties);
             surfaceTypeProp = FindProperty("_Surface", properties);
             blendModeProp = FindProperty("_Blend", properties);
             cullingProp = FindProperty("_Cull", properties);
@@ -213,6 +227,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public virtual void DrawSurfaceOptions(Material material)
         {
+            DoPopup(Styles.LightingMode, lightingModeProp, Enum.GetNames(typeof(LightingMode)));
+
             DoPopup(Styles.surfaceType, surfaceTypeProp, Enum.GetNames(typeof(SurfaceType)));
             if ((SurfaceType)material.GetFloat("_Surface") == SurfaceType.Transparent)
                 DoPopup(Styles.blendingMode, blendModeProp, Enum.GetNames(typeof(BlendMode)));
@@ -348,6 +364,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         {
             // Clear all keywords for fresh start
             material.shaderKeywords = null;
+
+            SetupMaterialLightingMode(material);
             // Setup blending
             SetupMaterialBlendMode(material);
             // Receive Shadows
@@ -364,6 +382,34 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             // Shader specific keyword functions
             shadingModelFunc?.Invoke(material);
             shaderFunc?.Invoke(material);
+        }
+
+        public static void SetupMaterialLightingMode(Material material)
+        {
+            if (material == null)
+                throw new ArgumentNullException("material");
+                
+                LightingMode lightingMode = (LightingMode)material.GetFloat("_LightingMode");
+
+                switch (lightingMode)
+                {
+                    case LightingMode.LitBaked:
+                        material.EnableKeyword("_LIGHTING_BAKED_ON");
+                        material.DisableKeyword("_LIGHTING_VERTEX_COLOR_ON");
+                        break;
+                    case LightingMode.LitVertexColor:
+                        material.DisableKeyword("_LIGHTING_BAKED_ON");
+                        material.EnableKeyword("_LIGHTING_VERTEX_COLOR_ON");
+                        break;
+                    case LightingMode.LitBakedAndVertexColor:
+                        material.EnableKeyword("_LIGHTING_BAKED_ON");
+                        material.EnableKeyword("_LIGHTING_VERTEX_COLOR_ON");
+                        break;
+                    case LightingMode.Unlit:
+                        material.DisableKeyword("_LIGHTING_BAKED_ON");
+                        material.DisableKeyword("_LIGHTING_VERTEX_COLOR_ON");
+                        break;
+                }   
         }
 
         public static void SetupMaterialBlendMode(Material material)
@@ -407,12 +453,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 // Specific Transparent Mode Settings
                 switch (blendMode)
                 {
-                    case BlendMode.Alpha:
+                    case BlendMode.AlphaPostmultiply:
                         material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
                         material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
                         material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
                         break;
-                    case BlendMode.Premultiply:
+                    case BlendMode.AlphaPremultiply:
                         material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
                         material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
                         material.EnableKeyword("_ALPHAPREMULTIPLY_ON");

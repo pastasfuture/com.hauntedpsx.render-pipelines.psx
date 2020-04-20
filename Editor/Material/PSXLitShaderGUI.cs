@@ -69,7 +69,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             }
 
             SurfaceType surfaceType = SurfaceType.Opaque;
-            BlendMode blendMode = BlendMode.Alpha;
+            BlendMode blendMode = BlendMode.AlphaPostmultiply;
             if (oldShader.name.Contains("/Transparent/Cutout/"))
             {
                 surfaceType = SurfaceType.Opaque;
@@ -80,7 +80,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 // NOTE: legacy shaders did not provide physically based transparency
                 // therefore Fade mode
                 surfaceType = SurfaceType.Transparent;
-                blendMode = BlendMode.Alpha;
+                blendMode = BlendMode.AlphaPostmultiply;
             }
             material.SetFloat("_Surface", (float)surfaceType);
             material.SetFloat("_Blend", (float)blendMode);

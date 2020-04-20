@@ -10,8 +10,12 @@ struct Attributes
     float4 vertex : POSITION;
     float2 uv : TEXCOORD0;
     float3 normal : NORMAL;
+#if defined(_LIGHTING_VERTEX_COLOR_ON)
     float4 color : COLOR;
+#endif
+#if defined(_LIGHTING_BAKED_ON)
     float2 lightmapUV : TEXCOORD1;
+#endif
 };
 
 struct Varyings
@@ -19,7 +23,9 @@ struct Varyings
     float3 uvw : TEXCOORD0;
     float4 vertex : SV_POSITION;
     float3 positionVS : TEXCOORD1;
+#if defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_BAKED_ON)
     float3 lighting : TEXCOORD2;
+#endif
     float4 fog : TEXCOORD3;
 };
 
@@ -63,10 +69,14 @@ Varyings LitPassVertex(Attributes v)
 
     o.positionVS = positionVS;
 
+#if defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_VERTEX_COLOR_ON)
     if (_IsPSXQualityEnabled)
     {
         float3 normalWS = TransformObjectToWorldNormal(v.normal);
 
+        o.lighting = 0.0f;
+
+#if defined(_LIGHTING_BAKED_ON)
     #ifdef LIGHTMAP_ON
         float2 lightmapUV = v.lightmapUV.xy * unity_LightmapST.xy + unity_LightmapST.zw;
         o.lighting = SRGBToLinear(SampleLightmap(lightmapUV, normalWS));
@@ -78,17 +88,21 @@ Varyings LitPassVertex(Attributes v)
     #endif
 
         o.lighting *= _BakedLightingMultiplier;
+#endif
 
+        
+#if defined(_LIGHTING_VERTEX_COLOR_ON)
         o.lighting += SRGBToLinear(v.color.rgb) * _VertexColorLightingMultiplier;
+#endif
 
         // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
         o.lighting *= positionCS.w;
-
     }
     else
     {
         o.lighting = 1.0f;
     }
+#endif
 
     if (_IsPSXQualityEnabled)
     {
@@ -144,10 +158,12 @@ half4 LitPassFragment(Varyings i) : SV_Target
     color.rgb = lerp(float3(1.0f, 1.0f, 1.0f), color.rgb, color.a);
 #endif
 
+#if defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_VERTEX_COLOR_ON)
     if (_LightingIsEnabled > 0.5f)
     {
         color.xyz *= i.lighting * interpolatorNormalization;
     }
+#endif
 
 #ifdef _EMISSION
     // Convert to sRGB 5:6:5 color space, then from sRGB to Linear.
