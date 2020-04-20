@@ -24,9 +24,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public override void OnInspectorGUI()
         {
-            PropertyField(m_LightingIsEnabled, EditorGUIUtility.TrTextContent("Lighting Is Enabled"));
-            PropertyField(m_BakedLightingMultipler, EditorGUIUtility.TrTextContent("Baked Lighting Multiplier"));
-            PropertyField(m_VertexColorLightingMultiplier, EditorGUIUtility.TrTextContent("Vertex Color Lighting Multiplier"));
+            PropertyField(m_LightingIsEnabled, EditorGUIUtility.TrTextContent("Lighting Is Enabled", "Controls whether lighting is enabled or disabled."));
+            PropertyField(m_BakedLightingMultipler, EditorGUIUtility.TrTextContent("Baked Lighting Multiplier", "Controls the intensity of the baked lighting information when applied to the surface."));
+            PropertyField(m_VertexColorLightingMultiplier, EditorGUIUtility.TrTextContent("Vertex Color Lighting Multiplier", "Controls the intensity of the vertex colors when applied to the surface."));
         }
     }
 }

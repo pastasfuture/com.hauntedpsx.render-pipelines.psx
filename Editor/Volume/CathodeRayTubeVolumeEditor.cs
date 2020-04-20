@@ -49,7 +49,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PropertyField(m_IsEnabled, EditorGUIUtility.TrTextContent("Enabled", "Controls whether or not the CRT simulation is enabled."));
             PropertyField(m_Bloom, EditorGUIUtility.TrTextContent("Bloom", "Controls the overall strength of the spatial ghosting across pixels."));
             PropertyField(m_GrateMaskScale, EditorGUIUtility.TrTextContent("Grate Mask Scale", "Controls the scale of the RGB color matrix."));
-            PropertyField(m_ScanlineSharpness, EditorGUIUtility.TrTextContent("Scanline Sharpness"));
+            PropertyField(m_ScanlineSharpness, EditorGUIUtility.TrTextContent("Scanline Sharpness", "Controls the sharpness of the scanline overlay."));
             PropertyField(m_ImageSharpness, EditorGUIUtility.TrTextContent("Image Sharpness", "Controls the sharpness of the image displayed on the virtual CRT."));
             PropertyField(m_BloomSharpnessX, EditorGUIUtility.TrTextContent("Bloom Sharpness X", "Controls the sharpness (width) of bloom (spatial ghosting) horizontally."));
             PropertyField(m_BloomSharpnessY, EditorGUIUtility.TrTextContent("Bloom Sharpness Y", "Controls the sharpness (height) of bloom (spatial ghosting) vertically (across scanlines)."));
