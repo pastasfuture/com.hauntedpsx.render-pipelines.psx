@@ -478,6 +478,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 // General Transparent Material Settings
                 material.SetOverrideTag("RenderType", "Transparent");
                 material.SetInt("_ZWrite", 0);
+                material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
                 // material.SetShaderPassEnabled("ShadowCaster", false);
             }
         }
