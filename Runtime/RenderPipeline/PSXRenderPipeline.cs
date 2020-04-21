@@ -102,6 +102,18 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 // We do not want to force diffs on files when users are just temporarily previewing things. 
                 isPSXQualityEnabled &= CoreUtils.ArePostProcessesEnabled(camera);
 
+                // Disable shadow casters completely as we currently do not support dynamic light sources.
+                cullingParameters.cullingOptions &= ~CullingOptions.ShadowCasters;
+
+                // Disable lighting completely as we currently do not support dynamic light sources.
+                cullingParameters.cullingOptions &= ~CullingOptions.NeedsLighting;
+
+                // Disable stereo rendering as we currently do not support it.
+                cullingParameters.cullingOptions &= ~CullingOptions.Stereo;
+
+                // Disable reflection probes as they are currently not part of the psx render pipeline.
+                cullingParameters.cullingOptions &= ~CullingOptions.NeedsReflectionProbes;
+
                 CullingResults cullingResults = context.Cull(ref cullingParameters);
 
                 // Setup camera for rendering (sets render target, view/projection matrices and other
