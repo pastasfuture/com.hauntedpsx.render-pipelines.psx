@@ -57,8 +57,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PropertyField(m_NoiseSaturation, EditorGUIUtility.TrTextContent("Noise Saturation", "Controls the Saturation of the simulated analog noise in the video signal. A value of 0.0 will produce pure place and white noise."));
             PropertyField(m_GrateMaskIntensityMin, EditorGUIUtility.TrTextContent("Grate Mask Intensity Min", "Controls the blackpoint of the RGB color matrix cells."));
             PropertyField(m_GrateMaskIntensityMax, EditorGUIUtility.TrTextContent("Grate Mask Intensity Max", "Controls the whitepoint of the RGB color matrix cells."));
-            PropertyField(m_BarrelDistortionX, EditorGUIUtility.TrTextContent("Barrel Distortion", "Controls the intensity of the simulated CRT barrel distortion (fish bowl effect) horizontally."));
-            PropertyField(m_BarrelDistortionY, EditorGUIUtility.TrTextContent("Barrel Distortion", "Controls the intensity of the simulated CRT barrel distortion (fish bowl effect) vertically."));    
+            PropertyField(m_BarrelDistortionX, EditorGUIUtility.TrTextContent("Barrel Distortion X", "Controls the intensity of the simulated CRT barrel distortion (fish bowl effect) horizontally."));
+            PropertyField(m_BarrelDistortionY, EditorGUIUtility.TrTextContent("Barrel Distortion Y", "Controls the intensity of the simulated CRT barrel distortion (fish bowl effect) vertically."));    
             PropertyField(m_Vignette, EditorGUIUtility.TrTextContent("Vignette", "Controls the amount of image darkening that occurs at the side of the CRT screen."));
         }
     }
