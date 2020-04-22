@@ -339,12 +339,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 if (!isFogEnabled)
                 {
                     // To visually disable fog, we simply throw fog start and end to infinity.
-                    fogDistanceScaleBias = new Vector4(1.0f, -float.MaxValue, 1.0f, 0.0f);
+                    fogDistanceScaleBias = new Vector4(0.0f, 0.0f, 0.0f, 0.0f);
                 }
                 else if (!volumeSettings.heightFalloffEnabled.value)
                 {
-                    fogDistanceScaleBias.z = 1.0f;
-                    fogDistanceScaleBias.w = 0.0f;
+                    fogDistanceScaleBias.z = 0.0f;
+                    fogDistanceScaleBias.w = 1.0f;
                 }
 
                 int fogFalloffMode = (int)volumeSettings.fogFalloffMode.value;
