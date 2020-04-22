@@ -106,7 +106,7 @@ Varyings LitPassVertex(Attributes v)
 
     if (_IsPSXQualityEnabled)
     {
-        float fogAlpha = saturate(abs(positionVS.z) * _FogDistanceScaleBias.x + _FogDistanceScaleBias.y);
+        float fogAlpha = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS);
         fogAlpha *= _FogColor.a;
 
         // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.

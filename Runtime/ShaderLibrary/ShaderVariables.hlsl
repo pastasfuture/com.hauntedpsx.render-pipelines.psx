@@ -4,6 +4,11 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Macros.hlsl"
 
+// Warning: These definitions must stay in sync with FogVolume.FogFalloffMode enum.
+#define PSX_FOG_FALLOFF_MODE_PLANAR (0)
+#define PSX_FOG_FALLOFF_MODE_CYLINDRICAL (1)
+#define PSX_FOG_FALLOFF_MODE_SPHERICAL (2)
+
 // Globals:
 // Unity Standard:
 //
@@ -17,8 +22,9 @@ float _DrawDistance;
 float2 _PrecisionGeometry;
 float3 _PrecisionColor;
 float3 _PrecisionColorInverse;
+int _FogFalloffMode;
 float4 _FogColor;
-float2 _FogDistanceScaleBias;
+float4 _FogDistanceScaleBias;
 
 // Lighting (In the future this might be moved to UnityPerMaterial if we get multiple lights):
 int _LightingIsEnabled;

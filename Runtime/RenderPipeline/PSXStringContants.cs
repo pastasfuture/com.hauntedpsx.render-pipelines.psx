@@ -76,6 +76,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _FramebufferDitherSize = Shader.PropertyToID("_FramebufferDitherSize");
         public static readonly int _FramebufferDitherIsEnabled = Shader.PropertyToID("_FramebufferDitherIsEnabled");
         public static readonly int _DrawDistance = Shader.PropertyToID("_DrawDistance");
+        public static readonly int _FogFalloffMode = Shader.PropertyToID("_FogFalloffMode");
         public static readonly int _FogColor = Shader.PropertyToID("_FogColor");
         public static readonly int _FogDistanceScaleBias = Shader.PropertyToID("_FogDistanceScaleBias");
         public static readonly int _LightingIsEnabled = Shader.PropertyToID("_LightingIsEnabled");

@@ -163,4 +163,29 @@ float FetchAlphaClippingDither(float2 positionSS)
     return dither;
 }
 
+float EvaluateFogFalloff(float3 positionWS, float3 cameraPositionWS, float3 positionVS)
+{
+    float faloffDepth = 0.0f;
+
+    if (_FogFalloffMode == PSX_FOG_FALLOFF_MODE_PLANAR)
+    {
+        faloffDepth = abs(positionVS.z);
+    }
+    else if (_FogFalloffMode == PSX_FOG_FALLOFF_MODE_CYLINDRICAL)
+    {
+        faloffDepth = length(positionWS.xz - cameraPositionWS.xz);
+    }
+    else // _FogFalloffMode == PSX_FOG_FALLOFF_MODE_SPHERICAL
+    {
+        faloffDepth = length(positionVS);
+    }
+
+    float falloffHeight = positionWS.y;
+
+    // _FogDistanceScaleBias.xy contains distance falloff scale bias terms.
+    // _FogDistanceScaleBias.zw contains height falloff scale bias terms.
+    return saturate(faloffDepth * _FogDistanceScaleBias.x + _FogDistanceScaleBias.y)
+        * saturate(falloffHeight * _FogDistanceScaleBias.z + _FogDistanceScaleBias.w);
+}
+
 #endif

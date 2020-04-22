@@ -315,19 +315,28 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 var volumeSettings = VolumeManager.instance.stack.GetComponent<FogVolume>();
                 if (!volumeSettings) volumeSettings = FogVolume.@default;
 
-                Vector2 fogDistanceScaleBias = new Vector2(
+                Vector4 fogDistanceScaleBias = new Vector4(
                     1.0f / (volumeSettings.distanceMax.value - volumeSettings.distanceMin.value), 
-                    -volumeSettings.distanceMin.value / (volumeSettings.distanceMax.value - volumeSettings.distanceMin.value)
+                    -volumeSettings.distanceMin.value / (volumeSettings.distanceMax.value - volumeSettings.distanceMin.value),
+                    -1.0f / (volumeSettings.heightMax.value - volumeSettings.heightMin.value),
+                    -volumeSettings.heightMin.value / (volumeSettings.heightMax.value - volumeSettings.heightMin.value) + 1.0f
                 );
 
                 // Respect the Scene View fog enable / disable toggle.
-                bool isFogEnabled = CoreUtils.IsSceneViewFogEnabled(camera);
+                bool isFogEnabled = volumeSettings.isEnabled.value && CoreUtils.IsSceneViewFogEnabled(camera);
                 if (!isFogEnabled)
                 {
                     // To visually disable fog, we simply throw fog start and end to infinity.
-                    fogDistanceScaleBias = new Vector2(1.0f, -float.MaxValue);
+                    fogDistanceScaleBias = new Vector4(1.0f, -float.MaxValue, 1.0f, 0.0f);
+                }
+                else if (!volumeSettings.heightFalloffEnabled.value)
+                {
+                    fogDistanceScaleBias.z = 1.0f;
+                    fogDistanceScaleBias.w = 0.0f;
                 }
 
+                int fogFalloffMode = (int)volumeSettings.fogFalloffMode.value;
+                cmd.SetGlobalInt(PSXShaderIDs._FogFalloffMode, fogFalloffMode);
                 cmd.SetGlobalVector(PSXShaderIDs._FogColor, new Vector4(volumeSettings.color.value.r, volumeSettings.color.value.g, volumeSettings.color.value.b, volumeSettings.color.value.a));
                 cmd.SetGlobalVector(PSXShaderIDs._FogDistanceScaleBias, fogDistanceScaleBias);
             }
