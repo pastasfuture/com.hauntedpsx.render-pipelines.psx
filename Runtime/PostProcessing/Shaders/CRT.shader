@@ -18,6 +18,7 @@ Shader "Hidden/HauntedPS1/CRT"
     float4 _FrameBufferScreenSize;
     float4 _BlueNoiseSize;
     float4 _WhiteNoiseSize;
+    float4 _CRTGrateMaskSize;
     int _CRTIsEnabled;
     float _CRTBloom;
     float2 _CRTGrateMaskScale;
@@ -32,6 +33,7 @@ Shader "Hidden/HauntedPS1/CRT"
     TEXTURE2D(_FrameBufferTexture);
     TEXTURE2D(_WhiteNoiseTexture);
     TEXTURE2D(_BlueNoiseTexture);
+    TEXTURE2D(_CRTGrateMaskTexture);
     float4 _UVTransform;
 
     // Emulated input resolution.
@@ -264,9 +266,8 @@ Shader "Hidden/HauntedPS1/CRT"
         return pos * 0.5 + 0.5;
     }
 
-#if 1
     // Very compressed TV style mask.
-    float3 CRTMask(float2 pos)
+    float3 CRTMaskCompressedTV(float2 pos)
     {
         float line0 = _CRTGrateMaskIntensityMinMax.y;
         float odd=0.0;
@@ -279,12 +280,10 @@ Shader "Hidden/HauntedPS1/CRT"
         else mask.b=_CRTGrateMaskIntensityMinMax.y;
         mask*=line0;
         return mask;
-    }        
-#endif
+    }
 
-#if 0
     // Aperture-grille.
-    float3 CRTMask(float2 pos)
+    float3 CRTMaskApertureGrill(float2 pos)
     {
         pos.x=frac(pos.x/3.0);
         float3 mask=float3(_CRTGrateMaskIntensityMinMax.x,_CRTGrateMaskIntensityMinMax.x,_CRTGrateMaskIntensityMinMax.x);
@@ -293,25 +292,9 @@ Shader "Hidden/HauntedPS1/CRT"
         else mask.b=lerp(_CRTGrateMaskIntensityMinMax.y, _CRTGrateMaskIntensityMinMax.x, abs(pos.x - 2.5 * 0.333) / 0.333);
         return mask;
     }        
-#endif
 
-#if 0
-    // Stretched VGA style mask.
-    float3 CRTMask(float2 pos)
-    {
-        pos.x+=pos.y*3.0;
-        float3 mask=float3(_CRTGrateMaskIntensityMinMax.x,_CRTGrateMaskIntensityMinMax.x,_CRTGrateMaskIntensityMinMax.x);
-        pos.x=frac(pos.x/6.0);
-        if(pos.x<0.333)mask.r=_CRTGrateMaskIntensityMinMax.y;
-        else if(pos.x<0.666)mask.g=_CRTGrateMaskIntensityMinMax.y;
-        else mask.b=_CRTGrateMaskIntensityMinMax.y;
-        return mask;
-    }    
-#endif
-
-#if 0
     // VGA style mask.
-    float3 CRTMask(float2 pos)
+    float3 CRTMaskVGA(float2 pos)
     {
         pos.xy=floor(pos.xy*float2(1.0,0.5));
         pos.x+=pos.y*3.0;
@@ -321,8 +304,48 @@ Shader "Hidden/HauntedPS1/CRT"
         else if(pos.x<0.666)mask.g=_CRTGrateMaskIntensityMinMax.y;
         else mask.b=_CRTGrateMaskIntensityMinMax.y;
         return mask;
-    }    
-#endif
+    }  
+
+    // Stretched VGA style mask.
+    float3 CRTMaskVGAStretched(float2 pos)
+    {
+        pos.x+=pos.y*3.0;
+        float3 mask=float3(_CRTGrateMaskIntensityMinMax.x,_CRTGrateMaskIntensityMinMax.x,_CRTGrateMaskIntensityMinMax.x);
+        pos.x=frac(pos.x/6.0);
+        if(pos.x<0.333)mask.r=_CRTGrateMaskIntensityMinMax.y;
+        else if(pos.x<0.666)mask.g=_CRTGrateMaskIntensityMinMax.y;
+        else mask.b=_CRTGrateMaskIntensityMinMax.y;
+        return mask;
+    }
+
+    float3 CRTMaskTexture(float2 pos)
+    {
+        float2 uv = frac(pos * _CRTGrateMaskSize.zw);
+        return SAMPLE_TEXTURE2D_LOD(_CRTGrateMaskTexture, s_linear_repeat_sampler, uv, 0).rgb
+            * (_CRTGrateMaskIntensityMinMax.y - _CRTGrateMaskIntensityMinMax.x) + _CRTGrateMaskIntensityMinMax.x;
+    }
+
+        
+
+    float3 CRTMask(float2 pos)
+    {
+    #if defined(_CRT_MASK_COMPRESSED_TV)
+        return CRTMaskCompressedTV(pos);
+    #elif defined(_CRT_MASK_APERTURE_GRILL)
+        return CRTMaskApertureGrill(pos);
+    #elif defined(_CRT_MASK_VGA)
+        return CRTMaskVGA(pos);
+    #elif defined(_CRT_MASK_VGA_STRETCHED)
+        return CRTMaskVGAStretched(pos);
+    #elif defined(_CRT_MASK_TEXTURE)
+        return CRTMaskTexture(pos);
+    #elif defined(_CRT_MASK_DISABLED)
+        return 1.0;
+    #else
+        #error "Error: CRT.shader: Encountered undefined CRTMask.";
+        return 1.0;
+    #endif
+    }
 
     // Entry.
     float4 EvaluateCRT(float2 positionSS)
@@ -425,6 +448,8 @@ Shader "Hidden/HauntedPS1/CRT"
             #pragma prefer_hlslcc gles
             #pragma exclude_renderers d3d11_9x
             #pragma target 2.0
+
+            #pragma multi_compile _CRT_MASK_COMPRESSED_TV _CRT_MASK_APERTURE_GRILL _CRT_MASK_VGA _CRT_MASK_VGA_STRETCHED _CRT_MASK_TEXTURE _CRT_MASK_DISABLED
 
             #pragma vertex Vertex
             #pragma fragment Fragment

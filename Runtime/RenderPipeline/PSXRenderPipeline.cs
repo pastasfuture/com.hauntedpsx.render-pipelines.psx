@@ -150,7 +150,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetRenderTarget(camera.targetTexture);
                 {
                     PushGlobalPostProcessingParameters(camera, cmd, m_Asset, rasterizationRT, rasterizationWidth, rasterizationHeight);
-                    PushCathodeRayTubeParameters(camera, cmd);
+                    PushCathodeRayTubeParameters(camera, cmd, crtMaterial);
                     PSXRenderPipeline.DrawFullScreenQuad(cmd, crtMaterial);
                 }
                 context.ExecuteCommandBuffer(cmd);
@@ -444,7 +444,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             return blueNoiseTexture;
         }
 
-        static void PushCathodeRayTubeParameters(Camera camera, CommandBuffer cmd)
+        static void PushCathodeRayTubeParameters(Camera camera, CommandBuffer cmd, Material crtMaterial)
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushCathodeRayTubeParameters))
             {
@@ -454,6 +454,86 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetGlobalInt(PSXShaderIDs._CRTIsEnabled, volumeSettings.isEnabled.value ? 1 : 0);
 
                 cmd.SetGlobalFloat(PSXShaderIDs._CRTBloom, volumeSettings.bloom.value);
+
+                switch (volumeSettings.grateMaskMode.value)
+                {
+                    case CathodeRayTubeVolume.CRTGrateMaskMode.CompressedTV:
+                        crtMaterial.EnableKeyword(PSXShaderKeywords.s_CRT_MASK_COMPRESSED_TV);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_APERATURE_GRILL);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_VGA);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_VGA_STRETCHED);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_TEXTURE);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_DISABLED);
+                        break;
+
+                    case CathodeRayTubeVolume.CRTGrateMaskMode.ApertureGrill:
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_COMPRESSED_TV);
+                        crtMaterial.EnableKeyword(PSXShaderKeywords.s_CRT_MASK_APERATURE_GRILL);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_VGA);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_VGA_STRETCHED);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_TEXTURE);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_DISABLED);
+                        break;
+
+                    case CathodeRayTubeVolume.CRTGrateMaskMode.VGA:
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_COMPRESSED_TV);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_APERATURE_GRILL);
+                        crtMaterial.EnableKeyword(PSXShaderKeywords.s_CRT_MASK_VGA);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_VGA_STRETCHED);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_TEXTURE);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_DISABLED);
+                        break;
+
+                    case CathodeRayTubeVolume.CRTGrateMaskMode.VGAStretched:
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_COMPRESSED_TV);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_APERATURE_GRILL);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_VGA);
+                        crtMaterial.EnableKeyword(PSXShaderKeywords.s_CRT_MASK_VGA_STRETCHED);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_TEXTURE);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_DISABLED);
+                        break;
+
+                    case CathodeRayTubeVolume.CRTGrateMaskMode.Texture:
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_COMPRESSED_TV);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_APERATURE_GRILL);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_VGA);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_VGA_STRETCHED);
+                        crtMaterial.EnableKeyword(PSXShaderKeywords.s_CRT_MASK_TEXTURE);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_DISABLED);
+                        break;
+
+                    case CathodeRayTubeVolume.CRTGrateMaskMode.Disabled:
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_COMPRESSED_TV);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_APERATURE_GRILL);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_VGA);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_VGA_STRETCHED);
+                        crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_MASK_TEXTURE);
+                        crtMaterial.EnableKeyword(PSXShaderKeywords.s_CRT_MASK_DISABLED);
+                        break;
+
+                    default:
+                        break;
+                }
+
+                if (volumeSettings.grateMaskMode.value == CathodeRayTubeVolume.CRTGrateMaskMode.Texture
+                    && volumeSettings.grateMaskTexture.value != null)
+                {
+                    Texture2D grateMaskTexture = (Texture2D)volumeSettings.grateMaskTexture.value;
+                    cmd.SetGlobalTexture(PSXShaderIDs._CRTGrateMaskTexture, grateMaskTexture);
+                    cmd.SetGlobalVector(PSXShaderIDs._CRTGrateMaskSize, new Vector4(
+                        grateMaskTexture.width,
+                        grateMaskTexture.height,
+                        1.0f / (float)grateMaskTexture.width,
+                        1.0f / (float)grateMaskTexture.height
+                    ));
+                }
+                else
+                {
+                    cmd.SetGlobalTexture(PSXShaderIDs._CRTGrateMaskTexture, Texture2D.whiteTexture);
+                    cmd.SetGlobalVector(PSXShaderIDs._CRTGrateMaskSize, new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+                }
+                
+
                 cmd.SetGlobalVector(PSXShaderIDs._CRTGrateMaskScale, new Vector2(volumeSettings.grateMaskScale.value, 1.0f / volumeSettings.grateMaskScale.value));
 
                 // Hardness of scanline.

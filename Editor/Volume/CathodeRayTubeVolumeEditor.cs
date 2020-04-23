@@ -12,6 +12,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
     {
         SerializedDataParameter m_IsEnabled;
         SerializedDataParameter m_Bloom;
+        SerializedDataParameter m_GrateMaskMode;
+        SerializedDataParameter m_GrateMaskTexture;
         SerializedDataParameter m_GrateMaskScale;
         SerializedDataParameter m_ScanlineSharpness;
         SerializedDataParameter m_ImageSharpness;
@@ -30,6 +32,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             var o = new PropertyFetcher<CathodeRayTubeVolume>(serializedObject);
             m_IsEnabled = Unpack(o.Find(x => x.isEnabled));
             m_Bloom = Unpack(o.Find(x => x.bloom));
+            m_GrateMaskMode = Unpack(o.Find(x => x.grateMaskMode));
+            m_GrateMaskTexture = Unpack(o.Find(x => x.grateMaskTexture));
             m_GrateMaskScale = Unpack(o.Find(x => x.grateMaskScale));
             m_ScanlineSharpness = Unpack(o.Find(x => x.scanlineSharpness));
             m_ImageSharpness = Unpack(o.Find(x => x.imageSharpness));
@@ -48,6 +52,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         {
             PropertyField(m_IsEnabled, EditorGUIUtility.TrTextContent("Enabled", "Controls whether or not the CRT simulation is enabled."));
             PropertyField(m_Bloom, EditorGUIUtility.TrTextContent("Bloom", "Controls the overall strength of the spatial ghosting across pixels."));
+            PropertyField(m_GrateMaskMode, EditorGUIUtility.TrTextContent("Grate Mask Mode", "Controls the R, G, B grate mask pattern."));
+            PropertyField(m_GrateMaskTexture, EditorGUIUtility.TrTextContent("Grate Mask Texture", "Controls the R, G, B grate mask pattern using this texture's R, G, B values"));
             PropertyField(m_GrateMaskScale, EditorGUIUtility.TrTextContent("Grate Mask Scale", "Controls the scale of the RGB color matrix."));
             PropertyField(m_ScanlineSharpness, EditorGUIUtility.TrTextContent("Scanline Sharpness", "Controls the sharpness of the scanline overlay."));
             PropertyField(m_ImageSharpness, EditorGUIUtility.TrTextContent("Image Sharpness", "Controls the sharpness of the image displayed on the virtual CRT."));

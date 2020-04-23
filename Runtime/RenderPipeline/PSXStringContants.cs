@@ -43,6 +43,16 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly ShaderTagId s_SRPDefaultUnlit = new ShaderTagId(s_SRPDefaultUnlitStr);
     }
 
+    internal static class PSXShaderKeywords
+    {
+        public static readonly string s_CRT_MASK_COMPRESSED_TV = "_CRT_MASK_COMPRESSED_TV";
+        public static readonly string s_CRT_MASK_APERATURE_GRILL = "_CRT_MASK_APERTURE_GRILL";
+        public static readonly string s_CRT_MASK_VGA = "_CRT_MASK_VGA";
+        public static readonly string s_CRT_MASK_VGA_STRETCHED = "_CRT_MASK_VGA_STRETCHED";
+        public static readonly string s_CRT_MASK_TEXTURE = "_CRT_MASK_TEXTURE";
+        public static readonly string s_CRT_MASK_DISABLED = "_CRT_MASK_DISABLED";
+    }
+
     // Pre-hashed shader ids to avoid runtime hashing cost, runtime string manipulation, and to ensure we do not have naming conflicts across
     // all global shader uniforms.
     internal static class PSXShaderIDs
@@ -59,6 +69,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _Time = Shader.PropertyToID("_Time");
         public static readonly int _CRTIsEnabled = Shader.PropertyToID("_CRTIsEnabled");
         public static readonly int _CRTBloom = Shader.PropertyToID("_CRTBloom");
+        public static readonly int _CRTGrateMaskTexture = Shader.PropertyToID("_CRTGrateMaskTexture");
+        public static readonly int _CRTGrateMaskSize = Shader.PropertyToID("_CRTGrateMaskSize");
         public static readonly int _CRTGrateMaskScale = Shader.PropertyToID("_CRTGrateMaskScale");
         public static readonly int _CRTScanlineSharpness = Shader.PropertyToID("_CRTScanlineSharpness");
         public static readonly int _CRTImageSharpness = Shader.PropertyToID("_CRTImageSharpness");

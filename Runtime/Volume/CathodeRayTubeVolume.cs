@@ -7,8 +7,28 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
     [Serializable, VolumeComponentMenu("HauntedPS1/Cathode Ray Tube")]
     public class CathodeRayTubeVolume : VolumeComponent
     {
+        [Serializable]
+        public enum CRTGrateMaskMode
+        {
+            CompressedTV = 0,
+            ApertureGrill,
+            VGA,
+            VGAStretched,
+            Texture,
+            Disabled
+        };
+
+        [Serializable]
+        public sealed class CRTGrateMaskModeParameter : VolumeParameter<CRTGrateMaskMode>
+        {
+            public CRTGrateMaskModeParameter(CRTGrateMaskMode value, bool overrideState = false)
+                : base(value, overrideState) {}
+        }
+
         public BoolParameter isEnabled = new BoolParameter(true);
         public ClampedFloatParameter bloom = new ClampedFloatParameter(1.0f / 16.0f, 0.0f, 1.0f);
+        public CRTGrateMaskModeParameter grateMaskMode = new CRTGrateMaskModeParameter(CRTGrateMaskMode.CompressedTV);
+        public TextureParameter grateMaskTexture = new TextureParameter(null);
         public FloatParameter grateMaskScale = new FloatParameter(1.0f);
         public ClampedFloatParameter scanlineSharpness = new ClampedFloatParameter(0.5f, 0.0f, 1.0f);
         public ClampedFloatParameter imageSharpness = new ClampedFloatParameter(0.5f, 0.0f, 1.0f);
