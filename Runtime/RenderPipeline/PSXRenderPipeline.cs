@@ -188,7 +188,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 {
                     // Vertical aspect.
                     height = Mathf.FloorToInt((float)height * (float)camera.pixelHeight / (float)camera.pixelWidth + 0.5f);
-                    width = 240;
                 }
             }
         }
