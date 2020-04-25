@@ -140,11 +140,12 @@ float3 NoiseDitherRemapTriangularDistribution(float3 v)
 float3 ComputeFramebufferDiscretization(float3 color, float2 positionSS)
 {
     float framebufferDither = 0.5f;
-    if (_FramebufferDitherIsEnabled > 0.5f)
+    if (_FramebufferDither > 0.0f)
     {
         uint2 framebufferDitherTexelCoord = (uint2)floor(frac(positionSS * _FramebufferDitherSize.zw) * _FramebufferDitherSize.xy);
         framebufferDither = LOAD_TEXTURE2D_LOD(_FramebufferDitherTexture, framebufferDitherTexelCoord, 0).a;
         framebufferDither = NoiseDitherRemapTriangularDistribution(framebufferDither);
+        framebufferDither = lerp(0.5f, framebufferDither, _FramebufferDither);
     }
     return floor(color.xyz * _PrecisionColor.rgb + framebufferDither) * _PrecisionColorInverse.rgb;
 }
@@ -186,6 +187,20 @@ float EvaluateFogFalloff(float3 positionWS, float3 cameraPositionWS, float3 posi
     // _FogDistanceScaleBias.zw contains height falloff scale bias terms.
     return saturate(faloffDepth * _FogDistanceScaleBias.x + _FogDistanceScaleBias.y)
         * saturate(falloffHeight * _FogDistanceScaleBias.z + _FogDistanceScaleBias.w);
+}
+
+float ComputeFogAlphaDiscretization(float alpha, float2 positionSS)
+{
+    float dither = 0.5f;
+    if (_FogPrecisionAlphaDither > 0.0f)
+    {
+        uint2 ditherTexelCoord = (uint2)floor(frac(positionSS * _FogPrecisionAlphaDitherSize.zw) * _FogPrecisionAlphaDitherSize.xy);
+        dither = LOAD_TEXTURE2D_LOD(_FogPrecisionAlphaDitherTexture, ditherTexelCoord, 0).a;
+        dither = NoiseDitherRemapTriangularDistribution(dither);
+        dither = lerp(0.5f, dither, _FogPrecisionAlphaDither);
+    }
+
+    return saturate(floor(alpha * _FogPrecisionAlphaAndInverse.x + dither) * _FogPrecisionAlphaAndInverse.y);
 }
 
 #endif

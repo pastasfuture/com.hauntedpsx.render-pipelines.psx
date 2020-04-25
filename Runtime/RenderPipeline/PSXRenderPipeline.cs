@@ -6,18 +6,21 @@ using System.Collections.Generic;
 
 namespace HauntedPSX.RenderPipelines.PSX.Runtime
 {
-    internal class PSXRenderPipeline : UnityEngine.Rendering.RenderPipeline
+    public class PSXRenderPipeline : UnityEngine.Rendering.RenderPipeline
     {
         readonly PSXRenderPipelineAsset m_Asset;
-        internal PSXRenderPipelineAsset asset { get { return m_Asset; }}
+        public PSXRenderPipelineAsset asset { get { return m_Asset; }}
 
         internal const PerObjectData k_RendererConfigurationBakedLighting = PerObjectData.LightProbe | PerObjectData.Lightmaps | PerObjectData.LightProbeProxyVolume;
         internal const PerObjectData k_RendererConfigurationBakedLightingWithShadowMask = k_RendererConfigurationBakedLighting | PerObjectData.OcclusionProbe | PerObjectData.OcclusionProbeProxyVolume | PerObjectData.ShadowMask;
 
         Material crtMaterial;
+
+        public static PSXRenderPipeline instance = null;
         
         internal PSXRenderPipeline(PSXRenderPipelineAsset asset)
         {
+            instance = this;
             m_Asset = asset;
             Build();
             Allocate();
@@ -305,7 +308,27 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetGlobalVector(PSXShaderIDs._PrecisionColor, precisionColor);
                 cmd.SetGlobalVector(PSXShaderIDs._PrecisionColorInverse, new Vector3(1.0f / precisionColor.x, 1.0f / precisionColor.y, 1.0f / precisionColor.z));
 
-                cmd.SetGlobalInt(PSXShaderIDs._FramebufferDitherIsEnabled, volumeSettings.framebufferDitherIsEnabled.value ? 1 : 0);
+                int precisionAlphaIndex = Mathf.FloorToInt(volumeSettings.alpha.value * 7.0f + 0.5f);
+                float precisionAlpha = 0.0f; // Silence the compiler warnings.
+                switch (precisionAlphaIndex)
+                {
+                    case 7: precisionAlpha = (float)(1 << 7); break;
+                    case 6: precisionAlpha = (float)(1 << 6); break;
+                    case 5: precisionAlpha = (float)(1 << 5); break;
+                    case 4: precisionAlpha = (float)(1 << 4); break;
+                    case 3: precisionAlpha = (float)(1 << 3); break;
+                    case 2: precisionAlpha = (float)(1 << 2); break;
+                    case 1: precisionAlpha = (float)(1 << 1); break;
+                    case 0: precisionAlpha = (float)(1 << 0); break;
+                    default: Debug.Assert(false); break;
+                }
+
+                cmd.SetGlobalVector(PSXShaderIDs._PrecisionAlphaAndInverse, new Vector2(precisionAlpha, 1.0f / precisionAlpha));
+
+                float affineTextureWarping = volumeSettings.affineTextureWarping.value;
+                cmd.SetGlobalFloat(PSXShaderIDs._AffineTextureWarping, affineTextureWarping);
+
+                cmd.SetGlobalFloat(PSXShaderIDs._FramebufferDither, volumeSettings.framebufferDither.value);
                 Texture2D framebufferDitherTex = GetFramebufferDitherTexFromAssetAndFrame(asset, (uint)Time.frameCount);
                 cmd.SetGlobalTexture(PSXShaderIDs._FramebufferDitherTexture, framebufferDitherTex);
                 cmd.SetGlobalVector(PSXShaderIDs._FramebufferDitherSize, new Vector4(
@@ -349,6 +372,34 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 int fogFalloffMode = (int)volumeSettings.fogFalloffMode.value;
                 cmd.SetGlobalInt(PSXShaderIDs._FogFalloffMode, fogFalloffMode);
                 cmd.SetGlobalVector(PSXShaderIDs._FogColor, new Vector4(volumeSettings.color.value.r, volumeSettings.color.value.g, volumeSettings.color.value.b, volumeSettings.color.value.a));
+
+                int precisionAlphaIndex = Mathf.FloorToInt(volumeSettings.precisionAlpha.value * 7.0f + 0.5f);
+                float precisionAlpha = 0.0f; // Silence the compiler warnings.
+                switch (precisionAlphaIndex)
+                {
+                    case 7: precisionAlpha = (float)(1 << 7); break;
+                    case 6: precisionAlpha = (float)(1 << 6); break;
+                    case 5: precisionAlpha = (float)(1 << 5); break;
+                    case 4: precisionAlpha = (float)(1 << 4); break;
+                    case 3: precisionAlpha = (float)(1 << 3); break;
+                    case 2: precisionAlpha = (float)(1 << 2); break;
+                    case 1: precisionAlpha = (float)(1 << 1); break;
+                    case 0: precisionAlpha = (float)(1 << 0); break;
+                    default: Debug.Assert(false); break;
+                }
+
+                cmd.SetGlobalVector(PSXShaderIDs._FogPrecisionAlphaAndInverse, new Vector2(precisionAlpha, 1.0f / precisionAlpha));
+
+                Texture precisionAlphaDitherTexture = (volumeSettings.precisionAlphaDitherTexture.value != null) ? volumeSettings.precisionAlphaDitherTexture.value : Texture2D.grayTexture;
+                cmd.SetGlobalTexture(PSXShaderIDs._FogPrecisionAlphaDitherTexture, precisionAlphaDitherTexture);
+                cmd.SetGlobalVector(PSXShaderIDs._FogPrecisionAlphaDitherSize, new Vector4(
+                    precisionAlphaDitherTexture.width,
+                    precisionAlphaDitherTexture.height,
+                    1.0f / (float)precisionAlphaDitherTexture.width,
+                    1.0f / (float)precisionAlphaDitherTexture.height
+                ));
+                cmd.SetGlobalFloat(PSXShaderIDs._FogPrecisionAlphaDither, volumeSettings.precisionAlphaDither.value);
+
                 cmd.SetGlobalVector(PSXShaderIDs._FogDistanceScaleBias, fogDistanceScaleBias);
             }
         }

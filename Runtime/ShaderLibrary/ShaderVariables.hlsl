@@ -22,9 +22,15 @@ float _DrawDistance;
 float2 _PrecisionGeometry;
 float3 _PrecisionColor;
 float3 _PrecisionColorInverse;
+float2 _PrecisionAlphaAndInverse;
+float _AffineTextureWarping;
 int _FogFalloffMode;
 float4 _FogColor;
 float4 _FogDistanceScaleBias;
+float2 _FogPrecisionAlphaAndInverse;
+TEXTURE2D(_FogPrecisionAlphaDitherTexture);
+float4 _FogPrecisionAlphaDitherSize;
+float _FogPrecisionAlphaDither;
 
 // Lighting (In the future this might be moved to UnityPerMaterial if we get multiple lights):
 int _LightingIsEnabled;
@@ -125,7 +131,7 @@ TEXTURE2D(unity_LightmapInd);
 
 TEXTURE2D(_FramebufferDitherTexture);
 float4 _FramebufferDitherSize;
-int _FramebufferDitherIsEnabled;
+float _FramebufferDither;
 
 
 TEXTURE2D(_AlphaClippingDitherTexture);

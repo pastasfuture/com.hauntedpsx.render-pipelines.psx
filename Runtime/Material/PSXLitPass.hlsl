@@ -20,13 +20,13 @@ struct Attributes
 
 struct Varyings
 {
-    float3 uvw : TEXCOORD0;
     float4 vertex : SV_POSITION;
+    float3 uvw : TEXCOORD0;
     float3 positionVS : TEXCOORD1;
+    float4 fog : TEXCOORD2;
 #if defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_BAKED_ON)
-    float3 lighting : TEXCOORD2;
+    float3 lighting : TEXCOORD3;
 #endif
-    float4 fog : TEXCOORD3;
 };
 
 Varyings LitPassVertex(Attributes v)
@@ -59,8 +59,8 @@ Varyings LitPassVertex(Attributes v)
     {
         // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
         // This emulates the affine texture transform of the PSX era that did not take perspective correction into account as this division was prohibitively expensive.
-        o.uvw.xy = uv * positionCS.w;
-        o.uvw.z = positionCS.w;
+        o.uvw.z = lerp(1.0f, positionCS.w, _AffineTextureWarping);
+        o.uvw.xy = uv * o.uvw.z;
     }
     else
     {
@@ -96,7 +96,7 @@ Varyings LitPassVertex(Attributes v)
 #endif
 
         // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
-        o.lighting *= positionCS.w;
+        o.lighting *= o.uvw.z;
     }
     else
     {
@@ -117,7 +117,7 @@ Varyings LitPassVertex(Attributes v)
         o.fog = float4(fogColor, fogAlpha);
 
         // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
-        o.fog *= positionCS.w;
+        o.fog *= o.uvw.z;
     }
 
     return o;
@@ -150,6 +150,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
 
     // Convert to RGB 5:6:5 color space (default) - this will actually be whatever color space the user specified in the Precision Volume Override.
     color.rgb = floor(color.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
+    color.a = floor(color.a * _PrecisionAlphaAndInverse.x + 0.5f) * _PrecisionAlphaAndInverse.y;
     color.rgb = SRGBToLinear(color.rgb);
 
 #if defined(_ALPHAPREMULTIPLY_ON)
@@ -181,6 +182,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
 
     float3 fogColor = i.fog.rgb * interpolatorNormalization;
     float fogAlpha = i.fog.a * interpolatorNormalization;
+    fogAlpha = ComputeFogAlphaDiscretization(fogAlpha, positionSS);
 
 #if defined(_ALPHAPREMULTIPLY_ON) || defined(_ALPHAMODULATE_ON)
     fogAlpha *= color.a;
