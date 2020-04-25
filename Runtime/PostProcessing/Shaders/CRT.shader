@@ -112,7 +112,7 @@ Shader "Hidden/HauntedPS1/CRT"
     {
         float2 posNoiseSignal = floor(pos * res + off) * noiseTextureSize.zw;
         float2 posNoiseCRT = floor(pos * _ScreenSize.xy + off * res * _ScreenSize.zw) * noiseTextureSize.zw;
-        pos = floor(pos * res + off) / res;
+        pos = (floor(pos * res + off) + 0.5) / res;
         if(max(abs(pos.x - 0.5), abs(pos.y - 0.5)) > 0.5) { return float3(0.0,0.0,0.0); }
         float3 value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, FetchFrameBuffer(pos).rgb);
         value = SRGBToLinear(value);
