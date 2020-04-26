@@ -6,7 +6,7 @@ Shader "Hidden/HauntedPS1/CRT"
     // #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
     #pragma prefer_hlslcc gles
     #pragma exclude_renderers d3d11_9x
-    #pragma target 2.0
+    #pragma target 3.0
 
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
@@ -83,6 +83,11 @@ Shader "Hidden/HauntedPS1/CRT"
     {
         float2 uv = float2(1.0f, cos(_Time.y)) * _Time.y * 8.0f + p;
 
+        // Unfortunately, WebGL builds will ignore the sampler state passed into SAMPLE_TEXTURE2D functions, so we cannot force a texture to repeat
+        // that was not specified to repeat in it's own settings via the sampler.
+        // Instead, we just spend a frac() instruction to force repeat in software.
+        uv = frac(uv);
+
         // Noise texture is treated as data texture - noise is expected to be distributed in linear space, not perceptual / gamma space.
         float3 s = SAMPLE_TEXTURE2D_LOD(noiseTextureSampler, s_linear_repeat_sampler, uv, 0).rgb;
         s = s * 2.0 - 1.0;
@@ -101,9 +106,9 @@ Shader "Hidden/HauntedPS1/CRT"
         return saturate(SRGBFromFCCYIQ(cyuv + noiseSignalYUV + noiseCRTYUV));
     }
 
-    float4 FetchFrameBuffer(float2 pos)
+    float4 FetchFrameBuffer(float2 uv)
     {
-        return SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, pos.xy, 0);
+        return SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, uv, 0);
     }
 
     // Nearest emulated sample given floating point position and texel offset.
@@ -447,7 +452,7 @@ Shader "Hidden/HauntedPS1/CRT"
             // Required to compile gles 2.0 with standard srp library
             #pragma prefer_hlslcc gles
             #pragma exclude_renderers d3d11_9x
-            #pragma target 2.0
+            #pragma target 3.0
 
             #pragma multi_compile _CRT_MASK_COMPRESSED_TV _CRT_MASK_APERTURE_GRILL _CRT_MASK_VGA _CRT_MASK_VGA_STRETCHED _CRT_MASK_TEXTURE _CRT_MASK_DISABLED
 
