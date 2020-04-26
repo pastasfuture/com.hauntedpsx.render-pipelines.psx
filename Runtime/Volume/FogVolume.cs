@@ -28,8 +28,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public FloatParameter precisionAlpha = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
         public TextureParameter precisionAlphaDitherTexture = new TextureParameter(null);
         public ClampedFloatParameter precisionAlphaDither = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
-        public ClampedFloatParameter distanceMin = new ClampedFloatParameter(0.0f, 0.0f, 100.0f);
-        public ClampedFloatParameter distanceMax = new ClampedFloatParameter(100.0f, 0.0f, 100.0f);
+        public MinFloatParameter distanceMin = new MinFloatParameter(0.0f, 0.0f);
+        public MinFloatParameter distanceMax = new MinFloatParameter(100.0f, 1e-5f);
         public BoolParameter heightFalloffEnabled = new BoolParameter(false);
         public FloatParameter heightMin = new FloatParameter(0.0f);
         public FloatParameter heightMax = new FloatParameter(10.0f);
