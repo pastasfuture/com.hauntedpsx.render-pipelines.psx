@@ -118,7 +118,6 @@ half4 LitMetaPassFragment(Varyings i) : SV_Target
 #ifdef _EMISSION
     float2 emissionUV = TRANSFORM_TEX(i.uv, _EmissionTexture);
     half3 emission = _EmissionColor * SAMPLE_TEXTURE2D(_EmissionTexture, sampler_EmissionTexture, emissionUV).rgb;
-    emission = floor(emission * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
     emission = SRGBToLinear(emission);
 
 #if defined(_ALPHAPREMULTIPLY_ON) || defined(_ALPHAMODULATE_ON)
