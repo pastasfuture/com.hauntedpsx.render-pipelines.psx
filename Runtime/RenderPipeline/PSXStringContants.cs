@@ -18,6 +18,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_PushQualityOverrideParametersStr = "Push Quality Override Parameters";
         public static readonly string s_PushTonemapperParametersStr = "Push Tonemapper Parameters";
         public static readonly string s_PushLightingParametersStr = "Push Lighting Parameters";
+        public static readonly string s_PushDynamicLightingParametersStr = "Push Dynamic Lighting Parameters";
         public static readonly string s_PushPrecisionParametersStr = "Push Precision Parameters";
         public static readonly string s_PushFogParametersStr = "Push Fog Parameters";
         public static readonly string s_PushCathodeRayTubeParametersStr = "Push Cathode Ray Tube Parameters";
@@ -27,6 +28,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static ProfilingSampler s_PushQualityOverrideParameters = new ProfilingSampler(s_PushQualityOverrideParametersStr);
         public static ProfilingSampler s_PushTonemapperParameters = new ProfilingSampler(s_PushTonemapperParametersStr);
         public static ProfilingSampler s_PushLightingParameters = new ProfilingSampler(s_PushLightingParametersStr);
+        public static ProfilingSampler s_PushDynamicLightingParameters = new ProfilingSampler(s_PushDynamicLightingParametersStr);
         public static ProfilingSampler s_PushPrecisionParameters = new ProfilingSampler(s_PushPrecisionParametersStr);
         public static ProfilingSampler s_PushFogParameters = new ProfilingSampler(s_PushFogParametersStr);
         public static ProfilingSampler s_PushCathodeRayTubeParameters = new ProfilingSampler(s_PushCathodeRayTubeParametersStr);
@@ -109,7 +111,14 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _TonemapperCrossTalkSaturation = Shader.PropertyToID("_TonemapperCrossTalkSaturation");
         public static readonly int _BakedLightingMultiplier = Shader.PropertyToID("_BakedLightingMultiplier");
         public static readonly int _VertexColorLightingMultiplier = Shader.PropertyToID("_VertexColorLightingMultiplier");
+        public static readonly int _DynamicLightingMultiplier = Shader.PropertyToID("_DynamicLightingMultiplier");
         public static readonly int _AlphaClippingDitherTexture = Shader.PropertyToID("_AlphaClippingDitherTexture");
         public static readonly int _AlphaClippingDitherSize = Shader.PropertyToID("_AlphaClippingDitherSize");
+        public static readonly int _AdditionalLightsPosition = Shader.PropertyToID("_AdditionalLightsPosition");
+        public static readonly int _AdditionalLightsColor = Shader.PropertyToID("_AdditionalLightsColor");
+        public static readonly int _AdditionalLightsAttenuation = Shader.PropertyToID("_AdditionalLightsAttenuation");
+        public static readonly int _AdditionalLightsSpotDir = Shader.PropertyToID("_AdditionalLightsSpotDir");
+        public static readonly int _AdditionalLightOcclusionProbeChannel = Shader.PropertyToID("_AdditionalLightOcclusionProbeChannel");
+        public static readonly int _AdditionalLightsCount = Shader.PropertyToID("_AdditionalLightsCount");
     }
 }

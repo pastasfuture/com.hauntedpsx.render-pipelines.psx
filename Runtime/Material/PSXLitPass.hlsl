@@ -4,6 +4,7 @@
 #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/ShaderVariables.hlsl"
 #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/ShaderFunctions.hlsl"
 #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/BakedLighting.hlsl"
+#include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/DynamicLighting.hlsl"
 
 struct Attributes
 {
@@ -23,9 +24,22 @@ struct Varyings
     float4 vertex : SV_POSITION;
     float3 uvw : TEXCOORD0;
     float3 positionVS : TEXCOORD1;
+#if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
     float4 fog : TEXCOORD2;
-#if defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_BAKED_ON)
+#if defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_DYNAMIC_ON)
     float3 lighting : TEXCOORD3;
+#endif
+#elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
+    float3 positionWS : TEXCOORD2;
+    float3 normalWS : TEXCOORD3;
+#if defined(_LIGHTING_BAKED_ON) && defined(LIGHTMAP_ON)
+    float2 lightmapUV : TEXCOORD4;
+#if defined(_LIGHTING_VERTEX_COLOR_ON)
+    float3 lighting : TEXCOORD5;
+#endif
+#elif defined(_LIGHTING_VERTEX_COLOR_ON)
+    float3 lighting : TEXCOORD4;
+#endif
 #endif
 };
 
@@ -69,7 +83,9 @@ Varyings LitPassVertex(Attributes v)
 
     o.positionVS = positionVS;
 
-#if defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_VERTEX_COLOR_ON)
+#if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
+
+#if defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_DYNAMIC_ON)
     if (_IsPSXQualityEnabled)
     {
         float3 normalWS = TransformObjectToWorldNormal(v.normal);
@@ -89,10 +105,13 @@ Varyings LitPassVertex(Attributes v)
 
         o.lighting *= _BakedLightingMultiplier;
 #endif
-
         
 #if defined(_LIGHTING_VERTEX_COLOR_ON)
         o.lighting += SRGBToLinear(v.color.rgb) * _VertexColorLightingMultiplier;
+#endif
+
+#if defined(_LIGHTING_DYNAMIC_ON)
+        o.lighting += EvaluateDynamicLighting(positionWS, normalWS) * _DynamicLightingMultiplier;
 #endif
 
         // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
@@ -119,6 +138,23 @@ Varyings LitPassVertex(Attributes v)
         // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
         o.fog *= o.uvw.z;
     }
+
+#elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
+    o.normalWS = TransformObjectToWorldNormal(v.normal);
+    o.positionWS = positionWS;
+
+#if defined(_LIGHTING_BAKED_ON) && defined(LIGHTMAP_ON)
+    o.lightmapUV = v.lightmapUV.xy;
+#endif
+
+#if defined(_LIGHTING_VERTEX_COLOR_ON)
+    // Still need to evaluate vertex color per vertex, even in per pixel overall evaluation mode.
+    o.lighting = SRGBToLinear(v.color.rgb) * _VertexColorLightingMultiplier;
+    // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
+    o.lighting *= o.uvw.z;
+#endif
+
+#endif
 
     return o;
 }
@@ -159,10 +195,43 @@ half4 LitPassFragment(Varyings i) : SV_Target
     color.rgb = lerp(float3(1.0f, 1.0f, 1.0f), color.rgb, color.a);
 #endif
 
-#if defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_VERTEX_COLOR_ON)
+#if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
+#if defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_DYNAMIC_ON)
     if (_LightingIsEnabled > 0.5f)
     {
-        color.xyz *= i.lighting * interpolatorNormalization;
+        color.rgb *= i.lighting * interpolatorNormalization;
+    }
+#endif
+#elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
+    if (_LightingIsEnabled > 0.5f)
+    {
+        float3 normalWS = normalize(i.normalWS);
+
+        float3 lighting = 0.0f;
+
+    #if defined(_LIGHTING_BAKED_ON)
+    #ifdef LIGHTMAP_ON
+        float2 lightmapUV = i.lightmapUV * unity_LightmapST.xy + unity_LightmapST.zw;
+        lighting = SRGBToLinear(SampleLightmap(lightmapUV, normalWS));
+    #else
+        // TODO: Track down why we need this scale factor for probes. I have a suspision it is because we are working in
+        // gamma space, and that the supporting code is meant to be executed in linear, but we will see.
+        const float PROBE_SCALE_FACTOR = 12.0f;
+        lighting = SRGBToLinear(SampleSH(normalWS)) * PROBE_SCALE_FACTOR;
+    #endif
+
+        lighting *= _BakedLightingMultiplier;
+#endif
+        
+#if defined(_LIGHTING_VERTEX_COLOR_ON)
+        lighting += i.lighting * interpolatorNormalization;
+#endif
+
+#if defined(_LIGHTING_DYNAMIC_ON)
+        lighting += EvaluateDynamicLighting(i.positionWS, normalWS) * _DynamicLightingMultiplier;
+#endif
+
+        color.rgb *= lighting;
     }
 #endif
 
@@ -180,8 +249,18 @@ half4 LitPassFragment(Varyings i) : SV_Target
     color.rgb += emission;
 #endif
 
+#if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
     float3 fogColor = i.fog.rgb * interpolatorNormalization;
     float fogAlpha = i.fog.a * interpolatorNormalization;
+#elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
+    float fogAlpha = EvaluateFogFalloff(i.positionWS, _WorldSpaceCameraPos, i.positionVS);
+    fogAlpha *= _FogColor.a;
+
+    // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
+    // For now just do it here to make this code easier to refactor as we figure out the architecture.
+    float3 fogColor = floor(_FogColor.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
+    fogColor = SRGBToLinear(fogColor);
+#endif
     fogAlpha = ComputeFogAlphaDiscretization(fogAlpha, positionSS);
 
 #if defined(_ALPHAPREMULTIPLY_ON) || defined(_ALPHAMODULATE_ON)

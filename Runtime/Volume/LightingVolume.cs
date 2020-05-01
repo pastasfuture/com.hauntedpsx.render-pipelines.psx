@@ -8,8 +8,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
     public class LightingVolume : VolumeComponent
     {
         public BoolParameter lightingIsEnabled = new BoolParameter(false);
-        public FloatParameter bakedLightingMultiplier = new FloatParameter(1.0f);
-        public FloatParameter vertexColorLightingMultiplier = new FloatParameter(0.0f);
+        public MinFloatParameter bakedLightingMultiplier = new MinFloatParameter(1.0f, 0.0f);
+        public MinFloatParameter vertexColorLightingMultiplier = new MinFloatParameter(0.0f, 0.0f);
+        public MinFloatParameter dynamicLightingMultiplier = new MinFloatParameter(1.0f, 0.0f);
+        public ClampedIntParameter dynamicLightsMaxCount = new ClampedIntParameter(256, 1, 256);
+        public ClampedIntParameter dynamicLightsMaxPerObjectCount = new ClampedIntParameter(4, 1, 32);
+
         static LightingVolume s_Default = null;
         public static LightingVolume @default
         {

@@ -6,13 +6,14 @@ using System.Collections.Generic;
 
 namespace HauntedPSX.RenderPipelines.PSX.Runtime
 {
-    public class PSXRenderPipeline : UnityEngine.Rendering.RenderPipeline
+    public partial class PSXRenderPipeline : UnityEngine.Rendering.RenderPipeline
     {
         readonly PSXRenderPipelineAsset m_Asset;
         public PSXRenderPipelineAsset asset { get { return m_Asset; }}
 
         internal const PerObjectData k_RendererConfigurationBakedLighting = PerObjectData.LightProbe | PerObjectData.Lightmaps | PerObjectData.LightProbeProxyVolume;
         internal const PerObjectData k_RendererConfigurationBakedLightingWithShadowMask = k_RendererConfigurationBakedLighting | PerObjectData.OcclusionProbe | PerObjectData.OcclusionProbeProxyVolume | PerObjectData.ShadowMask;
+        internal const PerObjectData k_RendererConfigurationDynamicLighting = PerObjectData.LightData | PerObjectData.LightIndices;
 
         Material crtMaterial;
 
@@ -109,7 +110,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cullingParameters.cullingOptions &= ~CullingOptions.ShadowCasters;
 
                 // Disable lighting completely as we currently do not support dynamic light sources.
-                cullingParameters.cullingOptions &= ~CullingOptions.NeedsLighting;
+                // cullingParameters.cullingOptions &= ~CullingOptions.NeedsLighting;
 
                 // Disable stereo rendering as we currently do not support it.
                 cullingParameters.cullingOptions &= ~CullingOptions.Stereo;
@@ -136,6 +137,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     PushFogParameters(camera, cmd);
                     PushLightingParameters(camera, cmd);
                     PushTonemapperParameters(camera, cmd);
+                    PushDynamicLightingParameters(camera, cmd, ref cullingResults);
                     context.ExecuteCommandBuffer(cmd);
                     cmd.Release();
                     
@@ -276,7 +278,35 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetGlobalInt(PSXShaderIDs._LightingIsEnabled, lightingIsEnabled ? 1 : 0);
                 cmd.SetGlobalFloat(PSXShaderIDs._BakedLightingMultiplier, volumeSettings.bakedLightingMultiplier.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._VertexColorLightingMultiplier, volumeSettings.vertexColorLightingMultiplier.value);
+                cmd.SetGlobalFloat(PSXShaderIDs._DynamicLightingMultiplier, volumeSettings.dynamicLightingMultiplier.value);
             }
+        }
+
+        static PerObjectData ComputePerObjectDataFromLightingVolume(Camera camera)
+        {
+            var volumeSettings = VolumeManager.instance.stack.GetComponent<LightingVolume>();
+            if (!volumeSettings) volumeSettings = LightingVolume.@default;
+
+            bool lightingIsEnabled = volumeSettings.lightingIsEnabled.value;
+
+            // Respect the sceneview lighting enabled / disabled toggle.
+            lightingIsEnabled &= !CoreUtils.IsSceneLightingDisabled(camera);
+
+            PerObjectData perObjectData = (PerObjectData)0;
+            if (lightingIsEnabled)
+            {
+                if (volumeSettings.bakedLightingMultiplier.value > 0.0f)
+                {
+                    perObjectData |= k_RendererConfigurationBakedLighting;
+                }
+
+                if (volumeSettings.dynamicLightingMultiplier.value > 0.0f)
+                {
+                    perObjectData |= k_RendererConfigurationDynamicLighting;
+                }
+            }
+
+            return perObjectData;
         }
 
         static void PushPrecisionParameters(Camera camera, CommandBuffer cmd, PSXRenderPipelineAsset asset)
@@ -644,8 +674,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
             var drawingSettings = new DrawingSettings(PSXShaderPassNames.s_PSXLit, sortingSettings)
             {
-                // TODO: Only enable lightmap data sending if requested in the render pipeline asset.
-                perObjectData = k_RendererConfigurationBakedLighting
+                perObjectData = ComputePerObjectDataFromLightingVolume(camera)
             };
             
             var filteringSettings = new FilteringSettings()
@@ -669,8 +698,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
             var drawingSettings = new DrawingSettings(PSXShaderPassNames.s_PSXLit, sortingSettings)
             {
-                // TODO: Only enable lightmap data sending if requested in the render pipeline asset.
-                perObjectData = k_RendererConfigurationBakedLighting
+                perObjectData = ComputePerObjectDataFromLightingVolume(camera)
             };
             
             var filteringSettings = new FilteringSettings()

@@ -11,10 +11,14 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public enum LightingMode
         {
-            LitBaked = 0,
-            LitVertexColor,
-            LitBakedAndVertexColor,
+            Lit = 0,
             Unlit
+        }
+
+        public enum ShadingEvaluationMode
+        {
+            PerVertex = 0,
+            PerPixel
         }
 
         public enum SurfaceType
@@ -51,7 +55,19 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 "These settings affect behind-the-scenes rendering and underlying calculations.");
 
             public static readonly GUIContent LightingMode =
-                new GUIContent("Lighting Mode", "Controls how lighting is applied to the material.\nLitBaked: Lighting is sampled from lightmaps and probes.\nLitVertexColor: Lighting is sampled from vertex color data.\nLitBakedAndVertexColor: Lighting from LitBaked mode and LitVertexColor mode is added together.\nUnlit: No lighting is applied.");
+                new GUIContent("Lighting Mode", "Controls whether or not lighting is evaluated.");
+
+            public static readonly GUIContent LightingBaked =
+                new GUIContent("Baked Lighting Enabled", "Controls whether or not baked lighting is sampled from lightmaps and probes.");
+
+            public static readonly GUIContent LightingVertexColor =
+                new GUIContent("Vertex Color Lighting Enabled", "Controls whether or not lighting is sampled from vertex color data.");
+
+            public static readonly GUIContent LightingDynamic =
+                new GUIContent("Dynamic Lighting Enabled", "Controls whether or not lighting is evaluated from realtime light sources.");
+
+            public static readonly GUIContent ShadingEvaluationMode =
+                new GUIContent("Shading Evaluation Mode", "Controls whether shading is evaluated per vertex or per pixel. This includes lighting, and fog.");
 
             public static readonly GUIContent surfaceType = new GUIContent("Surface Type",
                 "Select a surface type for your texture. Choose between Opaque or Transparent.");
@@ -89,6 +105,14 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         protected MaterialEditor materialEditor { get; set; }
 
         protected MaterialProperty lightingModeProp { get; set; }
+
+        protected MaterialProperty lightingBakedProp { get; set; }
+
+        protected MaterialProperty lightingVertexColorProp { get; set; }
+
+        protected MaterialProperty lightingDynamicProp { get; set; }
+
+        protected MaterialProperty shadingEvaluationModeProp { get; set; }
 
         protected MaterialProperty surfaceTypeProp { get; set; }
 
@@ -136,6 +160,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public virtual void FindProperties(MaterialProperty[] properties)
         {
             lightingModeProp = FindProperty("_LightingMode", properties);
+            lightingBakedProp = FindProperty("_LightingBaked", properties);
+            lightingVertexColorProp = FindProperty("_LightingVertexColor", properties);
+            lightingDynamicProp = FindProperty("_LightingDynamic", properties);
+            shadingEvaluationModeProp = FindProperty("_ShadingEvaluationMode", properties);
             surfaceTypeProp = FindProperty("_Surface", properties);
             blendModeProp = FindProperty("_Blend", properties);
             cullingProp = FindProperty("_Cull", properties);
@@ -228,6 +256,32 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public virtual void DrawSurfaceOptions(Material material)
         {
             DoPopup(Styles.LightingMode, lightingModeProp, Enum.GetNames(typeof(LightingMode)));
+
+            if ((lightingModeProp.floatValue != (float)LightingMode.Lit) && (lightingModeProp.floatValue != (float)LightingMode.Unlit))
+            {
+                // Old versions of the material can have enum values serialized outside the range that we are currently supporting. Default these materials back to lit.
+                lightingModeProp.floatValue = (float)LightingMode.Lit;
+            }
+
+            if ((LightingMode)material.GetFloat("_LightingMode") == LightingMode.Lit)
+            {
+                EditorGUI.BeginChangeCheck();
+                bool lightingBakedEnabled = EditorGUILayout.Toggle(Styles.LightingBaked, lightingBakedProp.floatValue == 1);
+                if (EditorGUI.EndChangeCheck())
+                    lightingBakedProp.floatValue = lightingBakedEnabled ? 1 : 0;
+
+                EditorGUI.BeginChangeCheck();
+                bool lightingVertexColorEnabled = EditorGUILayout.Toggle(Styles.LightingVertexColor, lightingVertexColorProp.floatValue == 1);
+                if (EditorGUI.EndChangeCheck())
+                    lightingVertexColorProp.floatValue = lightingVertexColorEnabled ? 1 : 0;
+
+                EditorGUI.BeginChangeCheck();
+                bool lightingDynamicEnabled = EditorGUILayout.Toggle(Styles.LightingDynamic, lightingDynamicProp.floatValue == 1);
+                if (EditorGUI.EndChangeCheck())
+                    lightingDynamicProp.floatValue = lightingDynamicEnabled ? 1 : 0;
+            }
+
+            DoPopup(Styles.ShadingEvaluationMode, shadingEvaluationModeProp, Enum.GetNames(typeof(ShadingEvaluationMode)));
 
             DoPopup(Styles.surfaceType, surfaceTypeProp, Enum.GetNames(typeof(SurfaceType)));
             if ((SurfaceType)material.GetFloat("_Surface") == SurfaceType.Transparent)
@@ -366,6 +420,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             material.shaderKeywords = null;
 
             SetupMaterialLightingMode(material);
+            SetupMaterialShadingEvaluationMode(material);
             // Setup blending
             SetupMaterialBlendMode(material);
             // Receive Shadows
@@ -391,23 +446,73 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 
                 LightingMode lightingMode = (LightingMode)material.GetFloat("_LightingMode");
 
+                bool lightingBakedEnabled = material.GetFloat("_LightingBaked") == 1;
+                bool lightingVertexColorEnabled = material.GetFloat("_LightingVertexColor") == 1;
+                bool lightingDynamicEnabled = material.GetFloat("_LightingDynamic") == 1;
+
                 switch (lightingMode)
                 {
-                    case LightingMode.LitBaked:
-                        material.EnableKeyword("_LIGHTING_BAKED_ON");
-                        material.DisableKeyword("_LIGHTING_VERTEX_COLOR_ON");
-                        break;
-                    case LightingMode.LitVertexColor:
-                        material.DisableKeyword("_LIGHTING_BAKED_ON");
-                        material.EnableKeyword("_LIGHTING_VERTEX_COLOR_ON");
-                        break;
-                    case LightingMode.LitBakedAndVertexColor:
-                        material.EnableKeyword("_LIGHTING_BAKED_ON");
-                        material.EnableKeyword("_LIGHTING_VERTEX_COLOR_ON");
-                        break;
                     case LightingMode.Unlit:
+                    {
                         material.DisableKeyword("_LIGHTING_BAKED_ON");
                         material.DisableKeyword("_LIGHTING_VERTEX_COLOR_ON");
+                        material.DisableKeyword("_LIGHTING_DYNAMIC_ON");
+                        break;
+                    }
+                    case LightingMode.Lit:
+                    default: // Old versions of the material can have enum values serialized outside the range that we are currently supporting. Default these materials back to lit.
+                    {
+                        if (lightingBakedEnabled)
+                        {
+                            material.EnableKeyword("_LIGHTING_BAKED_ON");
+                        }
+                        else
+                        {
+                            material.DisableKeyword("_LIGHTING_BAKED_ON");
+                        }
+
+                        if (lightingVertexColorEnabled)
+                        {
+                            material.EnableKeyword("_LIGHTING_VERTEX_COLOR_ON");
+                        }
+                        else
+                        {
+                            material.DisableKeyword("_LIGHTING_VERTEX_COLOR_ON");
+                        }
+
+                        if (lightingDynamicEnabled)
+                        {
+                            material.EnableKeyword("_LIGHTING_DYNAMIC_ON");
+                        }
+                        else
+                        {
+                            material.DisableKeyword("_LIGHTING_DYNAMIC_ON");
+                        }
+                        break;
+                    }
+                }   
+        }
+
+        public static void SetupMaterialShadingEvaluationMode(Material material)
+        {
+            if (material == null)
+                throw new ArgumentNullException("material");
+                
+                ShadingEvaluationMode shadingEvaluationMode = (ShadingEvaluationMode)material.GetFloat("_ShadingEvaluationMode");
+
+                switch (shadingEvaluationMode)
+                {
+                    case ShadingEvaluationMode.PerVertex:
+                        material.EnableKeyword("_SHADING_EVALUATION_MODE_PER_VERTEX");
+                        material.DisableKeyword("_SHADING_EVALUATION_MODE_PER_PIXEL");
+                        break;
+                    case ShadingEvaluationMode.PerPixel:
+                        material.DisableKeyword("_SHADING_EVALUATION_MODE_PER_VERTEX");
+                        material.EnableKeyword("_SHADING_EVALUATION_MODE_PER_PIXEL");
+                        break;
+
+                    default:
+                        Debug.Assert(false);
                         break;
                 }   
         }

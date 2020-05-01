@@ -102,6 +102,7 @@ half4 LitMetaPassFragment(Varyings i) : SV_Target
 #if _ALPHATEST_ON
     // Perform alpha cutoff transparency (i.e: discard pixels in the holes of a chain link fence texture, or in the negative space of a leaf texture).
     // Any alpha value < alphaClippingDither will trigger the pixel to be discarded, any alpha value greater than or equal to alphaClippingDither will trigger the pixel to be preserved.
+    float2 positionSS = i.positionCS.xy;
     float alphaClippingDither = FetchAlphaClippingDither(positionSS);
     clip((color.a > alphaClippingDither) ? 1.0f : -1.0f);
 #endif

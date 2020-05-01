@@ -36,6 +36,7 @@ float _FogPrecisionAlphaDither;
 int _LightingIsEnabled;
 float _BakedLightingMultiplier;
 float _VertexColorLightingMultiplier;
+float _DynamicLightingMultiplier;
 
 // Post Processing
 int _TonemapperIsEnabled;
@@ -60,6 +61,11 @@ float4x4 unity_ObjectToWorld;
 float4x4 unity_WorldToObject;
 float4 unity_WorldTransformParams; // w is usually 1.0, or -1.0 for odd-negative scale transforms
 
+// Light Indices block feature
+// These are set internally by the engine upon request by RendererConfiguration.
+real4 unity_LightData;
+real4 unity_LightIndices[2];
+
 // Lightmap block feature
 float4 unity_LightmapST;
 float4 unity_DynamicLightmapST;
@@ -73,6 +79,28 @@ real4 unity_SHBg;
 real4 unity_SHBb;
 real4 unity_SHC;
 CBUFFER_END
+
+// Dynamic Lighting:
+#if defined(SHADER_API_MOBILE) || defined(SHADER_API_GLCORE)
+    #define MAX_VISIBLE_LIGHTS 32
+#else
+    #define MAX_VISIBLE_LIGHTS 256
+#endif
+// float4 _MainLightPosition;
+// half4 _MainLightColor;
+half4 _AdditionalLightsCount;
+// GLES3 causes a performance regression in some devices when using CBUFFER.
+#ifndef SHADER_API_GLES3
+CBUFFER_START(AdditionalLights)
+#endif
+float4 _AdditionalLightsPosition[MAX_VISIBLE_LIGHTS];
+half4 _AdditionalLightsColor[MAX_VISIBLE_LIGHTS];
+half4 _AdditionalLightsAttenuation[MAX_VISIBLE_LIGHTS];
+half4 _AdditionalLightsSpotDir[MAX_VISIBLE_LIGHTS];
+// half4 _AdditionalLightsOcclusionProbes[MAX_VISIBLE_LIGHTS];
+#ifndef SHADER_API_GLES3
+CBUFFER_END
+#endif
 
 float4x4 OptimizeProjectionMatrix(float4x4 M)
 {
