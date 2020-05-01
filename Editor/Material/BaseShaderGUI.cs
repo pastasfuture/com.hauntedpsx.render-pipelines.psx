@@ -42,6 +42,13 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             Both = 0
         }
 
+        public enum ReflectionBlendMode
+        {
+            Additive = 0,
+            Subtractive,
+            Multiply
+        }
+
         protected class Styles
         {
             // Categories
@@ -96,6 +103,18 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent emissionTex = new GUIContent("Emission Map",
                 "Sets a Texture map to use for emission. You can also select a color with the color picker. Colors are multiplied over the Texture.");
+        
+            public static readonly GUIContent reflection = new GUIContent("Reflection",
+                "Specifies whether or not to apply cubemap reflections. Turn off when not in use to avoid performance cost.");
+
+            public static readonly GUIContent reflectionCubemap = new GUIContent("Reflection Cubemap",
+                "Specifies the cubemap used to simulate incoming reflections from the environment.");
+
+            public static readonly GUIContent reflectionTexture = new GUIContent("Reflection Map",
+                "Sets a Texture map to use for controlling how reflective the surface is. You can also select a color with the color picker. Colors are multiplied over the Texture.");
+
+            public static readonly GUIContent reflectionBlendMode = new GUIContent("Reflection Blend Mode",
+                "Controls how reflections are blending with other incoming light at the surface. Additive is the standard, physically-based approach. Subtractive and Multiply blend modes are for special effects.");
         }
 
         #endregion
@@ -138,6 +157,16 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialProperty emissionColorProp { get; set; }
 
+        protected MaterialProperty reflectionProp { get; set; }
+
+        protected MaterialProperty reflectionCubemapProp { get; set; }
+
+        protected MaterialProperty reflectionTextureProp { get; set; }
+
+        protected MaterialProperty reflectionColorProp { get; set; }
+
+        protected MaterialProperty reflectionBlendModeProp { get; set; }
+
         public bool m_FirstTimeApply = true;
 
         // Header foldout states
@@ -175,6 +204,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             mainColorProp = FindProperty("_MainColor", properties, false);
             emissionTextureProp = FindProperty("_EmissionTexture", properties, false);
             emissionColorProp = FindProperty("_EmissionColor", properties, false);
+            reflectionProp = FindProperty("_Reflection", properties, false);
+            reflectionCubemapProp = FindProperty("_ReflectionCubemap", properties, false);
+            reflectionTextureProp = FindProperty("_ReflectionTexture", properties, false);
+            reflectionColorProp = FindProperty("_ReflectionColor", properties, false);
+            reflectionBlendModeProp = FindProperty("_ReflectionBlendMode", properties, false);
         }
 
         public override void OnGUI(MaterialEditor materialEditorIn, MaterialProperty[] properties)
@@ -379,6 +413,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 // Emission for GI?
                 emissive = materialEditor.EmissionEnabledProperty();
 
+
+
                 EditorGUI.BeginDisabledGroup(!emissive);
                 {
                     // Texture and HDR color controls
@@ -401,6 +437,33 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 if (brightness <= 0f)
                     material.globalIlluminationFlags |= MaterialGlobalIlluminationFlags.EmissiveIsBlack;
             }
+        }
+
+        protected virtual void DrawReflectionProperties(Material material)
+        {
+            var reflection = true;
+            var hadReflectionTexture = reflectionTextureProp.textureValue != null;
+
+            EditorGUI.BeginChangeCheck();
+            reflection = EditorGUILayout.Toggle(Styles.reflection, reflectionProp.floatValue == 1);
+            if (EditorGUI.EndChangeCheck())
+                reflectionProp.floatValue = reflection ? 1 : 0;
+
+            EditorGUI.BeginDisabledGroup(!reflection);
+            {
+                DoPopup(Styles.reflectionBlendMode, reflectionBlendModeProp, Enum.GetNames(typeof(ReflectionBlendMode)));
+
+                materialEditor.TexturePropertySingleLine(Styles.reflectionCubemap, reflectionCubemapProp);
+
+                // Texture and HDR color controls
+                materialEditor.TexturePropertyWithHDRColor(Styles.reflectionTexture, reflectionTextureProp, reflectionColorProp, false);
+            }
+            EditorGUI.EndDisabledGroup();
+
+            // If texture was assigned and color was black set color to white
+            var brightness = reflectionColorProp.colorValue.maxColorComponent;
+            if (reflectionTextureProp.textureValue != null && !hadReflectionTexture && brightness <= 0f)
+                reflectionColorProp.colorValue = Color.white;
         }
 
         protected static void DrawTileOffset(MaterialEditor materialEditor, MaterialProperty textureProp)
@@ -426,6 +489,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             // Receive Shadows
             // if(material.HasProperty("_ReceiveShadows"))
             //     CoreUtils.SetKeyword(material, "_RECEIVE_SHADOWS_OFF", material.GetFloat("_ReceiveShadows") == 0.0f);
+
+            SetupMaterialReflectionKeyword(material);
+
             // Emission
             if (material.HasProperty("_EmissiveColor"))
                 MaterialEditor.FixupEmissiveFlag(material);
@@ -586,6 +652,24 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
                 // material.SetShaderPassEnabled("ShadowCaster", false);
             }
+        }
+
+        public static void SetupMaterialReflectionKeyword(Material material)
+        {
+            if (material == null)
+                throw new ArgumentNullException("material");
+
+            bool reflection = material.GetFloat("_Reflection") == 1;
+            if (reflection)
+            {
+                material.EnableKeyword("_REFLECTION_ON");
+            }
+            else
+            {
+                material.DisableKeyword("_REFLECTION_ON");
+            }
+
+            ReflectionBlendMode reflectionBlendMode = (ReflectionBlendMode)material.GetInt("_ReflectionBlendMode");
         }
 
         #endregion

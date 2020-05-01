@@ -9,6 +9,11 @@
 #define PSX_FOG_FALLOFF_MODE_CYLINDRICAL (1)
 #define PSX_FOG_FALLOFF_MODE_SPHERICAL (2)
 
+// Warning: These definitions must stay in sync with ReflectionBlendMode enum.
+#define PSX_REFLECTION_BLEND_MODE_ADDITIVE (0)
+#define PSX_REFLECTION_BLEND_MODE_SUBTRACTIVE (1)
+#define PSX_REFLECTION_BLEND_MODE_MULTIPLY (2)
+
 // Globals:
 // Unity Standard:
 //
@@ -140,6 +145,13 @@ SAMPLER(sampler_EmissionTexture);
 float4 _EmissionTexture_ST;
 float3 _EmissionColor;
 float _AlphaClippingDitherIsEnabled;
+TEXTURECUBE(_ReflectionCubemap);
+SAMPLER(sampler_ReflectionCubemap);
+TEXTURE2D(_ReflectionTexture);
+SAMPLER(sampler_ReflectionTexture);
+float4 _ReflectionTexture_ST;
+float4 _ReflectionColor;
+int _ReflectionBlendMode;
 CBUFFER_END
 
 // These are the samplers available in the HDRenderPipeline.

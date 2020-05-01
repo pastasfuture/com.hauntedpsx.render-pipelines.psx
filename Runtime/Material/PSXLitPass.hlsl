@@ -24,14 +24,14 @@ struct Varyings
     float4 vertex : SV_POSITION;
     float3 uvw : TEXCOORD0;
     float3 positionVS : TEXCOORD1;
+    float3 normalWS : TEXCOORD2;
 #if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
-    float4 fog : TEXCOORD2;
+    float4 fog : TEXCOORD3;
 #if defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_DYNAMIC_ON)
-    float3 lighting : TEXCOORD3;
+    float3 lighting : TEXCOORD4;
 #endif
 #elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
-    float3 positionWS : TEXCOORD2;
-    float3 normalWS : TEXCOORD3;
+    float3 positionWS : TEXCOORD3;
 #if defined(_LIGHTING_BAKED_ON) && defined(LIGHTMAP_ON)
     float2 lightmapUV : TEXCOORD4;
 #if defined(_LIGHTING_VERTEX_COLOR_ON)
@@ -83,13 +83,14 @@ Varyings LitPassVertex(Attributes v)
 
     o.positionVS = positionVS;
 
+    float3 normalWS = TransformObjectToWorldNormal(v.normal);
+    o.normalWS = normalWS;
+
 #if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
 
 #if defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_DYNAMIC_ON)
     if (_IsPSXQualityEnabled)
     {
-        float3 normalWS = TransformObjectToWorldNormal(v.normal);
-
         o.lighting = 0.0f;
 
 #if defined(_LIGHTING_BAKED_ON)
@@ -167,6 +168,8 @@ half4 LitPassFragment(Varyings i) : SV_Target
     // We need to post multiply all interpolated vertex values by the interpolated positionCS.w (stored in uvw.z) component to "normalize" the interpolated values.
     float interpolatorNormalization = 1.0f / i.uvw.z;
 
+    float3 normalWS = normalize(i.normalWS);
+
     float2 uv = i.uvw.xy * interpolatorNormalization;
     float2 uvColor = TRANSFORM_TEX(uv, _MainTex);
     float4 color = _MainColor * SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uvColor);
@@ -203,10 +206,9 @@ half4 LitPassFragment(Varyings i) : SV_Target
     }
 #endif
 #elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
+#if defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_DYNAMIC_ON)
     if (_LightingIsEnabled > 0.5f)
     {
-        float3 normalWS = normalize(i.normalWS);
-
         float3 lighting = 0.0f;
 
     #if defined(_LIGHTING_BAKED_ON)
@@ -234,6 +236,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
         color.rgb *= lighting;
     }
 #endif
+#endif
 
 #ifdef _EMISSION
     // Convert to sRGB 5:6:5 color space, then from sRGB to Linear.
@@ -247,6 +250,41 @@ half4 LitPassFragment(Varyings i) : SV_Target
 #endif
 
     color.rgb += emission;
+#endif
+
+#if defined(_REFLECTION_ON)
+    float2 uvReflection = TRANSFORM_TEX(uv, _ReflectionTexture);
+    float3 reflection = _ReflectionColor.rgb * SAMPLE_TEXTURE2D(_ReflectionTexture, sampler_ReflectionTexture, uvReflection).rgb;
+    reflection = floor(reflection * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
+    reflection = SRGBToLinear(reflection);
+
+#if defined(_ALPHAPREMULTIPLY_ON) || defined(_ALPHAMODULATE_ON)
+    reflection *= color.a;
+#endif
+
+    float3 V = normalize(-i.positionVS);
+    float3 R = reflect(V, i.normalWS);
+    float4 reflectionCubemap = SAMPLE_TEXTURECUBE(_ReflectionCubemap, sampler_ReflectionCubemap, R);
+    reflectionCubemap.rgb *= reflectionCubemap.a;
+    reflectionCubemap.rgb = floor(reflectionCubemap.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
+    reflection *= reflectionCubemap.rgb;
+
+    if (_ReflectionBlendMode == 0)
+    {
+        // Additive
+        color.rgb += reflection;
+    }
+    else if (_ReflectionBlendMode == 1)
+    {
+        // Subtractive
+        color.rgb = max(0.0f, color.rgb - reflection);
+    }
+    else if (_ReflectionBlendMode == 2)
+    {
+        // Multiply
+        color.rgb *= reflection;
+    }
+
 #endif
 
 #if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)

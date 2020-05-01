@@ -39,6 +39,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         {
             base.DrawSurfaceInputs(material);
             DrawEmissionProperties(material, true);
+            DrawReflectionProperties(material);
             DrawTileOffset(materialEditor, mainTexProp);
         }
 
