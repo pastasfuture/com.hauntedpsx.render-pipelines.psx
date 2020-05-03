@@ -145,6 +145,7 @@ SAMPLER(sampler_EmissionTexture);
 float4 _EmissionTexture_ST;
 float3 _EmissionColor;
 float _AlphaClippingDitherIsEnabled;
+float _AffineTextureWarpingWeight;
 TEXTURECUBE(_ReflectionCubemap);
 SAMPLER(sampler_ReflectionCubemap);
 TEXTURE2D(_ReflectionTexture);

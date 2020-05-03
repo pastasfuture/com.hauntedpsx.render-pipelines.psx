@@ -7,6 +7,7 @@
         _EmissionTexture("EmissionTexture", 2D) = "white" {}
         _EmissionColor("EmissionColor", Color) = (0,0,0,0)
         _AlphaClippingDitherIsEnabled("_AlphaClippingDitherIsEnabled", Float) = 0.0
+        _AffineTextureWarpingWeight("_AffineTextureWarpingWeight", Float) = 1.0
         _ReflectionCubemap("_ReflectionCubemap", Cube) = "black" {}
         _ReflectionTexture("_ReflectionTexture", 2D) = "white" {}
         _ReflectionColor("_ReflectionColor", Color) = (1,1,1,1)

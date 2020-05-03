@@ -73,7 +73,7 @@ Varyings LitPassVertex(Attributes v)
     {
         // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
         // This emulates the affine texture transform of the PSX era that did not take perspective correction into account as this division was prohibitively expensive.
-        o.uvw.z = lerp(1.0f, positionCS.w, _AffineTextureWarping);
+        o.uvw.z = lerp(1.0f, positionCS.w, _AffineTextureWarping * _AffineTextureWarpingWeight);
         o.uvw.xy = uv * o.uvw.z;
     }
     else
