@@ -44,7 +44,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PropertyField(m_FogFalloffMode, EditorGUIUtility.TrTextContent("Fog Falloff Mode", "Controls the shape of the fog falloff."));
             PropertyField(m_Color, EditorGUIUtility.TrTextContent("Color", "Controls color (and opacity) of global distance fog."));
             PropertyField(m_PrecisionAlpha, EditorGUIUtility.TrTextContent("Precision Alpha", "Controls the fog alpha precision. Lower values creates more alpha (opacity) banding along fog fade."));
-            PropertyField(m_PrecisionAlphaDitherTexture, EditorGUIUtility.TrTextContent("Alpha Dither Texture", "Specifies the texture to use for dithering fog alpha (opacity) between precision alpha banding steps."));
+            PropertyField(m_PrecisionAlphaDitherTexture, EditorGUIUtility.TrTextContent("Alpha Dither Texture", "Specifies the texture to use for dithering fog alpha (opacity) between precision alpha banding steps. This is only applied on materials with ShadingEvaluationMode.PerPixel set. PerVertex evaluation does not receive dither."));
             if (m_PrecisionAlphaDitherTexture.value.objectReferenceValue == null)
             {
                 Debug.Log(PSXRenderPipeline.instance?.asset.renderPipelineResources?.textures.framebufferDitherTex);
