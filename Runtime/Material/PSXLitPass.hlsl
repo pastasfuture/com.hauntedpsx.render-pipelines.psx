@@ -124,10 +124,12 @@ Varyings LitPassVertex(Attributes v)
     }
 #endif
 
+#if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
     if (_IsPSXQualityEnabled)
     {
         float fogAlpha = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS);
         fogAlpha *= _FogColor.a;
+        fogAlpha = saturate(floor(fogAlpha * _FogPrecisionAlphaAndInverse.x + 0.5f) * _FogPrecisionAlphaAndInverse.y);
 
         // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
         // For now just do it here to make this code easier to refactor as we figure out the architecture.
@@ -139,6 +141,7 @@ Varyings LitPassVertex(Attributes v)
         // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
         o.fog *= o.uvw.z;
     }
+#endif
 
 #elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
     o.normalWS = TransformObjectToWorldNormal(v.normal);
@@ -293,13 +296,13 @@ half4 LitPassFragment(Varyings i) : SV_Target
 #elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
     float fogAlpha = EvaluateFogFalloff(i.positionWS, _WorldSpaceCameraPos, i.positionVS);
     fogAlpha *= _FogColor.a;
+    fogAlpha = ComputeFogAlphaDiscretization(fogAlpha, positionSS);
 
     // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
     // For now just do it here to make this code easier to refactor as we figure out the architecture.
     float3 fogColor = floor(_FogColor.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
     fogColor = SRGBToLinear(fogColor);
 #endif
-    fogAlpha = ComputeFogAlphaDiscretization(fogAlpha, positionSS);
 
 #if defined(_ALPHAPREMULTIPLY_ON) || defined(_ALPHAMODULATE_ON)
     fogAlpha *= color.a;
