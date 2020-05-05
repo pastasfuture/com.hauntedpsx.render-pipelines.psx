@@ -8,6 +8,7 @@
         _EmissionColor("EmissionColor", Color) = (0,0,0,0)
         _AlphaClippingDitherIsEnabled("_AlphaClippingDitherIsEnabled", Float) = 0.0
         _AffineTextureWarpingWeight("_AffineTextureWarpingWeight", Float) = 1.0
+        _FogWeight("_FogWeight", Float) = 1.0
         _ReflectionCubemap("_ReflectionCubemap", Cube) = "black" {}
         _ReflectionTexture("_ReflectionTexture", 2D) = "white" {}
         _ReflectionColor("_ReflectionColor", Color) = (1,1,1,1)
@@ -58,6 +59,7 @@
             #pragma shader_feature _ALPHATEST_ON
             #pragma shader_feature _ _ALPHAPREMULTIPLY_ON _ALPHAMODULATE_ON
             #pragma shader_feature _REFLECTION_ON
+            #pragma shader_feature _FOG_ON
 
             // -------------------------------------
             // Unity defined keywords

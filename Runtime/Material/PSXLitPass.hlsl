@@ -26,7 +26,9 @@ struct Varyings
     float3 positionVS : TEXCOORD1;
     float3 normalWS : TEXCOORD2;
 #if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
+#if defined(_FOG_ON)
     float4 fog : TEXCOORD3;
+#endif
 #if defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_DYNAMIC_ON)
     float3 lighting : TEXCOORD4;
 #endif
@@ -124,7 +126,7 @@ Varyings LitPassVertex(Attributes v)
     }
 #endif
 
-#if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
+#if defined(_FOG_ON) && defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
     if (_IsPSXQualityEnabled)
     {
         float fogAlpha = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogDistanceScaleBias);
@@ -160,6 +162,8 @@ Varyings LitPassVertex(Attributes v)
             // Apply over blend mode to alpha channel.
             fogAlpha = fogAlpha * (1.0f - fogAlphaLayer1) + fogAlphaLayer1;
         }
+
+        fogAlpha *= _FogWeight;
         
         fogAlpha = saturate(floor(fogAlpha * _FogPrecisionAlphaAndInverse.x + 0.5f) * _FogPrecisionAlphaAndInverse.y);
 
@@ -317,6 +321,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
 
 #endif
 
+#if defined(_FOG_ON)
 #if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
     float3 fogColor = i.fog.rgb * interpolatorNormalization;
     float fogAlpha = i.fog.a * interpolatorNormalization;
@@ -354,6 +359,8 @@ half4 LitPassFragment(Varyings i) : SV_Target
         fogAlpha = fogAlpha * (1.0f - fogAlphaLayer1) + fogAlphaLayer1;
     }
 
+    fogAlpha *= _FogWeight;
+
     fogAlpha = ComputeFogAlphaDiscretization(fogAlpha, positionSS);
 #endif
 
@@ -363,6 +370,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
 
     // fogColor has premultiplied alpha.
     color.rgb = lerp(color.rgb, fogColor, fogAlpha);
+#endif
     
 #if !defined(_ALPHAMODULATE_ON)
     // Apply tonemapping and gamma correction.

@@ -94,6 +94,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly GUIContent affineTextureWarpingWeight = new GUIContent("Affine Texture Warping Weight",
                 "Allows you to decrease the amount of affine texture warping on your material. A value of 1.0 results in no change, and simply uses the Affine Texture Warping parameter from the Volume System. A value of 0.0 results on no affine texture warping. A value of 0.5 results in 50% of the affine texture warping from the Volume System.");
 
+            public static readonly GUIContent fogWeight = new GUIContent("Fog Weight",
+                "Specifies how much of the global Fog Volume is applied to this surface. In general this should be left at 1.0. Set to 0.0 to fully disable fog (and which avoids cost of evaluating fog). This parameter is particularly useful for tuning the look of skybox geometry.");
+
             // public static readonly GUIContent alphaClipThresholdText = new GUIContent("Threshold",
             //     "Sets where the Alpha Clipping starts. The higher the value is, the brighter the  effect is when clipping starts.");
 
@@ -146,6 +149,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         protected MaterialProperty alphaClippingDitherIsEnabledProp { get; set; }
 
         protected MaterialProperty affineTextureWarpingWeightProp { get; set; }
+
+        protected MaterialProperty fogWeightProp { get; set; }
 
         // protected MaterialProperty alphaCutoffProp { get; set; }
 
@@ -203,6 +208,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             alphaClipProp = FindProperty("_AlphaClip", properties);
             alphaClippingDitherIsEnabledProp = FindProperty("_AlphaClippingDitherIsEnabled", properties);
             affineTextureWarpingWeightProp = FindProperty("_AffineTextureWarpingWeight", properties);
+            fogWeightProp = FindProperty("_FogWeight", properties);
             // alphaCutoffProp = FindProperty("_Cutoff", properties);
             // receiveShadowsProp = FindProperty("_ReceiveShadows", properties, false);
             mainTexProp = FindProperty("_MainTex", properties, false);
@@ -367,6 +373,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             if (EditorGUI.EndChangeCheck())
                 affineTextureWarpingWeightProp.floatValue = affineTextureWarpingWeight;
 
+            EditorGUI.BeginChangeCheck();
+            var fogWeight = EditorGUILayout.Slider(Styles.fogWeight, fogWeightProp.floatValue, 0.0f, 1.0f);
+            if (EditorGUI.EndChangeCheck())
+                fogWeightProp.floatValue = fogWeight;
+
             // if (receiveShadowsProp != null)
             // {
             //     EditorGUI.BeginChangeCheck();
@@ -499,6 +510,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             // if(material.HasProperty("_ReceiveShadows"))
             //     CoreUtils.SetKeyword(material, "_RECEIVE_SHADOWS_OFF", material.GetFloat("_ReceiveShadows") == 0.0f);
 
+            SetupMaterialFogKeyword(material);
             SetupMaterialReflectionKeyword(material);
 
             // Emission
@@ -660,6 +672,22 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 material.SetInt("_ZWrite", 0);
                 material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
                 // material.SetShaderPassEnabled("ShadowCaster", false);
+            }
+        }
+
+        public static void SetupMaterialFogKeyword(Material material)
+        {
+            if (material == null)
+                throw new ArgumentNullException("material");
+
+            bool fog = material.GetFloat("_FogWeight") > 0.0f;
+            if (fog)
+            {
+                material.EnableKeyword("_FOG_ON");
+            }
+            else
+            {
+                material.DisableKeyword("_FOG_ON");
             }
         }
 
