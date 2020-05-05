@@ -126,6 +126,7 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint3 groupThreadID : SV_GroupThread
     dct[groupThreadID.x][groupThreadID.y] *= (groupThreadID.y == 0 ? 0.353553390593 : 0.5);
 
     // Quantize
+    // Note: For the future, if we create a pixel shader implementation, this is where we would write out to an intermediate 8-bit texture.
     dct[groupThreadID.x][groupThreadID.y] = floor(dct[groupThreadID.x][groupThreadID.y] * QUANTIZATION_INVERSE[groupThreadID.x][groupThreadID.y] * _CompressionAccuracyThresholdAndInverse.y + 0.5f);
 
     GroupMemoryBarrierWithGroupSync();

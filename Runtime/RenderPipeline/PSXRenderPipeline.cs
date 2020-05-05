@@ -506,6 +506,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     1.0f / alphaClippingDitherTex.width,
                     1.0f / alphaClippingDitherTex.height
                 ));
+
+                bool flipProj = GL.GetGPUProjectionMatrix(camera.projectionMatrix, true).inverse.MultiplyPoint(new Vector3(0, 1, 0)).y < 0;
+                float n = camera.nearClipPlane;
+                float f = camera.farClipPlane;
+                Vector4 projectionParams = new Vector4(flipProj ? -1 : 1, n, f, 1.0f / f);
+                cmd.SetGlobalVector(PSXShaderIDs._ProjectionParams, projectionParams);
             }  
         }
 
@@ -513,6 +519,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushGlobalPostProcessingParameters))
             {
+                bool flipY = !IsMainGameView(camera);
+                cmd.SetGlobalInt(PSXShaderIDs._FlipY, flipY ? 1 : 0);
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / (float)camera.pixelWidth, 1.0f / (float)camera.pixelHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._FrameBufferScreenSize, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalTexture(PSXShaderIDs._FrameBufferTexture, rasterizationRT);

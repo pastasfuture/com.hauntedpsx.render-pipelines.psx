@@ -15,6 +15,7 @@ Shader "Hidden/HauntedPS1/CRT"
     #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/ShaderVariables.hlsl"
     #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/ShaderFunctions.hlsl"
 
+    int _FlipY;
     float4 _FrameBufferScreenSize;
     float4 _BlueNoiseSize;
     float4 _WhiteNoiseSize;
@@ -410,6 +411,21 @@ Shader "Hidden/HauntedPS1/CRT"
         return output;
     }
 
+    bool ShouldFlipY()
+    {
+        // #if UNITY_UV_STARTS_AT_TOP
+        //     return (_ProjectionParams.x > 0);
+        // #else
+        //     return (_ProjectionParams.x < 0);
+        // #endif
+        #if UNITY_UV_STARTS_AT_TOP
+            return (_FlipY == 1) ? true : false;
+        #else
+            return (_FlipY == 1) ? false : true;
+        #endif
+
+    }
+
     float4 Fragment(Varyings input) : SV_Target0
     {
         UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
@@ -422,10 +438,11 @@ Shader "Hidden/HauntedPS1/CRT"
         #endif
 
         // Flip logic
-    #if !UNITY_UV_STARTS_AT_TOP
-        positionSS.y = _ScreenSize.y - 1.0 - positionSS.y;
-        positionNDC.y = 1.0 - positionNDC.y;
-    #endif
+        if (ShouldFlipY())
+        {
+            positionSS.y = _ScreenSize.y - 1.0 - positionSS.y;
+            positionNDC.y = 1.0 - positionNDC.y;
+        }
 
         if (!_IsPSXQualityEnabled || !_CRTIsEnabled)
         {
