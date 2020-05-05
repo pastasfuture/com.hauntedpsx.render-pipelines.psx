@@ -127,14 +127,41 @@ Varyings LitPassVertex(Attributes v)
 #if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
     if (_IsPSXQualityEnabled)
     {
-        float fogAlpha = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS);
+        float fogAlpha = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogDistanceScaleBias);
         fogAlpha *= _FogColor.a;
-        fogAlpha = saturate(floor(fogAlpha * _FogPrecisionAlphaAndInverse.x + 0.5f) * _FogPrecisionAlphaAndInverse.y);
 
         // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
         // For now just do it here to make this code easier to refactor as we figure out the architecture.
         float3 fogColor = floor(_FogColor.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
         fogColor = SRGBToLinear(fogColor);
+        fogColor *= fogAlpha;
+
+        if (_FogIsAdditionalLayerEnabled)
+        {
+            float fogAlphaLayer1 = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1);
+            fogAlphaLayer1 *= _FogColorLayer1.a;
+
+            float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
+            fogColorLayer1 = SRGBToLinear(fogColorLayer1);
+            fogColorLayer1 *= fogAlphaLayer1;
+
+            // Blend between fog layer0 and fog layer1 with "over" blend mode:
+            // We store final fogColor as most-multiplied, rather than premultiplied.
+            // This is necessary because we want to perform alpha discretization once, post alpha blending.
+            // In order to do this, we need to compute the blend ratio between the two colors.
+            // Pre-multiplied blend example: 
+            // fogColor = fogColor * (1.0f - fogAlphaLayer1) + fogColorLayer1;
+            float fogColorWeight0 = fogAlpha * (1.0f - fogAlphaLayer1);
+            float fogColorWeight1 = fogAlphaLayer1;
+            float fogColorWeightTotal = fogColorWeight0 + fogColorWeight1;
+            float fogColorNormalization = (fogColorWeightTotal > 1e-5f) ? (1.0f / fogColorWeightTotal) : 0.0f;
+            fogColor = (fogColor * fogColorWeight0 + fogColorLayer1 * fogColorWeight1) * fogColorNormalization;
+
+            // Apply over blend mode to alpha channel.
+            fogAlpha = fogAlpha * (1.0f - fogAlphaLayer1) + fogAlphaLayer1;
+        }
+        
+        fogAlpha = saturate(floor(fogAlpha * _FogPrecisionAlphaAndInverse.x + 0.5f) * _FogPrecisionAlphaAndInverse.y);
 
         o.fog = float4(fogColor, fogAlpha);
 
@@ -294,20 +321,47 @@ half4 LitPassFragment(Varyings i) : SV_Target
     float3 fogColor = i.fog.rgb * interpolatorNormalization;
     float fogAlpha = i.fog.a * interpolatorNormalization;
 #elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
-    float fogAlpha = EvaluateFogFalloff(i.positionWS, _WorldSpaceCameraPos, i.positionVS);
+    float fogAlpha = EvaluateFogFalloff(i.positionWS, _WorldSpaceCameraPos, i.positionVS, _FogFalloffMode, _FogDistanceScaleBias);
     fogAlpha *= _FogColor.a;
-    fogAlpha = ComputeFogAlphaDiscretization(fogAlpha, positionSS);
-
+    
     // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
     // For now just do it here to make this code easier to refactor as we figure out the architecture.
     float3 fogColor = floor(_FogColor.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
     fogColor = SRGBToLinear(fogColor);
+
+    if (_FogIsAdditionalLayerEnabled)
+    {
+        float fogAlphaLayer1 = EvaluateFogFalloff(i.positionWS, _WorldSpaceCameraPos, i.positionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1);
+        fogAlphaLayer1 *= _FogColorLayer1.a;
+
+        float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
+        fogColorLayer1 = SRGBToLinear(fogColorLayer1);
+        fogColorLayer1 *= fogAlphaLayer1;
+
+        // Blend between fog layer0 and fog layer1 with "over" blend mode:
+        // We store final fogColor as most-multiplied, rather than premultiplied.
+        // This is necessary because we want to perform alpha discretization once, post alpha blending.
+        // In order to do this, we need to compute the blend ratio between the two colors.
+        // Pre-multiplied blend example: 
+        // fogColor = fogColor * (1.0f - fogAlphaLayer1) + fogColorLayer1;
+        float fogColorWeight0 = fogAlpha * (1.0f - fogAlphaLayer1);
+        float fogColorWeight1 = fogAlphaLayer1;
+        float fogColorWeightTotal = fogColorWeight0 + fogColorWeight1;
+        float fogColorNormalization = (fogColorWeightTotal > 1e-5f) ? (1.0f / fogColorWeightTotal) : 0.0f;
+        fogColor = (fogColor * fogColorWeight0 + fogColorLayer1 * fogColorWeight1) * fogColorNormalization;
+
+        // Apply over blend mode to alpha channel.
+        fogAlpha = fogAlpha * (1.0f - fogAlphaLayer1) + fogAlphaLayer1;
+    }
+
+    fogAlpha = ComputeFogAlphaDiscretization(fogAlpha, positionSS);
 #endif
 
 #if defined(_ALPHAPREMULTIPLY_ON) || defined(_ALPHAMODULATE_ON)
     fogAlpha *= color.a;
 #endif
 
+    // fogColor has premultiplied alpha.
     color.rgb = lerp(color.rgb, fogColor, fogAlpha);
     
 #if !defined(_ALPHAMODULATE_ON)

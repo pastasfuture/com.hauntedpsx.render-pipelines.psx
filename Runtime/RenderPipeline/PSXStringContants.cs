@@ -99,6 +99,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _FogPrecisionAlphaDitherSize = Shader.PropertyToID("_FogPrecisionAlphaDitherSize");
         public static readonly int _FogPrecisionAlphaDither = Shader.PropertyToID("_FogPrecisionAlphaDither");
         public static readonly int _FogDistanceScaleBias = Shader.PropertyToID("_FogDistanceScaleBias");
+        public static readonly int _FogIsAdditionalLayerEnabled = Shader.PropertyToID("_FogIsAdditionalLayerEnabled");
+        public static readonly int _FogFalloffModeLayer1 = Shader.PropertyToID("_FogFalloffModeLayer1");
+        public static readonly int _FogColorLayer1 = Shader.PropertyToID("_FogColorLayer1");
+        public static readonly int _FogDistanceScaleBiasLayer1 = Shader.PropertyToID("_FogDistanceScaleBiasLayer1");
         public static readonly int _LightingIsEnabled = Shader.PropertyToID("_LightingIsEnabled");
         public static readonly int _IsPSXQualityEnabled = Shader.PropertyToID("_IsPSXQualityEnabled");
         public static readonly int _TonemapperIsEnabled = Shader.PropertyToID("_TonemapperIsEnabled");

@@ -383,7 +383,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     1.0f / (volumeSettings.distanceMax.value - volumeSettings.distanceMin.value), 
                     -volumeSettings.distanceMin.value / (volumeSettings.distanceMax.value - volumeSettings.distanceMin.value),
                     -1.0f / (volumeSettings.heightMax.value - volumeSettings.heightMin.value),
-                    -volumeSettings.heightMin.value / (volumeSettings.heightMax.value - volumeSettings.heightMin.value) + 1.0f
+                    volumeSettings.heightMax.value / (volumeSettings.heightMax.value - volumeSettings.heightMin.value)
                 );
 
                 // Respect the Scene View fog enable / disable toggle.
@@ -431,6 +431,34 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetGlobalFloat(PSXShaderIDs._FogPrecisionAlphaDither, volumeSettings.precisionAlphaDither.value);
 
                 cmd.SetGlobalVector(PSXShaderIDs._FogDistanceScaleBias, fogDistanceScaleBias);
+
+                bool isAdditionalLayerEnabled = volumeSettings.isAdditionalLayerEnabled.value; 
+                cmd.SetGlobalInt(PSXShaderIDs._FogIsAdditionalLayerEnabled, isAdditionalLayerEnabled ? 1 : 0);
+                if (isAdditionalLayerEnabled)
+                {
+                    int fogFalloffModeLayer1 = (int)volumeSettings.fogFalloffModeLayer1.value;
+                    cmd.SetGlobalInt(PSXShaderIDs._FogFalloffModeLayer1, fogFalloffModeLayer1);
+                    cmd.SetGlobalVector(PSXShaderIDs._FogColorLayer1, new Vector4(volumeSettings.colorLayer1.value.r, volumeSettings.colorLayer1.value.g, volumeSettings.colorLayer1.value.b, volumeSettings.colorLayer1.value.a));
+                    
+                    Vector4 fogDistanceScaleBiasLayer1 = new Vector4(
+                        1.0f / (volumeSettings.distanceMaxLayer1.value - volumeSettings.distanceMinLayer1.value), 
+                        -volumeSettings.distanceMinLayer1.value / (volumeSettings.distanceMaxLayer1.value - volumeSettings.distanceMinLayer1.value),
+                        -1.0f / (volumeSettings.heightMaxLayer1.value - volumeSettings.heightMinLayer1.value),
+                        volumeSettings.heightMaxLayer1.value / (volumeSettings.heightMaxLayer1.value - volumeSettings.heightMinLayer1.value)
+                    );
+
+                    if (!isFogEnabled)
+                    {
+                        fogDistanceScaleBiasLayer1 = new Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+                    }
+                    else if (!volumeSettings.heightFalloffEnabledLayer1.value)
+                    {
+                        fogDistanceScaleBiasLayer1.z = 0.0f;
+                        fogDistanceScaleBiasLayer1.w = 1.0f;
+                    }
+
+                    cmd.SetGlobalVector(PSXShaderIDs._FogDistanceScaleBiasLayer1, fogDistanceScaleBiasLayer1);
+                }
             }
         }
 
