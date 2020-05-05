@@ -16,6 +16,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         internal const PerObjectData k_RendererConfigurationDynamicLighting = PerObjectData.LightData | PerObjectData.LightIndices;
 
         Material crtMaterial;
+        int[] compressionCSKernels;
 
         public static PSXRenderPipeline instance = null;
         
@@ -64,9 +65,16 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             }
         }
 
+        void FindComputeKernels()
+        {
+            if (!IsComputeShaderSupportedPlatform()) { return; }
+            compressionCSKernels = FindCompressionKernels(m_Asset);
+        }
+
         internal protected void Allocate()
         {
             this.crtMaterial = CoreUtils.CreateEngineMaterial(m_Asset.renderPipelineResources.shaders.crtPS);
+            FindComputeKernels();
         }
 
         protected override void Dispose(bool disposing)
@@ -74,6 +82,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             base.Dispose(disposing);
 
             CoreUtils.Destroy(crtMaterial);
+            compressionCSKernels = null;
         }
 
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
@@ -125,7 +134,25 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 context.SetupCameraProperties(camera);
 
                 ComputeRasterizationResolution(out int rasterizationWidth, out int rasterizationHeight, m_Asset.targetRasterizationResolutionWidth, m_Asset.targetRasterizationResolutionHeight, camera, isPSXQualityEnabled);
-                RenderTexture rasterizationRT = RenderTexture.GetTemporary(rasterizationWidth, rasterizationHeight, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear, 1, RenderTextureMemoryless.None, VRTextureUsage.None, false); 
+                RenderTexture rasterizationRT = RenderTexture.GetTemporary(
+                    new RenderTextureDescriptor
+                    {
+                        dimension = TextureDimension.Tex2D,
+                        width = rasterizationWidth,
+                        height = rasterizationHeight,
+                        volumeDepth = 1,
+                        depthBufferBits = 24,
+                        graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm,
+                        sRGB = false,
+                        msaaSamples = 1,
+                        memoryless = RenderTextureMemoryless.None,
+                        vrUsage = VRTextureUsage.None,
+                        useDynamicScale = false,
+                        enableRandomWrite = IsComputeShaderSupportedPlatform(),
+                        autoGenerateMips = false,
+                        mipCount = 1
+                    }
+                ); 
 
                 var cmd = CommandBufferPool.Get(PSXStringConstants.s_CommandBufferRenderForwardStr);
                 cmd.SetRenderTarget(rasterizationRT);
@@ -155,6 +182,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetRenderTarget(camera.targetTexture);
                 {
                     PushGlobalPostProcessingParameters(camera, cmd, m_Asset, rasterizationRT, rasterizationWidth, rasterizationHeight);
+                    PushCompressionParameters(camera, cmd, m_Asset, rasterizationRT, compressionCSKernels);
                     PushCathodeRayTubeParameters(camera, cmd, crtMaterial);
                     PSXRenderPipeline.DrawFullScreenQuad(cmd, crtMaterial);
                 }
@@ -485,9 +513,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushGlobalPostProcessingParameters))
             {
-                bool flipY = IsMainGameView(camera);
-                cmd.SetGlobalInt(PSXShaderIDs._FlipY, flipY ? 1 : 0);
-                cmd.SetGlobalVector(PSXShaderIDs._UVTransform, flipY ? new Vector4(1.0f, -1.0f, 0.0f, 1.0f) : new Vector4(1.0f,  1.0f, 0.0f, 0.0f));
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / (float)camera.pixelWidth, 1.0f / (float)camera.pixelHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._FrameBufferScreenSize, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalTexture(PSXShaderIDs._FrameBufferTexture, rasterizationRT);
@@ -551,6 +576,67 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             }
 
             return blueNoiseTexture;
+        }
+
+        static int ComputeCompressionKernelIndex(CompressionVolume.CompressionMode mode, CompressionVolume.CompressionColorspace colorspace)
+        {
+            // WARNING: this kernel LUT calculation needs to stay in sync with both the kernel declarations in compression.compute,
+            // and the enum definitions in CompressionVolume.
+            // We need to manually compute and bookkeep kernel indices this way because 2019.3 does not support multi-compile keywords in compute shaders.
+            int compressionKernelIndex = (int)mode * 6 + (int)colorspace;
+            return compressionKernelIndex;
+        }
+
+        int[] FindCompressionKernels(PSXRenderPipelineAsset asset)
+        {
+            Debug.Assert(asset.renderPipelineResources.shaders.compressionCS, "Error: CompressionCS compute shader is unassigned in render pipeline resources. Assign a valid reference to this compute shader inside of render pipeline resources in the inspector.");
+            
+            int[] kernels = new int[PSXComputeKernels.s_COMPRESSION.Length];
+            
+            for (int i = 0, iLen = PSXComputeKernels.s_COMPRESSION.Length; i < iLen; ++i)
+            {
+                kernels[i] = asset.renderPipelineResources.shaders.compressionCS.FindKernel(PSXComputeKernels.s_COMPRESSION[i]);
+            }
+
+            return kernels;
+        }
+
+        static void PushCompressionParameters(Camera camera, CommandBuffer cmd, PSXRenderPipelineAsset asset, RenderTexture rasterizationRT, int[] compressionCSKernels)
+        {
+            if (!IsComputeShaderSupportedPlatform()) { return; }
+
+            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushCompressionParameters))
+            {
+                var volumeSettings = VolumeManager.instance.stack.GetComponent<CompressionVolume>();
+                if (!volumeSettings) volumeSettings = CompressionVolume.@default;
+
+                bool isEnabled = volumeSettings.isEnabled.value;
+                if (!isEnabled) { return; }
+
+                int compressionKernelIndex = ComputeCompressionKernelIndex(volumeSettings.mode.value, volumeSettings.colorspace.value);
+                int compressionKernel = compressionCSKernels[compressionKernelIndex];
+
+                cmd.SetComputeFloatParam(asset.renderPipelineResources.shaders.compressionCS, PSXShaderIDs._CompressionWeight, volumeSettings.weight.value);
+
+                float compressionAccuracyThreshold = Mathf.Lerp(4.0f, 1e-5f, volumeSettings.accuracy.value);
+                float compressionAccuracyThresholdInverse = 1.0f / compressionAccuracyThreshold;
+                cmd.SetComputeVectorParam(asset.renderPipelineResources.shaders.compressionCS, PSXShaderIDs._CompressionAccuracyThresholdAndInverse,
+                    new Vector2(compressionAccuracyThreshold, compressionAccuracyThresholdInverse)
+                );
+                cmd.SetComputeVectorParam(asset.renderPipelineResources.shaders.compressionCS, PSXShaderIDs._CompressionSourceIndicesMinMax,
+                    new Vector4(0, 0, rasterizationRT.width - 1, rasterizationRT.height - 1)
+                );
+
+                float chromaQuantizationScale = Mathf.Lerp(16.0f, 256.0f, volumeSettings.accuracy.value);
+                cmd.SetComputeVectorParam(asset.renderPipelineResources.shaders.compressionCS, PSXShaderIDs._CompressionChromaQuantizationScaleAndInverse,
+                    new Vector2(chromaQuantizationScale, 1.0f / chromaQuantizationScale)
+                );
+
+                cmd.SetComputeTextureParam(asset.renderPipelineResources.shaders.compressionCS, compressionKernel, PSXShaderIDs._CompressionSource, rasterizationRT);
+            
+                // TODO: Fix this when the rounding doesn't work.
+                cmd.DispatchCompute(asset.renderPipelineResources.shaders.compressionCS, compressionKernel, (rasterizationRT.width + 7) / 8, (rasterizationRT.height + 7) / 8, 1);
+            }
         }
 
         static void PushCathodeRayTubeParameters(Camera camera, CommandBuffer cmd, Material crtMaterial)
@@ -797,9 +883,51 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
         static void DrawGizmos(ScriptableRenderContext context, Camera camera, GizmoSubset gizmoSubset)
         {
-    #if UNITY_EDITOR
+        #if UNITY_EDITOR
             if (UnityEditor.Handles.ShouldRenderGizmos())
                 context.DrawGizmos(camera, gizmoSubset);
+        #endif
+        }
+
+        public static bool IsComputeShaderSupportedPlatform()
+        {
+            if(!SystemInfo.supportsComputeShaders) { return false; }
+
+        #if UNITY_EDITOR
+            UnityEditor.BuildTarget buildTarget = UnityEditor.EditorUserBuildSettings.activeBuildTarget;
+
+            if (buildTarget == UnityEditor.BuildTarget.StandaloneWindows ||
+                buildTarget == UnityEditor.BuildTarget.StandaloneWindows64 ||
+                buildTarget == UnityEditor.BuildTarget.StandaloneLinux64 ||
+                buildTarget == UnityEditor.BuildTarget.Stadia ||
+                buildTarget == UnityEditor.BuildTarget.StandaloneOSX ||
+                buildTarget == UnityEditor.BuildTarget.WSAPlayer ||
+                buildTarget == UnityEditor.BuildTarget.XboxOne ||
+                buildTarget == UnityEditor.BuildTarget.PS4 ||
+                buildTarget == UnityEditor.BuildTarget.iOS ||
+                buildTarget == UnityEditor.BuildTarget.Switch)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        #else
+            if (Application.platform == RuntimePlatform.WindowsPlayer ||
+                Application.platform == RuntimePlatform.OSXPlayer ||
+                Application.platform == RuntimePlatform.LinuxPlayer ||
+                Application.platform == RuntimePlatform.PS4 ||
+                Application.platform == RuntimePlatform.XboxOne ||
+                Application.platform == RuntimePlatform.Switch ||
+                Application.platform == RuntimePlatform.Stadia)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         #endif
         }
     }

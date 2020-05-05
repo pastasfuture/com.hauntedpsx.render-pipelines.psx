@@ -1,0 +1,184 @@
+// Original implementation generously donated to the HPSXRP by Jamathan.
+
+//Two different kernel configurations for both performance modes
+#pragma kernel CSMain0 CSMain=CSMain0 _COMPRESSION_MODE_ACCURATE _COLORSPACE_YUV
+#pragma kernel CSMain1 CSMain=CSMain1 _COMPRESSION_MODE_ACCURATE _COLORSPACE_YCOCG
+#pragma kernel CSMain2 CSMain=CSMain2 _COMPRESSION_MODE_ACCURATE _COLORSPACE_FCCYIQ
+#pragma kernel CSMain3 CSMain=CSMain3 _COMPRESSION_MODE_ACCURATE _COLORSPACE_YCBCR
+#pragma kernel CSMain4 CSMain=CSMain4 _COMPRESSION_MODE_ACCURATE _COLORSPACE_YCBCRJPEG
+#pragma kernel CSMain5 CSMain=CSMain5 _COMPRESSION_MODE_ACCURATE _COLORSPACE_SRGB
+#pragma kernel CSMain6 CSMain=CSMain6 _COMPRESSION_MODE_FAST _COLORSPACE_YUV
+#pragma kernel CSMain7 CSMain=CSMain7 _COMPRESSION_MODE_FAST _COLORSPACE_YCOCG
+#pragma kernel CSMain8 CSMain=CSMain8 _COMPRESSION_MODE_FAST _COLORSPACE_FCCYIQ
+#pragma kernel CSMain9 CSMain=CSMain9 _COMPRESSION_MODE_FAST _COLORSPACE_YCBCR
+#pragma kernel CSMain10 CSMain=CSMain10 _COMPRESSION_MODE_FAST _COLORSPACE_YCBCRJPEG
+#pragma kernel CSMain11 CSMain=CSMain11 _COMPRESSION_MODE_FAST _COLORSPACE_SRGB
+
+//The Input/Output Textures
+RWTexture2D<float4> _CompressionSource;
+
+//User Settings
+float _CompressionWeight;
+float4 _CompressionSourceIndicesMinMax;
+float2 _CompressionAccuracyThresholdAndInverse;
+float2 _CompressionChromaQuantizationScaleAndInverse;
+
+#include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/ShaderFunctions.hlsl"
+
+#if defined(_COMPRESSION_MODE_ACCURATE)
+//Shared memory for the color information
+groupshared float3 pixelBlock[8][8];
+//Shared memory for the spectral information
+groupshared float3 dct[8][8];
+#elif defined(_COMPRESSION_MODE_FAST)
+//Shared memory for the color information
+groupshared float pixelBlock[8][8];
+//Shared memory for the spectral information
+groupshared float dct[8][8];
+#endif
+
+// Nice resource for quantization tables from many camera and software manufacturers:
+// https://www.impulseadventure.com/photo/jpeg-quantization.html
+//
+// Using "common" 50% quality quantization table from:
+// https://en.wikipedia.org/wiki/JPEG#JPEG_codec_example
+static const float QUANTIZATION[8][8] =
+{
+    {12.0, 12.0, 14.0, 19.0, 26.0, 58.0, 60.0, 55.0},
+    {16.0, 11.0, 10.0, 16.0, 24.0, 40.0, 51.0, 61.0},
+    {14.0, 13.0, 16.0, 24.0, 40.0, 57.0, 69.0, 56.0},
+    {14.0, 17.0, 22.0, 29.0, 51.0, 87.0, 80.0, 62.0},
+    {18.0, 22.0, 37.0, 56.0, 68.0, 109.0, 103.0, 77.0},
+    {24.0, 35.0, 55.0, 64.0, 81.0, 104.0, 113.0, 92.0},
+    {49.0, 64.0, 78.0, 87.0, 103.0, 121.0, 120.0, 101.0},
+    {72.0, 92.0, 95.0, 98.0, 112.0, 100.0, 103.0, 99.0}
+};
+
+static const float QUANTIZATION_INVERSE[8][8] =
+{
+    {1.0 / 12.0, 1.0 / 12.0, 1.0 / 14.0, 1.0 / 19.0, 1.0 / 26.0, 1.0 / 58.0, 1.0 / 60.0, 1.0 / 55.0},
+    {1.0 / 16.0, 1.0 / 11.0, 1.0 / 10.0, 1.0 / 16.0, 1.0 / 24.0, 1.0 / 40.0, 1.0 / 51.0, 1.0 / 61.0},
+    {1.0 / 14.0, 1.0 / 13.0, 1.0 / 16.0, 1.0 / 24.0, 1.0 / 40.0, 1.0 / 57.0, 1.0 / 69.0, 1.0 / 56.0},
+    {1.0 / 14.0, 1.0 / 17.0, 1.0 / 22.0, 1.0 / 29.0, 1.0 / 51.0, 1.0 / 87.0, 1.0 / 80.0, 1.0 / 62.0},
+    {1.0 / 18.0, 1.0 / 22.0, 1.0 / 37.0, 1.0 / 56.0, 1.0 / 68.0, 1.0 / 109.0, 1.0 / 103.0, 1.0 / 77.0},
+    {1.0 / 24.0, 1.0 / 35.0, 1.0 / 55.0, 1.0 / 64.0, 1.0 / 81.0, 1.0 / 104.0, 1.0 / 113.0, 1.0 / 92.0},
+    {1.0 / 49.0, 1.0 / 64.0, 1.0 / 78.0, 1.0 / 87.0, 1.0 / 103.0, 1.0 / 121.0, 1.0 / 120.0, 1.0 / 101.0},
+    {1.0 / 72.0, 1.0 / 92.0, 1.0 / 95.0, 1.0 / 98.0, 1.0 / 112.0, 1.0 / 100.0, 1.0 / 103.0, 1.0 / 99.0}
+};
+
+//Shared memory to determine if a pixelBlock should be updated
+//Only used in the MP4 compression
+groupshared bool update;
+
+[numthreads(8,8,1)]
+//8x8 threads are ideal for this algorithm since the Discrete Cosine Transform used in JPEG compression operates
+//on an 8x8 block of pixels
+void CSMain(uint3 id : SV_DispatchThreadID, uint3 groupThreadID : SV_GroupThreadID, uint3 groupID : SV_GroupID)
+{
+    //Loop indices are defined outside of any loops because HLSL likes to complain about it otherwise
+    int ix, iy;
+    
+    //Fetch source pixels and convert to Yuv.
+    uint2 sourceRawXY = groupThreadID.xy + groupID.xy * 8;
+    uint2 sourceClampedXY = clamp(sourceRawXY, _CompressionSourceIndicesMinMax.xy, _CompressionSourceIndicesMinMax.zw); 
+    float4 sampleCurrent = _CompressionSource[sourceClampedXY];
+
+#if defined(_COLORSPACE_YUV)
+    float3 sampleCurrentYUV = YUVNormalizedFromRGB(sampleCurrent.rgb);
+#elif defined(_COLORSPACE_YCOCG)
+    float3 sampleCurrentYUV = YCOCGNormalizedFromRGB(sampleCurrent.rgb);
+#elif defined(_COLORSPACE_FCCYIQ)
+    float3 sampleCurrentYUV = FCCYIQFromSRGB(sampleCurrent.rgb);
+#elif defined(_COLORSPACE_YCBCR)
+    float3 sampleCurrentYUV = YCBCRFromSRGB(sampleCurrent.rgb);
+#elif defined(_COLORSPACE_YCBCRJPEG)
+    float3 sampleCurrentYUV = YCBCRJPEGFromSRGB(sampleCurrent.rgb);
+#elif defined(_COLORSPACE_SRGB)
+    // Note: for sRGB, we simply swizzle G into the X slot to treat Green as Luminance proxy.
+    float3 sampleCurrentYUV = sampleCurrent.grb;
+#endif
+
+#if defined(_COMPRESSION_MODE_ACCURATE)
+    pixelBlock[groupThreadID.x][groupThreadID.y] = sampleCurrentYUV * 255.0 - 128.0f;
+#elif defined(_COMPRESSION_MODE_FAST)
+    pixelBlock[groupThreadID.x][groupThreadID.y] = sampleCurrentYUV.x * 255.0 - 128.0f;
+
+    // In fast mode, simply quantize chroma components.
+    sampleCurrentYUV.yz = floor(sampleCurrentYUV.yz * _CompressionChromaQuantizationScaleAndInverse.x + 0.5) * _CompressionChromaQuantizationScaleAndInverse.y;
+#endif
+    GroupMemoryBarrierWithGroupSync();
+
+    //Perform the DCT on each pixel in this thread group.
+    dct[groupThreadID.x][groupThreadID.y] = 0.0;
+    for(ix = 0; ix < 8; ix++)
+    {
+        for(iy = 0; iy < 8; iy++)
+        {
+            float factor = cos((PI * (2.0 * ix + 1.0) * groupThreadID.x) / 16.0) 
+                         * cos((PI * (2.0 * iy + 1.0) * groupThreadID.y) / 16.0);
+
+            dct[groupThreadID.x][groupThreadID.y] += pixelBlock[ix][iy] * factor;
+        }
+    }
+
+    // Complete DCT encoding.
+    dct[groupThreadID.x][groupThreadID.y] *= (groupThreadID.x == 0 ? 0.353553390593 : 0.5);
+    dct[groupThreadID.x][groupThreadID.y] *= (groupThreadID.y == 0 ? 0.353553390593 : 0.5);
+
+    // Quantize
+    dct[groupThreadID.x][groupThreadID.y] = floor(dct[groupThreadID.x][groupThreadID.y] * QUANTIZATION_INVERSE[groupThreadID.x][groupThreadID.y] * _CompressionAccuracyThresholdAndInverse.y + 0.5f);
+
+    GroupMemoryBarrierWithGroupSync();
+
+    //Perform the inverse DCT
+    pixelBlock[groupThreadID.x][groupThreadID.y] = 0.0;
+    for(ix = 0; ix < 8; ix++)
+    {
+        for(iy = 0; iy < 8; iy++)
+        {
+        #if defined(_COMPRESSION_MODE_ACCURATE)
+            float3 dctTemp = dct[ix][iy];
+        #elif defined(_COMPRESSION_MODE_FAST)
+            float dctTemp = dct[ix][iy];
+        #endif
+
+            // Unquantize
+            dctTemp = dctTemp * QUANTIZATION[ix][iy] * _CompressionAccuracyThresholdAndInverse.x;
+
+            // Inverse DCT weight
+            float factor = cos((PI * (2.0 * groupThreadID.x + 1.0) * ix) / 16.0) 
+                         * cos((PI * (2.0 * groupThreadID.y + 1.0) * iy) / 16.0);
+
+            pixelBlock[groupThreadID.x][groupThreadID.y] += dctTemp * factor;
+        }
+    }
+    GroupMemoryBarrierWithGroupSync();
+
+    //Convert to RGB and output
+#if defined(_COMPRESSION_MODE_ACCURATE)
+    sampleCurrentYUV = lerp(sampleCurrentYUV, (pixelBlock[groupThreadID.x][groupThreadID.y] * 0.125) * (1.0 / 255.0) + (128.0 / 255.0), _CompressionWeight);
+#elif defined(_COMPRESSION_MODE_FAST)
+    sampleCurrentYUV.x = lerp(sampleCurrentYUV.x, (pixelBlock[groupThreadID.x][groupThreadID.y] * 0.125) * (1.0 / 255.0) + (128.0 / 255.0), _CompressionWeight);
+#endif
+
+#if defined(_COLORSPACE_YUV)
+    float3 sampleCurrentRGB = RGBFromYUVNormalized(sampleCurrentYUV);
+#elif defined(_COLORSPACE_YCOCG)
+    float3 sampleCurrentRGB = RGBFromYCOCGNormalized(sampleCurrentYUV);
+#elif defined(_COLORSPACE_FCCYIQ)
+    float3 sampleCurrentRGB = SRGBFromFCCYIQ(sampleCurrentYUV);
+#elif defined(_COLORSPACE_YCBCR)
+    float3 sampleCurrentRGB = SRGBFromYCBCR(sampleCurrentYUV);
+#elif defined(_COLORSPACE_YCBCRJPEG)
+    float3 sampleCurrentRGB = SRGBFromYCBCRJPEG(sampleCurrentYUV);
+#elif defined(_COLORSPACE_SRGB)
+    // Swizzle G back to 2nd slot and R back to first.
+    float3 sampleCurrentRGB = sampleCurrentYUV.yxz;
+#endif
+
+    if (sourceRawXY.x >= (uint)_CompressionSourceIndicesMinMax.x && sourceRawXY.y >= (uint)_CompressionSourceIndicesMinMax.y
+        && sourceRawXY.x <= (uint)_CompressionSourceIndicesMinMax.z && sourceRawXY.y <= (uint)_CompressionSourceIndicesMinMax.w)
+    {
+        _CompressionSource[groupThreadID.xy + groupID.xy * 8] = float4(sampleCurrentRGB, sampleCurrent.a);
+    }
+}

@@ -21,6 +21,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_PushDynamicLightingParametersStr = "Push Dynamic Lighting Parameters";
         public static readonly string s_PushPrecisionParametersStr = "Push Precision Parameters";
         public static readonly string s_PushFogParametersStr = "Push Fog Parameters";
+        public static readonly string s_PushCompressionParametersStr = "Push Compression Parameters";
         public static readonly string s_PushCathodeRayTubeParametersStr = "Push Cathode Ray Tube Parameters";
 
         public static ProfilingSampler s_PushGlobalRasterizationParameters = new ProfilingSampler(s_PushGlobalRasterizationParametersStr);
@@ -31,6 +32,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static ProfilingSampler s_PushDynamicLightingParameters = new ProfilingSampler(s_PushDynamicLightingParametersStr);
         public static ProfilingSampler s_PushPrecisionParameters = new ProfilingSampler(s_PushPrecisionParametersStr);
         public static ProfilingSampler s_PushFogParameters = new ProfilingSampler(s_PushFogParametersStr);
+        public static ProfilingSampler s_PushCompressionParameters = new ProfilingSampler(s_PushCompressionParametersStr);
         public static ProfilingSampler s_PushCathodeRayTubeParameters = new ProfilingSampler(s_PushCathodeRayTubeParametersStr);
     }
 
@@ -55,6 +57,27 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_CRT_MASK_DISABLED = "_CRT_MASK_DISABLED";
     }
 
+    internal static class PSXComputeKernels
+    {
+        // WARNING: this kernel name LUT calculation needs to stay in sync the kernel declarations in compression.compute,
+        // We need to manually compute and bookkeep kernel indices this way because 2019.3 does not support multi-compile keywords in compute shaders.
+        public static readonly string[] s_COMPRESSION =
+        {
+            "CSMain0",
+            "CSMain1",
+            "CSMain2",
+            "CSMain3",
+            "CSMain4",
+            "CSMain5",
+            "CSMain6",
+            "CSMain7",
+            "CSMain8",
+            "CSMain9",
+            "CSMain10",
+            "CSMain11"
+        };
+    }
+
     // Pre-hashed shader ids to avoid runtime hashing cost, runtime string manipulation, and to ensure we do not have naming conflicts across
     // all global shader uniforms.
     internal static class PSXShaderIDs
@@ -62,8 +85,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _ScreenSize = Shader.PropertyToID("_ScreenSize");
         public static readonly int _FrameBufferTexture = Shader.PropertyToID("_FrameBufferTexture");
         public static readonly int _FrameBufferScreenSize = Shader.PropertyToID("_FrameBufferScreenSize");
-        public static readonly int _FlipY = Shader.PropertyToID("_FlipY");
-        public static readonly int _UVTransform = Shader.PropertyToID("_UVTransform");
         public static readonly int _WhiteNoiseTexture = Shader.PropertyToID("_WhiteNoiseTexture");
         public static readonly int _WhiteNoiseSize = Shader.PropertyToID("_WhiteNoiseSize");
         public static readonly int _BlueNoiseTexture = Shader.PropertyToID("_BlueNoiseTexture");
@@ -124,5 +145,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _AdditionalLightsSpotDir = Shader.PropertyToID("_AdditionalLightsSpotDir");
         public static readonly int _AdditionalLightOcclusionProbeChannel = Shader.PropertyToID("_AdditionalLightOcclusionProbeChannel");
         public static readonly int _AdditionalLightsCount = Shader.PropertyToID("_AdditionalLightsCount");
+        public static readonly int _CompressionAccuracyThresholdAndInverse = Shader.PropertyToID("_CompressionAccuracyThresholdAndInverse");
+        public static readonly int _CompressionSource = Shader.PropertyToID("_CompressionSource");
+        public static readonly int _CompressionSourceIndicesMinMax = Shader.PropertyToID("_CompressionSourceIndicesMinMax");
+        public static readonly int _CompressionWeight = Shader.PropertyToID("_CompressionWeight");
+        public static readonly int _CompressionChromaQuantizationScaleAndInverse = Shader.PropertyToID("_CompressionChromaQuantizationScaleAndInverse");
     }
 }

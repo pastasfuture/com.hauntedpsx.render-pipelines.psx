@@ -34,7 +34,6 @@ Shader "Hidden/HauntedPS1/CRT"
     TEXTURE2D(_WhiteNoiseTexture);
     TEXTURE2D(_BlueNoiseTexture);
     TEXTURE2D(_CRTGrateMaskTexture);
-    float4 _UVTransform;
 
     // Emulated input resolution.
 #if 1
@@ -423,8 +422,10 @@ Shader "Hidden/HauntedPS1/CRT"
         #endif
 
         // Flip logic
-        positionSS = positionSS * _UVTransform.xy + _UVTransform.zw * (_ScreenSize.xy - 1.0);
-        positionNDC = positionNDC * _UVTransform.xy + _UVTransform.zw;
+    #if !UNITY_UV_STARTS_AT_TOP
+        positionSS.y = _ScreenSize.y - 1.0 - positionSS.y;
+        positionNDC.y = 1.0 - positionNDC.y;
+    #endif
 
         if (!_IsPSXQualityEnabled || !_CRTIsEnabled)
         {

@@ -13,6 +13,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             [Reload("Runtime/PostProcessing/Shaders/CRT.shader")]
             public Shader crtPS;
+            [Reload("Runtime/PostProcessing/Shaders/Compression.compute")]
+            public ComputeShader compressionCS;
         }
 
         [Serializable, ReloadGroup]

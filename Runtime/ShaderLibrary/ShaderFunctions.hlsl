@@ -116,6 +116,93 @@ float3 SRGBFromFCCYIQ(float3 yiq)
     return srgb;
 }
 
+// Converts from ycocg color space to rgb color space.
+// This is a purely linear transform, so it can be run on sRGB or RGB data, it has no notion of gamma.
+// https://en.wikipedia.org/wiki/YCoCg
+// https://scc.ustc.edu.cn/zlsc/sugon/intel/ipp/ipp_manual/IPPI/ippi_ch6/ch6_color_models.htm
+// Y is in range [0, 1], Co and Cg are in range [-0.5, 0.5]
+float3 RGBFromYCOCG(float3 rgb)
+{
+    return float3(
+        dot(rgb, float3(0.25, 0.5, 0.25)),
+        dot(rgb.rb, float2(0.5, -0.5)),
+        dot(rgb, float3(-0.25, 0.5, -0.25))
+    );
+}
+
+float3 YCOCGFromRGB(float3 ycocg)
+{
+    return float3(
+        ycocg.x + ycocg.y - ycocg.z,
+        ycocg.x + ycocg.z,
+        ycocg.x - ycocg.y - ycocg.z
+    );
+}
+
+// Returns ycocg in normalized range [0, 1] for all components.
+// Used for unorm storage. Often called YCOCG-R colorspace in literature.
+// https://en.wikipedia.org/wiki/YCoCg
+float3 YCOCGNormalizedFromRGB(float3 rgb)
+{
+    float3 res;
+    res.y = rgb.r - rgb.b;
+    float tmp = res.y * 0.5 + rgb.b;
+    res.z = rgb.g - tmp;
+    res.x = res.z * 0.5 + tmp;
+    return res;
+}
+
+float3 RGBFromYCOCGNormalized(float3 ycocgNormalized)
+{
+    float3 res;
+    float tmp = ycocgNormalized.z * -0.5 + ycocgNormalized.x;
+    res.g = ycocgNormalized.z + tmp;
+    res.b = ycocgNormalized.y * -0.5 + tmp;
+    res.r = res.b + ycocgNormalized.y;
+    return res;
+}
+
+// https://scc.ustc.edu.cn/zlsc/sugon/intel/ipp/ipp_manual/IPPI/ippi_ch6/ch6_color_models.htm
+float3 YCBCRFromSRGB(float3 srgb)
+{
+    return float3(
+        srgb.r * 0.257 + srgb.g * 0.504 + srgb.b * 0.098 + (16.0 / 255.0),
+        srgb.r * -0.148 + srgb.g * -0.291 + srgb.b * 0.439 + (128.0 / 255.0),
+        srgb.r * 0.439 + srgb.g * -0.368 + srgb.b * -0.071  + (128.0 / 255.0)
+    );
+}
+
+float3 SRGBFromYCBCR(float3 ycbcr)
+{
+    float3 ycbcrScaled = ycbcr - float3(16.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0);
+    ycbcrScaled.x *= 1.164;
+    return float3(
+        ycbcrScaled.z * 1.596 + ycbcrScaled.x,
+        ycbcrScaled.z * -0.813 + ycbcrScaled.y * -0.392 + ycbcrScaled.x,
+        ycbcrScaled.y * 2.017 + ycbcrScaled.x
+    );
+}
+
+// https://scc.ustc.edu.cn/zlsc/sugon/intel/ipp/ipp_manual/IPPI/ippi_ch6/ch6_color_models.htm
+// Intel IPP reccomends this slightly different YCBCR color space for jpeg compression.
+float3 YCBCRJPEGFromSRGB(float3 srgb)
+{
+    return float3(
+        srgb.r * 0.299 + srgb.g * 0.587 + srgb.b * 0.114,
+        srgb.r * -0.16874 + srgb.g * -0.33126 + srgb.b * 0.5 + (128.0 / 255.0),
+        srgb.r * 0.5 + srgb.g * -0.41869 + srgb.b * -0.08131 + (128.0 / 255.0)
+    );
+}
+
+float3 SRGBFromYCBCRJPEG(float3 ycbcr)
+{
+    return float3(
+        ycbcr.x + ycbcr.z * 1.402 + (-179.456 / 255.0),
+        ycbcr.x + ycbcr.y * -0.34414 + ycbcr.z * -0.71414 + (135.45984 / 255.0),
+        ycbcr.x + ycbcr.y * 1.772 + (-226.816 / 255.0)
+    );
+}
+
 // Low Complexity, High Fidelity: The Rendering of INSIDE
 // https://youtu.be/RdN06E6Xn9E?t=1337
 // Remaps a [0, 1] value to [-0.5, 1.5] range with a triangular distribution.
