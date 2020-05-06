@@ -75,6 +75,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             this.crtMaterial = CoreUtils.CreateEngineMaterial(m_Asset.renderPipelineResources.shaders.crtPS);
             FindComputeKernels();
+            AllocateLighting();
         }
 
         protected override void Dispose(bool disposing)
@@ -83,6 +84,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
             CoreUtils.Destroy(crtMaterial);
             compressionCSKernels = null;
+            DisposeLighting();
         }
 
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)

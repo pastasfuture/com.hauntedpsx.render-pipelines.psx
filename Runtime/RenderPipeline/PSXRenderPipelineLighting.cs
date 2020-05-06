@@ -4,6 +4,8 @@ using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
 using System.Collections.Generic;
 using Unity.Collections;
+using GlobalIllumination = UnityEngine.Experimental.GlobalIllumination;
+using Lightmapping = UnityEngine.Experimental.GlobalIllumination.Lightmapping;
 
 namespace HauntedPSX.RenderPipelines.PSX.Runtime
 {
@@ -25,6 +27,18 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         Vector4[] m_AdditionalLightAttenuations;
         Vector4[] m_AdditionalLightSpotDirections;
         Vector4[] m_AdditionalLightOcclusionProbeChannels;
+
+        void AllocateLighting()
+        {
+            // Set callback for converting light sources from HPSXRP representation to lightmapper representation.
+            Lightmapping.SetDelegate(lightsDelegate);
+        }
+
+        void DisposeLighting()
+        {
+            // Clear callback for converting light sources from HPSXRP representation to lightmapper representation.
+            Lightmapping.ResetDelegate();
+        }
 
         void PushDynamicLightingParameters(Camera camera, CommandBuffer cmd, ref CullingResults cullingResults)
         {
@@ -242,5 +256,82 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             //     }
             // }
         }
+
+        // Handle conversion from HPSXRP representation of light sources to lightmapper's representation of light sources here.
+        // This is based on the approach that Universal and HDRP take.
+        static Lightmapping.RequestLightsDelegate lightsDelegate = (Light[] requests, NativeArray<GlobalIllumination.LightDataGI> lightsOutput) =>
+        {
+            // Editor only.
+#if UNITY_EDITOR
+            GlobalIllumination.LightDataGI lightData = new GlobalIllumination.LightDataGI();
+
+            for (int i = 0; i < requests.Length; i++)
+            {
+                Light light = requests[i];
+
+                switch (light.type)
+                {
+                    case LightType.Directional:
+                        GlobalIllumination.DirectionalLight directionalLight = new GlobalIllumination.DirectionalLight();
+                        GlobalIllumination.LightmapperUtils.Extract(light, ref directionalLight);
+                        lightData.Init(ref directionalLight);
+                        break;
+                    case LightType.Point:
+                        GlobalIllumination.PointLight pointLight = new GlobalIllumination.PointLight();
+                        GlobalIllumination.LightmapperUtils.Extract(light, ref pointLight);
+                        lightData.Init(ref pointLight);
+                        break;
+                    case LightType.Spot:
+                        GlobalIllumination.SpotLight spotLight = new GlobalIllumination.SpotLight();
+                        GlobalIllumination.LightmapperUtils.Extract(light, ref spotLight);
+                        spotLight.innerConeAngle = light.innerSpotAngle * Mathf.Deg2Rad;
+                        spotLight.angularFalloff = GlobalIllumination.AngularFalloffType.AnalyticAndInnerAngle;
+                        lightData.Init(ref spotLight);
+                        break;
+                    case LightType.Area:
+                        GlobalIllumination.RectangleLight rectangleLight = new GlobalIllumination.RectangleLight();
+                        GlobalIllumination.LightmapperUtils.Extract(light, ref rectangleLight);
+                        rectangleLight.mode = GlobalIllumination.LightMode.Baked;
+                        lightData.Init(ref rectangleLight);
+                        break;
+                    case LightType.Disc:
+                        GlobalIllumination.DiscLight discLight = new GlobalIllumination.DiscLight();
+                        GlobalIllumination.LightmapperUtils.Extract(light, ref discLight);
+                        discLight.mode = GlobalIllumination.LightMode.Baked;
+                        lightData.Init(ref discLight);
+                        break;
+                    default:
+                        lightData.InitNoBake(light.GetInstanceID());
+                        break;
+                }
+
+                GlobalIllumination.LinearColor directColor, indirectColor;
+                directColor = GlobalIllumination.LinearColor.Convert(light.color, light.intensity);
+                indirectColor = GlobalIllumination.LightmapperUtils.ExtractIndirect(light);
+
+                if (light.type != LightType.Area && light.type != LightType.Disc)
+                {
+                    // Division by PI is handled at runtime in the shaders when evaluating lambert, rather than being baked into the light color.
+                    directColor.intensity /= Mathf.PI;
+                    indirectColor.intensity /= Mathf.PI;
+                }
+
+                lightData.color = directColor;
+                lightData.indirectColor = indirectColor;
+                lightData.falloff = GlobalIllumination.FalloffType.InverseSquared;
+                lightsOutput[i] = lightData;
+            }
+#else
+            GlobalIllumination.LightDataGI lightData = new GlobalIllumination.LightDataGI();
+
+            for (int i = 0; i < requests.Length; i++)
+            {
+                Light light = requests[i];
+                lightData.InitNoBake(light.GetInstanceID());
+                lightsOutput[i] = lightData;
+            }
+            Debug.LogWarning("Realtime GI is not supported in HPSXRP.");
+#endif
+        };
     }
 }
