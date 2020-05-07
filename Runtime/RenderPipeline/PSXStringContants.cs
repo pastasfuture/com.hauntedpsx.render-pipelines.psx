@@ -13,6 +13,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
     internal static class PSXProfilingSamplers
     {
+        public static readonly string s_PushCameraParametersStr = "Push Camera Parameters";
         public static readonly string s_PushGlobalRasterizationParametersStr = "Push Global Rasterization Parameters";
         public static readonly string s_PushGlobalPostProcessingParametersStr = "Push Global Rasterization Parameters";
         public static readonly string s_PushQualityOverrideParametersStr = "Push Quality Override Parameters";
@@ -24,6 +25,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_PushCompressionParametersStr = "Push Compression Parameters";
         public static readonly string s_PushCathodeRayTubeParametersStr = "Push Cathode Ray Tube Parameters";
 
+        public static ProfilingSampler s_PushCameraParameters = new ProfilingSampler(s_PushCameraParametersStr);
         public static ProfilingSampler s_PushGlobalRasterizationParameters = new ProfilingSampler(s_PushGlobalRasterizationParametersStr);
         public static ProfilingSampler s_PushGlobalPostProcessingParameters = new ProfilingSampler(s_PushGlobalPostProcessingParametersStr);
         public static ProfilingSampler s_PushQualityOverrideParameters = new ProfilingSampler(s_PushQualityOverrideParametersStr);

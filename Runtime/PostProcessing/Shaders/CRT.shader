@@ -117,8 +117,8 @@ Shader "Hidden/HauntedPS1/CRT"
     {
         float2 posNoiseSignal = floor(pos * res + off) * noiseTextureSize.zw;
         float2 posNoiseCRT = floor(pos * _ScreenSize.xy + off * res * _ScreenSize.zw) * noiseTextureSize.zw;
-        pos = (floor(pos * res + off) + 0.5) / res;
-        if(max(abs(pos.x - 0.5), abs(pos.y - 0.5)) > 0.5) { return float3(0.0,0.0,0.0); }
+        pos = (floor(pos * res + off)) / res;
+        if(max(abs(pos.x - 0.5), abs(pos.y - 0.5)) >= 0.5) { return float3(0.0, 0.0, 0.0); }
         float3 value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, FetchFrameBuffer(pos).rgb);
         value = SRGBToLinear(value);
         return value;
@@ -238,6 +238,15 @@ Shader "Hidden/HauntedPS1/CRT"
     // Allow nearest three lines to effect pixel.
     float3 Tri(float2 pos)
     {
+        float2 positionPixelsMax = pos * res + float2(5.0, 1.0);
+        float2 positionPixelsMin = pos * res - float2(5.0, 1.0);
+
+        if (positionPixelsMax.x <= 0.0 || positionPixelsMax.y <= 0.0
+            || positionPixelsMin.x >= res.x || positionPixelsMin.y >= res.y)
+        {
+            return 0.0;
+        }
+
         float3 a=Horz3(pos,-1.0);
         float3 b=Horz5(pos, 0.0);
         float3 c=Horz3(pos, 1.0);
@@ -250,6 +259,15 @@ Shader "Hidden/HauntedPS1/CRT"
     // Small bloom.
     float3 Bloom(float2 pos)
     {
+        float2 positionPixelsMax = pos * res + float2(7.0, 2.0);
+        float2 positionPixelsMin = pos * res - float2(7.0, 2.0);
+
+        if (positionPixelsMax.x <= 0.0 || positionPixelsMax.y <= 0.0
+            || positionPixelsMin.x >= res.x || positionPixelsMin.y >= res.y)
+        {
+            return 0.0;
+        }
+
         float3 a=Horz5(pos,-2.0);
         float3 b=Horz7(pos,-1.0);
         float3 c=Horz7(pos, 0.0);
@@ -266,7 +284,7 @@ Shader "Hidden/HauntedPS1/CRT"
     // Distortion of scanlines, and end of screen alpha.
     float2 Warp(float2 pos)
     {
-        pos = pos * 2.0 - 1.0;    
+        pos = pos * 2.0 - 1.0;
         pos *= float2(1.0 + (pos.y * pos.y) * _CRTBarrelDistortion.x, 1.0 + (pos.x * pos.x) * _CRTBarrelDistortion.y);
         return pos * 0.5 + 0.5;
     }
@@ -330,8 +348,6 @@ Shader "Hidden/HauntedPS1/CRT"
             * (_CRTGrateMaskIntensityMinMax.y - _CRTGrateMaskIntensityMinMax.x) + _CRTGrateMaskIntensityMinMax.x;
     }
 
-        
-
     float3 CRTMask(float2 pos)
     {
     #if defined(_CRT_MASK_COMPRESSED_TV)
@@ -353,11 +369,11 @@ Shader "Hidden/HauntedPS1/CRT"
     }
 
     // Entry.
-    float4 EvaluateCRT(float2 positionSS)
+    float4 EvaluateCRT(float2 positionFramebufferSS, float2 positionScreenSS)
     {
         float4 crt = 0.0;
 
-        float2 crtUV = Warp(positionSS.xy * _ScreenSize.zw);
+        float2 crtUV = Warp(positionFramebufferSS.xy * _ScreenSize.zw);
 
         // Note: if we use the pure NDC coordinates, our vignette will be an ellipse, since we do not take into account physical distance differences from the aspect ratio.
         // Apply aspect ratio to get circular, physically based vignette:
@@ -375,7 +391,7 @@ Shader "Hidden/HauntedPS1/CRT"
         float distanceFromCenterSquaredNDC = dot(crtNDC, crtNDC);
         float vignette = EvaluatePBRVignette(distanceFromCenterSquaredNDC, _CRTVignetteSquared);
 
-        crt.rgb = Tri(crtUV) * CRTMask(positionSS.xy * _CRTGrateMaskScale.y);
+        crt.rgb = CRTMask(positionScreenSS * _CRTGrateMaskScale.y) * Tri(crtUV);
 
         #if 1
         // Energy conserving normalized bloom.
@@ -399,7 +415,8 @@ Shader "Hidden/HauntedPS1/CRT"
     struct Varyings
     {
         float4 positionCS : SV_POSITION;
-        float2 texcoord   : TEXCOORD0;
+        float2 uvFramebuffer : TEXCOORD0;
+        float2 uvScreen : TEXCOORD1;
         UNITY_VERTEX_OUTPUT_STEREO
     };
 
@@ -407,7 +424,19 @@ Shader "Hidden/HauntedPS1/CRT"
     {
         Varyings output;
         output.positionCS = input.vertex;
-        output.texcoord = input.uv;
+        
+
+        // Handle potential rasterization render target aspect ratio vs CRT shader render target aspect ratio discrepancy.
+        // This occurs due to rounding error, or due to locked rasterization aspect ratio (i.e: to simulate CRT 1.33).
+        // TODO: This scale bias term could be computed CPU side. That said, this calculation is only run on four vertices.
+        // Probably not worth adding an additional uniform to deal with this.
+        float2 ratioXY = _FrameBufferScreenSize.xy * _ScreenSize.zw;
+        float2 ratioXYMax = max(ratioXY.x, ratioXY.y);
+        float2 uvScale = ratioXYMax / ratioXY;
+        float2 uvBias = 0.5 - (0.5 * uvScale);
+        output.uvScreen = input.uv;
+        output.uvFramebuffer = input.uv * uvScale + uvBias;
+
         return output;
     }
 
@@ -430,26 +459,35 @@ Shader "Hidden/HauntedPS1/CRT"
     {
         UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
-        float2 positionNDC = input.texcoord;
-        uint2 positionSS = input.texcoord * _ScreenSize.xy;
+        float2 positionFramebufferNDC = input.uvFramebuffer;
+        float2 positionFramebufferSS = input.uvFramebuffer * _ScreenSize.xy;
 
-        #if UNITY_SINGLE_PASS_STEREO
-        positionNDC.x = (positionNDC.x + unity_StereoEyeIndex) * 0.5;
-        #endif
+        float2 positionScreenNDC = input.uvScreen;
+        float2 positionScreenSS = input.uvScreen * _ScreenSize.xy;
+
+    #if UNITY_SINGLE_PASS_STEREO
+        positionFramebufferNDC.x = (positionFramebufferNDC.x + unity_StereoEyeIndex) * 0.5;
+        positionScreenNDC.x = (positionScreenNDC.x + unity_StereoEyeIndex) * 0.5;
+    #endif
 
         // Flip logic
         if (ShouldFlipY())
         {
-            positionSS.y = _ScreenSize.y - 1.0 - positionSS.y;
-            positionNDC.y = 1.0 - positionNDC.y;
+            positionFramebufferSS.y = _ScreenSize.y - 1.0 - positionFramebufferSS.y;
+            positionFramebufferNDC.y = 1.0 - positionFramebufferNDC.y;
+
+            positionScreenSS.y = _ScreenSize.y - 1.0 - positionScreenSS.y;
+            positionScreenNDC.y = 1.0 - positionScreenNDC.y;
         }
 
         if (!_IsPSXQualityEnabled || !_CRTIsEnabled)
         {
-            return SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionNDC.xy, 0);
+            return (max(abs(positionFramebufferNDC.x * 2.0 - 1.0), abs(positionFramebufferNDC.y * 2.0 - 1.0)) <= 1.0)
+                ? SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0)
+                : float4(0.0, 0.0, 0.0, 1.0);
         }
 
-        float4 outColor = EvaluateCRT(positionSS);
+        float4 outColor = EvaluateCRT(positionFramebufferSS, positionScreenSS);
         outColor.rgb = saturate(outColor.rgb);
         outColor.rgb = LinearToSRGB(outColor.rgb);
 

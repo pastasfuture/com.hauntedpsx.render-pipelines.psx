@@ -31,7 +31,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         internal protected void Build()
         {
             ConfigureGlobalRenderPipelineTag();
-            ConfigureFramerateFromAsset(m_Asset);
             ConfigureSRPBatcherFromAsset(m_Asset);
         }
 
@@ -40,21 +39,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             // https://docs.unity3d.com/ScriptReference/Shader-globalRenderPipeline.html
             // Set globalRenderPipeline so that only subshaders with Tags{ "RenderPipeline" = "PSXRenderPipeline" } will be rendered.
             Shader.globalRenderPipeline = PSXStringConstants.s_GlobalRenderPipelineStr;
-        }
-
-        static void ConfigureFramerateFromAsset(PSXRenderPipelineAsset asset)
-        {
-            if (asset.isFrameLimitEnabled)
-            {
-                QualitySettings.vSyncCount = 0; // VSync must be disabled
-                Application.targetFrameRate = asset.frameLimit;                
-            }
-            else
-            {
-                // Render at platform's default framerate.
-                QualitySettings.vSyncCount = 1;
-                Application.targetFrameRate = -1;
-            }
         }
 
         static void ConfigureSRPBatcherFromAsset(PSXRenderPipelineAsset asset)
@@ -87,6 +71,67 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             DisposeLighting();
         }
 
+        void PushCameraParameters(Camera camera, CommandBuffer cmd, out int rasterizationWidth, out int rasterizationHeight, bool isPSXQualityEnabled)
+        {
+            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushCameraParameters))
+            {
+                var volumeSettings = VolumeManager.instance.stack.GetComponent<CameraVolume>();
+                if (!volumeSettings) volumeSettings = CameraVolume.@default;
+
+                if (isPSXQualityEnabled && volumeSettings.isFrameLimitEnabled.value)
+                {
+                    QualitySettings.vSyncCount = 0; // VSync must be disabled
+                    Application.targetFrameRate = volumeSettings.frameLimit.value;                
+                }
+                else
+                {
+                    // Render at platform's default framerate.
+                    QualitySettings.vSyncCount = 1;
+                    Application.targetFrameRate = -1;
+                }
+
+                // Trigger camera to reset it's aspect ratio back to the screens aspect ratio.
+                // We force this reset here in case a previous frame had overridden the camera's aspect ratio via AspectMode.Locked.
+                camera.ResetAspect();
+                rasterizationWidth = camera.pixelWidth;
+                rasterizationHeight = camera.pixelHeight;
+
+                if (isPSXQualityEnabled)
+                {
+                    rasterizationWidth = volumeSettings.targetRasterizationResolutionWidth.value;
+                    rasterizationHeight = volumeSettings.targetRasterizationResolutionHeight.value;
+                    
+                    // Only render locked aspect ratio in main game view.
+                    // Force scene view to render with free aspect ratio so that users edit area is not cropped.
+                    // This also works around an issue with the aspect ratio discrepancy between locked mode, and
+                    // the built in unity gizmos that are rendered outside of the context of this render loop.
+                    if (volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.Free
+                        || !IsMainGameView(camera))
+                    {
+                        // Rather than explicitly hardcoding PSX framebuffer resolution, and enforcing 1.333 aspect ratio
+                        // we allow arbitrary aspect ratios and match requested PSX framebuffer pixel density. (targetRasterizationResolutionWidth and targetRasterizationResolutionHeight).
+                        // TODO: Could create an option for this in the RenderPipelineAsset that allows users to enforce aspect with black bars.
+                        if (camera.pixelWidth >= camera.pixelHeight)
+                        {
+                            // Horizontal aspect.
+                            rasterizationWidth = Mathf.FloorToInt((float)rasterizationHeight * (float)camera.pixelWidth / (float)camera.pixelHeight + 0.5f);
+
+                        }
+                        else
+                        {
+                            // Vertical aspect.
+                            rasterizationHeight = Mathf.FloorToInt((float)rasterizationHeight * (float)camera.pixelHeight / (float)camera.pixelWidth + 0.5f);
+                        }
+                    }
+
+                    // Force the camera into the aspect ratio described by the targetRasterizationResolution parameters.
+                    // While this can be approximately be equal to the fullscreen aspect ratio (in CameraAspectMode.Free),
+                    // subtle change can occur from pixel rounding error.
+                    camera.aspect = (float)rasterizationWidth / (float)rasterizationHeight;
+                }
+            }
+        }
+
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
         {
             if (cameras.Length == 0) { return; }
@@ -117,11 +162,17 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 // We do not want to force diffs on files when users are just temporarily previewing things. 
                 isPSXQualityEnabled &= CoreUtils.ArePostProcessesEnabled(camera);
 
+                var cmd = CommandBufferPool.Get(PSXStringConstants.s_CommandBufferRenderForwardStr);
+                PushCameraParameters(camera, cmd, out int rasterizationWidth, out int rasterizationHeight, isPSXQualityEnabled);
+
                 // Disable shadow casters completely as we currently do not support dynamic light sources.
                 cullingParameters.cullingOptions &= ~CullingOptions.ShadowCasters;
 
-                // Disable lighting completely as we currently do not support dynamic light sources.
-                // cullingParameters.cullingOptions &= ~CullingOptions.NeedsLighting;
+                if (!ComputeDynamicLightingIsEnabled(camera))
+                {
+                    // Disable lighting completely as we currently do not support dynamic light sources.
+                    cullingParameters.cullingOptions &= ~CullingOptions.NeedsLighting;
+                }
 
                 // Disable stereo rendering as we currently do not support it.
                 cullingParameters.cullingOptions &= ~CullingOptions.Stereo;
@@ -135,7 +186,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 // per-camera built-in shader variables).
                 context.SetupCameraProperties(camera);
 
-                ComputeRasterizationResolution(out int rasterizationWidth, out int rasterizationHeight, m_Asset.targetRasterizationResolutionWidth, m_Asset.targetRasterizationResolutionHeight, camera, isPSXQualityEnabled);
                 RenderTexture rasterizationRT = RenderTexture.GetTemporary(
                     new RenderTextureDescriptor
                     {
@@ -156,7 +206,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     }
                 ); 
 
-                var cmd = CommandBufferPool.Get(PSXStringConstants.s_CommandBufferRenderForwardStr);
                 cmd.SetRenderTarget(rasterizationRT);
                 {
                     // Clear background to fog color to create seamless blend between forward-rendered fog, and "sky" / infinity.
@@ -188,43 +237,22 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     PushCathodeRayTubeParameters(camera, cmd, crtMaterial);
                     PSXRenderPipeline.DrawFullScreenQuad(cmd, crtMaterial);
                 }
+
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Release();
                 context.Submit();
                 RenderTexture.ReleaseTemporary(rasterizationRT);
+
+                // Reset any modifications to the cameras aspect ratio so that built in unity handles draw normally.
+                camera.ResetAspect();
+
                 UnityEngine.Rendering.RenderPipeline.EndCameraRendering(context, camera);
             }
         }
 
         static bool IsMainGameView(Camera camera)
         {
-            return camera.cameraType == CameraType.Game && camera.targetTexture == null; 
-        }
-
-        static void ComputeRasterizationResolution(out int width, out int height, int targetWidth, int targetHeight, Camera camera, bool isPSXQualityEnabled)
-        {
-            width = camera.pixelWidth;
-            height = camera.pixelHeight;
-
-            if (isPSXQualityEnabled)
-            {
-                // Rather than explicitly hardcoding PSX framebuffer resolution, and enforcing 1.333 aspect ratio
-                // we allow arbitrary aspect ratios and match requested PSX framebuffer pixel density. (targetRasterizationResolutionWidth and targetRasterizationResolutionHeight).
-                // TODO: Could create an option for this in the RenderPipelineAsset that allows users to enforce aspect with black bars.
-                width = targetWidth;
-                height = targetHeight;
-                if (camera.pixelWidth >= camera.pixelHeight)
-                {
-                    // Horizontal aspect.
-                    width = Mathf.FloorToInt((float)height * (float)camera.pixelWidth / (float)camera.pixelHeight + 0.5f);
-
-                }
-                else
-                {
-                    // Vertical aspect.
-                    height = Mathf.FloorToInt((float)height * (float)camera.pixelHeight / (float)camera.pixelWidth + 0.5f);
-                }
-            }
+            return camera.cameraType == CameraType.Game; 
         }
 
         static Color GetFogColorFromFogVolume()
@@ -337,6 +365,21 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             }
 
             return perObjectData;
+        }
+
+        static bool ComputeDynamicLightingIsEnabled(Camera camera)
+        {
+            var volumeSettings = VolumeManager.instance.stack.GetComponent<LightingVolume>();
+            if (!volumeSettings) volumeSettings = LightingVolume.@default;
+
+            bool lightingIsEnabled = volumeSettings.lightingIsEnabled.value;
+
+            // Respect the sceneview lighting enabled / disabled toggle.
+            lightingIsEnabled &= !CoreUtils.IsSceneLightingDisabled(camera);
+
+            lightingIsEnabled &= (volumeSettings.dynamicLightingMultiplier.value > 0.0f);
+
+            return lightingIsEnabled;
         }
 
         static void PushPrecisionParameters(Camera camera, CommandBuffer cmd, PSXRenderPipelineAsset asset)
@@ -521,7 +564,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushGlobalPostProcessingParameters))
             {
-                bool flipY = !IsMainGameView(camera);
+                bool flipY = !(IsMainGameView(camera) && camera.targetTexture == null);
                 cmd.SetGlobalInt(PSXShaderIDs._FlipY, flipY ? 1 : 0);
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / (float)camera.pixelWidth, 1.0f / (float)camera.pixelHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._FrameBufferScreenSize, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));

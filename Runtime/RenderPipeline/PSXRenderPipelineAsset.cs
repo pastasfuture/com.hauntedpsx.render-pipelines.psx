@@ -57,15 +57,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
         [SerializeField]
         public PSXRenderPipelineResources renderPipelineResources;
-
-        [SerializeField]
-        public int targetRasterizationResolutionWidth = 320;
-        public int targetRasterizationResolutionHeight = 240;
-
-        [SerializeField]
-        public bool isFrameLimitEnabled = true;
-        [SerializeField]
-        public int frameLimit = 24;
         [SerializeField]
         public bool isSRPBatcherEnabled = false;
     }
