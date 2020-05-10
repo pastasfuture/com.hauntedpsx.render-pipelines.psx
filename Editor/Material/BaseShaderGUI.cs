@@ -108,6 +108,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent emissionTex = new GUIContent("Emission Map",
                 "Sets a Texture map to use for emission. You can also select a color with the color picker. Colors are multiplied over the Texture.");
+
+            public static readonly GUIContent emissionBakedMultiplier = new GUIContent("Emission Baked Multiplier",
+                "Multiplier for artificially increasing or decreasing emission intensity when captured in baked lighting. In general, this should kept at 1.0. Increasing or decreasing this value is not physically plausible. Values other than 1.0 can be useful when fine tuning the amount of light an emissive surface emits in the bake, without affecting the way the emissive surface appears.");
         
             public static readonly GUIContent reflection = new GUIContent("Reflection",
                 "Specifies whether or not to apply cubemap reflections. Turn off when not in use to avoid performance cost.");
@@ -166,6 +169,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialProperty emissionColorProp { get; set; }
 
+        protected MaterialProperty emissionBakedMultiplierProp { get; set; }
+
         protected MaterialProperty reflectionProp { get; set; }
 
         protected MaterialProperty reflectionCubemapProp { get; set; }
@@ -215,6 +220,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             mainColorProp = FindProperty("_MainColor", properties, false);
             emissionTextureProp = FindProperty("_EmissionTexture", properties, false);
             emissionColorProp = FindProperty("_EmissionColor", properties, false);
+            emissionBakedMultiplierProp = FindProperty("_EmissionBakedMultiplier", properties, false);
             reflectionProp = FindProperty("_Reflection", properties, false);
             reflectionCubemapProp = FindProperty("_ReflectionCubemap", properties, false);
             reflectionTextureProp = FindProperty("_ReflectionTexture", properties, false);
@@ -433,14 +439,19 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 // Emission for GI?
                 emissive = materialEditor.EmissionEnabledProperty();
 
-
-
                 EditorGUI.BeginDisabledGroup(!emissive);
                 {
                     // Texture and HDR color controls
                     materialEditor.TexturePropertyWithHDRColor(Styles.emissionTex, emissionTextureProp,
                         emissionColorProp,
                         false);
+
+                    EditorGUI.BeginChangeCheck();
+                    float emissionBakedMultiplier = EditorGUILayout.FloatField(Styles.emissionBakedMultiplier, emissionBakedMultiplierProp.floatValue);
+                    if (EditorGUI.EndChangeCheck())
+                        emissionBakedMultiplierProp.floatValue = emissionBakedMultiplier;
+
+                    
                 }
                 EditorGUI.EndDisabledGroup();
             }

@@ -6,6 +6,7 @@
         _MainColor("MainColor", Color) = (1,1,1,1)
         _EmissionTexture("EmissionTexture", 2D) = "white" {}
         _EmissionColor("EmissionColor", Color) = (0,0,0,0)
+        _EmissionBakedMultiplier("EmissionBakedMultiplier", Float) = 1.0
         _AlphaClippingDitherIsEnabled("_AlphaClippingDitherIsEnabled", Float) = 0.0
         _AffineTextureWarpingWeight("_AffineTextureWarpingWeight", Float) = 1.0
         _FogWeight("_FogWeight", Float) = 1.0

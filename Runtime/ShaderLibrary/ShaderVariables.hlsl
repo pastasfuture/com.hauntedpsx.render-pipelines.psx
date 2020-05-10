@@ -149,6 +149,7 @@ TEXTURE2D(_EmissionTexture);
 SAMPLER(sampler_EmissionTexture);
 float4 _EmissionTexture_ST;
 float3 _EmissionColor;
+float _EmissionBakedMultiplier;
 float _AlphaClippingDitherIsEnabled;
 float _AffineTextureWarpingWeight;
 float _FogWeight;
