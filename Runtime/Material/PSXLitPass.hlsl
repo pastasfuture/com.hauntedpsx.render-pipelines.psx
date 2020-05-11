@@ -100,10 +100,8 @@ Varyings LitPassVertex(Attributes v)
         float2 lightmapUV = v.lightmapUV.xy * unity_LightmapST.xy + unity_LightmapST.zw;
         o.lighting = SRGBToLinear(SampleLightmap(lightmapUV, normalWS));
     #else
-        // TODO: Track down why we need this scale factor for probes. I have a suspision it is because we are working in
-        // gamma space, and that the supporting code is meant to be executed in linear, but we will see.
-        const float PROBE_SCALE_FACTOR = 12.0f;
-        o.lighting = SRGBToLinear(SampleSH(normalWS)) * PROBE_SCALE_FACTOR;
+        // Interestingly, it seems that unity_SHXx terms are always provided in linear space, regardless of color space setting of render pipeline.
+        o.lighting = SampleSH(normalWS);
     #endif
 
         o.lighting *= _BakedLightingMultiplier;
@@ -250,10 +248,8 @@ half4 LitPassFragment(Varyings i) : SV_Target
         float2 lightmapUV = i.lightmapUV * unity_LightmapST.xy + unity_LightmapST.zw;
         lighting = SRGBToLinear(SampleLightmap(lightmapUV, normalWS));
     #else
-        // TODO: Track down why we need this scale factor for probes. I have a suspision it is because we are working in
-        // gamma space, and that the supporting code is meant to be executed in linear, but we will see.
-        const float PROBE_SCALE_FACTOR = 12.0f;
-        lighting = SRGBToLinear(SampleSH(normalWS)) * PROBE_SCALE_FACTOR;
+        // Interestingly, it seems that unity_SHXx terms are always provided in linear space, regardless of color space setting of render pipeline.
+        lighting = SampleSH(normalWS);
     #endif
 
         lighting *= _BakedLightingMultiplier;
