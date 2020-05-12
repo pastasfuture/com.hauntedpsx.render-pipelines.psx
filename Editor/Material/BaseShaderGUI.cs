@@ -32,7 +32,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             AlphaPostmultiply, // Old school alpha-blending mode.
             AlphaPremultiply, // Physically plausible transparency mode, implemented as alpha pre-multiply
             Additive,
-            Multiply
+            Multiply,
+            Subtractive
         }
 
         public enum RenderFace
@@ -643,6 +644,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                     material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
                     material.SetOverrideTag("RenderType", "Opaque");
                 }
+                material.SetInt("_BlendOp", (int)UnityEngine.Rendering.BlendOp.Add);
                 material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
                 material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
                 material.SetInt("_ZWrite", 1);
@@ -657,25 +659,39 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 switch (blendMode)
                 {
                     case BlendMode.AlphaPostmultiply:
+                        material.SetInt("_BlendOp", (int)UnityEngine.Rendering.BlendOp.Add);
                         material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
                         material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
                         material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
                         break;
                     case BlendMode.AlphaPremultiply:
+                        material.SetInt("_BlendOp", (int)UnityEngine.Rendering.BlendOp.Add);
                         material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
                         material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
                         material.EnableKeyword("_ALPHAPREMULTIPLY_ON");
                         break;
                     case BlendMode.Additive:
+                        material.SetInt("_BlendOp", (int)UnityEngine.Rendering.BlendOp.Add);
                         material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
                         material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One);
                         material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
                         break;
                     case BlendMode.Multiply:
+                        material.SetInt("_BlendOp", (int)UnityEngine.Rendering.BlendOp.Add);
                         material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.DstColor);
                         material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
                         material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
                         material.EnableKeyword("_ALPHAMODULATE_ON");
+                        break;
+                    case BlendMode.Subtractive:
+                        material.SetInt("_BlendOp", (int)UnityEngine.Rendering.BlendOp.ReverseSubtract);
+                        material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                        material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One);
+                        material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                        material.DisableKeyword("_ALPHAMODULATE_ON");
+                        break;
+                    default:
+                        Debug.Assert(false, "Error: Encountered unsupported blendmode: " + blendMode);
                         break;
                 }
                 // General Transparent Material Settings
