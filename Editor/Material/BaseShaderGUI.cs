@@ -36,6 +36,13 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             Subtractive
         }
 
+        public enum VertexColorMode
+        {
+            Disabled = 0,
+            Color,
+            Lighting
+        }
+
         public enum RenderFace
         {
             Front = 2,
@@ -61,6 +68,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent AdvancedLabel = new GUIContent("Advanced",
                 "These settings affect behind-the-scenes rendering and underlying calculations.");
+
+            public static readonly GUIContent VertexColorMode = new GUIContent("Vertex Color Mode",
+                "Controls how vertex colors are interpreted by the shader. VertexColorMode.Color multiplies the vertex color data with the MainTex value. This is useful for adding variation to the MainTex color per vertex, such as in a particle sim. VertexColorMode.Lighting interprets the vertexColor data as per-vertex lighting. The result will be added to other lighting that may be present.");
 
             public static readonly GUIContent LightingMode =
                 new GUIContent("Lighting Mode", "Controls whether or not lighting is evaluated.");
@@ -132,11 +142,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialEditor materialEditor { get; set; }
 
+        protected MaterialProperty vertexColorModeProp { get; set; }
+
         protected MaterialProperty lightingModeProp { get; set; }
 
         protected MaterialProperty lightingBakedProp { get; set; }
-
-        protected MaterialProperty lightingVertexColorProp { get; set; }
 
         protected MaterialProperty lightingDynamicProp { get; set; }
 
@@ -203,9 +213,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public virtual void FindProperties(MaterialProperty[] properties)
         {
+            vertexColorModeProp = FindProperty("_VertexColorMode", properties);
             lightingModeProp = FindProperty("_LightingMode", properties);
             lightingBakedProp = FindProperty("_LightingBaked", properties);
-            lightingVertexColorProp = FindProperty("_LightingVertexColor", properties);
             lightingDynamicProp = FindProperty("_LightingDynamic", properties);
             shadingEvaluationModeProp = FindProperty("_ShadingEvaluationMode", properties);
             surfaceTypeProp = FindProperty("_Surface", properties);
@@ -307,6 +317,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public virtual void DrawSurfaceOptions(Material material)
         {
+            DoPopup(Styles.VertexColorMode, vertexColorModeProp, Enum.GetNames(typeof(VertexColorMode)));
+
             DoPopup(Styles.LightingMode, lightingModeProp, Enum.GetNames(typeof(LightingMode)));
 
             if ((lightingModeProp.floatValue != (float)LightingMode.Lit) && (lightingModeProp.floatValue != (float)LightingMode.Unlit))
@@ -321,11 +333,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 bool lightingBakedEnabled = EditorGUILayout.Toggle(Styles.LightingBaked, lightingBakedProp.floatValue == 1);
                 if (EditorGUI.EndChangeCheck())
                     lightingBakedProp.floatValue = lightingBakedEnabled ? 1 : 0;
-
-                EditorGUI.BeginChangeCheck();
-                bool lightingVertexColorEnabled = EditorGUILayout.Toggle(Styles.LightingVertexColor, lightingVertexColorProp.floatValue == 1);
-                if (EditorGUI.EndChangeCheck())
-                    lightingVertexColorProp.floatValue = lightingVertexColorEnabled ? 1 : 0;
 
                 EditorGUI.BeginChangeCheck();
                 bool lightingDynamicEnabled = EditorGUILayout.Toggle(Styles.LightingDynamic, lightingDynamicProp.floatValue == 1);
@@ -544,17 +551,27 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 throw new ArgumentNullException("material");
                 
                 LightingMode lightingMode = (LightingMode)material.GetFloat("_LightingMode");
+                VertexColorMode vertexColorMode = (VertexColorMode)material.GetFloat("_VertexColorMode");
 
                 bool lightingBakedEnabled = material.GetFloat("_LightingBaked") == 1;
-                bool lightingVertexColorEnabled = material.GetFloat("_LightingVertexColor") == 1;
+                bool lightingVertexColorEnabled = vertexColorMode == VertexColorMode.Lighting;
                 bool lightingDynamicEnabled = material.GetFloat("_LightingDynamic") == 1;
+
+                if (vertexColorMode == VertexColorMode.Color)
+                {
+                    material.EnableKeyword("_VERTEX_COLOR_MODE_COLOR");
+                }
+                else
+                {
+                    material.DisableKeyword("_VERTEX_COLOR_MODE_COLOR");
+                }
 
                 switch (lightingMode)
                 {
                     case LightingMode.Unlit:
                     {
                         material.DisableKeyword("_LIGHTING_BAKED_ON");
-                        material.DisableKeyword("_LIGHTING_VERTEX_COLOR_ON");
+                        material.DisableKeyword("_VERTEX_COLOR_MODE_LIGHTING");
                         material.DisableKeyword("_LIGHTING_DYNAMIC_ON");
                         break;
                     }
@@ -572,11 +589,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
                         if (lightingVertexColorEnabled)
                         {
-                            material.EnableKeyword("_LIGHTING_VERTEX_COLOR_ON");
+                            material.EnableKeyword("_VERTEX_COLOR_MODE_LIGHTING");
                         }
                         else
                         {
-                            material.DisableKeyword("_LIGHTING_VERTEX_COLOR_ON");
+                            material.DisableKeyword("_VERTEX_COLOR_MODE_LIGHTING");
                         }
 
                         if (lightingDynamicEnabled)

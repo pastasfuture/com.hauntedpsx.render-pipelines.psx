@@ -11,7 +11,7 @@ struct Attributes
     float4 vertex : POSITION;
     float2 uv : TEXCOORD0;
     float3 normal : NORMAL;
-#if defined(_LIGHTING_VERTEX_COLOR_ON)
+#if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_LIGHTING)
     float4 color : COLOR;
 #endif
 #if defined(_LIGHTING_BAKED_ON)
@@ -25,22 +25,15 @@ struct Varyings
     float3 uvw : TEXCOORD0;
     float3 positionVS : TEXCOORD1;
     float3 normalWS : TEXCOORD2;
-#if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
-#if defined(_FOG_ON)
-    float4 fog : TEXCOORD3;
+#if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_LIGHTING)
+    float4 color : TEXCOORD3;
 #endif
-#if defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_DYNAMIC_ON)
-    float3 lighting : TEXCOORD4;
-#endif
-#elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
-    float3 positionWS : TEXCOORD3;
-#if defined(_LIGHTING_BAKED_ON) && defined(LIGHTMAP_ON)
-    float2 lightmapUV : TEXCOORD4;
-#if defined(_LIGHTING_VERTEX_COLOR_ON)
+#if defined(_FOG_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_DYNAMIC_ON)
+    float4 fog : TEXCOORD4;
     float3 lighting : TEXCOORD5;
-#endif
-#elif defined(_LIGHTING_VERTEX_COLOR_ON)
-    float3 lighting : TEXCOORD4;
+    float3 positionWS : TEXCOORD6;
+#if defined(_LIGHTING_BAKED_ON) && defined(LIGHTMAP_ON)
+    float2 lightmapUV : TEXCOORD7;
 #endif
 #endif
 };
@@ -83,6 +76,11 @@ Varyings LitPassVertex(Attributes v)
         o.uvw = float3(uv.x, uv.y, 1.0f);
     }
 
+#if defined(_VERTEX_COLOR_MODE_COLOR)
+    // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
+    o.color = v.color * o.uvw.z; 
+#endif
+
     o.positionVS = positionVS;
 
     float3 normalWS = TransformObjectToWorldNormal(v.normal);
@@ -90,7 +88,7 @@ Varyings LitPassVertex(Attributes v)
 
 #if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
 
-#if defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_DYNAMIC_ON)
+#if defined(_LIGHTING_BAKED_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_LIGHTING_DYNAMIC_ON)
     if (_IsPSXQualityEnabled)
     {
         o.lighting = 0.0f;
@@ -107,7 +105,7 @@ Varyings LitPassVertex(Attributes v)
         o.lighting *= _BakedLightingMultiplier;
 #endif
         
-#if defined(_LIGHTING_VERTEX_COLOR_ON)
+#if defined(_VERTEX_COLOR_MODE_LIGHTING)
         o.lighting += SRGBToLinear(v.color.rgb) * _VertexColorLightingMultiplier;
 #endif
 
@@ -180,7 +178,7 @@ Varyings LitPassVertex(Attributes v)
     o.lightmapUV = v.lightmapUV.xy;
 #endif
 
-#if defined(_LIGHTING_VERTEX_COLOR_ON)
+#if defined(_VERTEX_COLOR_MODE_LIGHTING)
     // Still need to evaluate vertex color per vertex, even in per pixel overall evaluation mode.
     o.lighting = SRGBToLinear(v.color.rgb) * _VertexColorLightingMultiplier;
     // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
@@ -205,6 +203,10 @@ half4 LitPassFragment(Varyings i) : SV_Target
     float2 uv = i.uvw.xy * interpolatorNormalization;
     float2 uvColor = TRANSFORM_TEX(uv, _MainTex);
     float4 color = _MainColor * SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uvColor);
+
+#if defined(_VERTEX_COLOR_MODE_COLOR)
+    color *= i.color * interpolatorNormalization;
+#endif
 
 #if _ALPHATEST_ON
     // Perform alpha cutoff transparency (i.e: discard pixels in the holes of a chain link fence texture, or in the negative space of a leaf texture).
@@ -231,14 +233,14 @@ half4 LitPassFragment(Varyings i) : SV_Target
 #endif
 
 #if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
-#if defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_DYNAMIC_ON)
+#if defined(_LIGHTING_BAKED_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_LIGHTING_DYNAMIC_ON)
     if (_LightingIsEnabled > 0.5f)
     {
         color.rgb *= i.lighting * interpolatorNormalization;
     }
 #endif
 #elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
-#if defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_VERTEX_COLOR_ON) || defined(_LIGHTING_DYNAMIC_ON)
+#if defined(_LIGHTING_BAKED_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_LIGHTING_DYNAMIC_ON)
     if (_LightingIsEnabled > 0.5f)
     {
         float3 lighting = 0.0f;
@@ -255,7 +257,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
         lighting *= _BakedLightingMultiplier;
 #endif
         
-#if defined(_LIGHTING_VERTEX_COLOR_ON)
+#if defined(_VERTEX_COLOR_MODE_LIGHTING)
         lighting += i.lighting * interpolatorNormalization;
 #endif
 

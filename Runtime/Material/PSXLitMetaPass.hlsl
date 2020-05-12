@@ -25,12 +25,18 @@ struct Attributes
     float2 uv0 : TEXCOORD0;
     float2 uv1 : TEXCOORD1;
     float2 uv2 : TEXCOORD2;
+#if defined(_VERTEX_COLOR_MODE_COLOR)
+    float4 color : COLOR;
+#endif
 };
 
 struct Varyings
 {
     float4 positionCS : SV_POSITION;
     float2 uv : TEXCOORD0;
+#if defined(_VERTEX_COLOR_MODE_COLOR)
+    float4 color : TEXCOORD1;
+#endif
 };
 
 // All of these functions are essentially the Universal Render Pipeline Meta Pass.
@@ -91,6 +97,10 @@ Varyings LitMetaPassVertex(Attributes v)
         unity_LightmapST, unity_DynamicLightmapST);
     o.uv = v.uv0;
 
+#if defined(_VERTEX_COLOR_MODE_COLOR)
+    o.color = v.color;
+#endif
+
     return o;
 }
 
@@ -98,6 +108,10 @@ half4 LitMetaPassFragment(Varyings i) : SV_Target
 {
     float2 colorUV = TRANSFORM_TEX(i.uv, _MainTex);
     half4 color = _MainColor * SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, colorUV);
+
+#if defined(_VERTEX_COLOR_MODE_COLOR)
+    color *= i.color;
+#endif
     
 #if _ALPHATEST_ON
     // Perform alpha cutoff transparency (i.e: discard pixels in the holes of a chain link fence texture, or in the negative space of a leaf texture).
