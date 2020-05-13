@@ -389,11 +389,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 var volumeSettings = VolumeManager.instance.stack.GetComponent<PrecisionVolume>();
                 if (!volumeSettings) volumeSettings = PrecisionVolume.@default;
 
-                float precisionGeometry = Mathf.Pow(2.0f, Mathf.Lerp(0, 5, volumeSettings.geometry.value));
-
-                float precisionGeometryScaleInverse = Mathf.Pow(2.0f, Mathf.Lerp(6.0f, 0.0f, volumeSettings.geometry.value));
+                float precisionGeometryExponent = Mathf.Lerp(6.0f, 0.0f, volumeSettings.geometry.value);
+                float precisionGeometryScaleInverse = Mathf.Pow(2.0f, precisionGeometryExponent);
                 float precisionGeometryScale = 1.0f / precisionGeometryScaleInverse;
-                cmd.SetGlobalVector(PSXShaderIDs._PrecisionGeometry, new Vector2(precisionGeometryScale, precisionGeometryScaleInverse));
+
+                cmd.SetGlobalVector(PSXShaderIDs._PrecisionGeometry, new Vector3(precisionGeometryScale, precisionGeometryScaleInverse));
 
                 int precisionColorIndex = Mathf.FloorToInt(volumeSettings.color.value * 5.0f + 0.5f);
                 Vector3 precisionColor = Vector3.zero; // Silence the compiler warnings.

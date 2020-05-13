@@ -58,7 +58,9 @@ Varyings LitPassVertex(Attributes v)
 
         float4 screenSizePrecisionGeometry = _ScreenSize * _PrecisionGeometry.xxyy;
         float2 positionSS = floor((o.vertex.xy * 0.5f + 0.5f) * screenSizePrecisionGeometry.xy + 0.5f);
-        o.vertex.xy = (positionSS * screenSizePrecisionGeometry.zw) * 2.0f - 1.0f;
+
+        // Material can locally decrease vertex snapping contribution with _PrecisionGeometryWeight.
+        o.vertex.xy = lerp(o.vertex.xy, (positionSS * screenSizePrecisionGeometry.zw) * 2.0f - 1.0f, _PrecisionGeometryWeight);
         o.vertex.xy *= w; // Unapply divide by W, as the hardware will automatically perform this transform between the vertex and fragment shaders.
     }
 

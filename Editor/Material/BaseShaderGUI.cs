@@ -103,7 +103,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 "Makes your Material Cutout use the dither pattern specified in PSXRenderPipelineResources. Use this to create a transparent effect with approximate smooth transparency. The results are noiser than true transparency, but does not suffer from sorting problems.");
 
             public static readonly GUIContent affineTextureWarpingWeight = new GUIContent("Affine Texture Warping Weight",
-                "Allows you to decrease the amount of affine texture warping on your material. A value of 1.0 results in no change, and simply uses the Affine Texture Warping parameter from the Volume System. A value of 0.0 results on no affine texture warping. A value of 0.5 results in 50% of the affine texture warping from the Volume System.");
+                "Allows you to decrease the amount of affine texture warping on your material. A value of 1.0 results in no change, and simply uses the Affine Texture Warping parameter from the Volume System. A value of 0.0 results in no affine texture warping. A value of 0.5 results in 50% of the affine texture warping from the Volume System.");
+
+            public static readonly GUIContent precisionGeometryWeight = new GUIContent("Precision Geometry Weight",
+                "Allows you to decrease the amount of vertex snapping on your material. A value of 1.0 results in no change, and simply uses the PrecisionVolume.Geometry parameter from the Volume System. A value of 0.0 results in no vertex snapping. A value of 0.5 results in 50% blend between vertex snapping from the Volume System, and no vertex snapping.");
 
             public static readonly GUIContent fogWeight = new GUIContent("Fog Weight",
                 "Specifies how much of the global Fog Volume is applied to this surface. In general this should be left at 1.0. Set to 0.0 to fully disable fog (and which avoids cost of evaluating fog). This parameter is particularly useful for tuning the look of skybox geometry.");
@@ -163,6 +166,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         protected MaterialProperty alphaClippingDitherIsEnabledProp { get; set; }
 
         protected MaterialProperty affineTextureWarpingWeightProp { get; set; }
+
+        protected MaterialProperty precisionGeometryWeightProp { get; set; }
 
         protected MaterialProperty fogWeightProp { get; set; }
 
@@ -224,6 +229,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             alphaClipProp = FindProperty("_AlphaClip", properties);
             alphaClippingDitherIsEnabledProp = FindProperty("_AlphaClippingDitherIsEnabled", properties);
             affineTextureWarpingWeightProp = FindProperty("_AffineTextureWarpingWeight", properties);
+            precisionGeometryWeightProp = FindProperty("_PrecisionGeometryWeight", properties);
             fogWeightProp = FindProperty("_FogWeight", properties);
             // alphaCutoffProp = FindProperty("_Cutoff", properties);
             // receiveShadowsProp = FindProperty("_ReceiveShadows", properties, false);
@@ -386,6 +392,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             var affineTextureWarpingWeight = EditorGUILayout.Slider(Styles.affineTextureWarpingWeight, affineTextureWarpingWeightProp.floatValue, 0.0f, 1.0f);
             if (EditorGUI.EndChangeCheck())
                 affineTextureWarpingWeightProp.floatValue = affineTextureWarpingWeight;
+
+            EditorGUI.BeginChangeCheck();
+            var precisionGeometryWeight = EditorGUILayout.Slider(Styles.precisionGeometryWeight, precisionGeometryWeightProp.floatValue, 0.0f, 1.0f);
+            if (EditorGUI.EndChangeCheck())
+                precisionGeometryWeightProp.floatValue = precisionGeometryWeight;
 
             EditorGUI.BeginChangeCheck();
             var fogWeight = EditorGUILayout.Slider(Styles.fogWeight, fogWeightProp.floatValue, 0.0f, 1.0f);

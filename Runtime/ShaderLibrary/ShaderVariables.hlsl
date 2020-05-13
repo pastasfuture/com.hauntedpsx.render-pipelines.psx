@@ -152,6 +152,7 @@ float3 _EmissionColor;
 float _EmissionBakedMultiplier;
 float _AlphaClippingDitherIsEnabled;
 float _AffineTextureWarpingWeight;
+float _PrecisionGeometryWeight;
 float _FogWeight;
 TEXTURECUBE(_ReflectionCubemap);
 SAMPLER(sampler_ReflectionCubemap);

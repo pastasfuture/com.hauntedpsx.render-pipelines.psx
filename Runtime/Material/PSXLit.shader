@@ -9,6 +9,7 @@
         _EmissionBakedMultiplier("EmissionBakedMultiplier", Float) = 1.0
         _AlphaClippingDitherIsEnabled("_AlphaClippingDitherIsEnabled", Float) = 0.0
         _AffineTextureWarpingWeight("_AffineTextureWarpingWeight", Float) = 1.0
+        _PrecisionGeometryWeight("_PrecisionGeometryWeight", Float) = 1.0
         _FogWeight("_FogWeight", Float) = 1.0
         _ReflectionCubemap("_ReflectionCubemap", Cube) = "black" {}
         _ReflectionTexture("_ReflectionTexture", 2D) = "white" {}
