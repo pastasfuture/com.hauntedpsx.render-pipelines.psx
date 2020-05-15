@@ -24,14 +24,14 @@ struct Varyings
     float4 vertex : SV_POSITION;
     float3 uvw : TEXCOORD0;
     float3 positionVS : TEXCOORD1;
-    float3 normalWS : TEXCOORD2;
+    float3 positionWS : TEXCOORD2;
+    float3 normalWS : TEXCOORD3;
 #if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_LIGHTING)
-    float4 color : TEXCOORD3;
+    float4 color : TEXCOORD4;
 #endif
 #if defined(_FOG_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_LIGHTING_BAKED_ON) || defined(_LIGHTING_DYNAMIC_ON)
-    float4 fog : TEXCOORD4;
-    float3 lighting : TEXCOORD5;
-    float3 positionWS : TEXCOORD6;
+    float4 fog : TEXCOORD5;
+    float3 lighting : TEXCOORD6;
 #if defined(_LIGHTING_BAKED_ON) && defined(LIGHTMAP_ON)
     float2 lightmapUV : TEXCOORD7;
 #endif
@@ -84,6 +84,7 @@ Varyings LitPassVertex(Attributes v)
 #endif
 
     o.positionVS = positionVS;
+    o.positionWS = positionWS;
 
     float3 normalWS = TransformObjectToWorldNormal(v.normal);
     o.normalWS = normalWS;
@@ -173,7 +174,6 @@ Varyings LitPassVertex(Attributes v)
 #endif
 
 #elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
-    o.normalWS = TransformObjectToWorldNormal(v.normal);
     o.positionWS = positionWS;
 
 #if defined(_LIGHTING_BAKED_ON) && defined(LIGHTMAP_ON)
@@ -296,8 +296,8 @@ half4 LitPassFragment(Varyings i) : SV_Target
     reflection *= color.a;
 #endif
 
-    float3 V = normalize(-i.positionVS);
-    float3 R = reflect(normalWS, V);
+    float3 V = normalize(i.positionWS - _WorldSpaceCameraPos);
+    float3 R = reflect(V, normalWS);
     float4 reflectionCubemap = SAMPLE_TEXTURECUBE(_ReflectionCubemap, sampler_ReflectionCubemap, R);
     reflectionCubemap.rgb *= reflectionCubemap.a;
     reflectionCubemap.rgb = floor(reflectionCubemap.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;

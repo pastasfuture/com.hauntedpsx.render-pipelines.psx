@@ -542,6 +542,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.ClearRenderTarget(clearDepth: true, clearColor: true, backgroundColor: GetFogColorFromFogVolume());
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._Time, new Vector4(Time.timeSinceLevelLoad / 20.0f, Time.timeSinceLevelLoad, Time.timeSinceLevelLoad * 2.0f, Time.timeSinceLevelLoad * 3.0f));
+                cmd.SetGlobalVector(PSXShaderIDs._WorldSpaceCameraPos, camera.transform.position);
             
                 Texture2D alphaClippingDitherTex = GetAlphaClippingDitherTexFromAssetAndFrame(asset, (uint)Time.frameCount);
                 cmd.SetGlobalTexture(PSXShaderIDs._AlphaClippingDitherTexture, alphaClippingDitherTex);

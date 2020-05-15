@@ -93,6 +93,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _BlueNoiseSize = Shader.PropertyToID("_BlueNoiseSize");
         public static readonly int _Time = Shader.PropertyToID("_Time");
         public static readonly int _ProjectionParams = Shader.PropertyToID("_ProjectionParams");
+        public static readonly int _WorldSpaceCameraPos = Shader.PropertyToID("_WorldSpaceCameraPos");
         public static readonly int _FlipY = Shader.PropertyToID("_FlipY");
         public static readonly int _CRTIsEnabled = Shader.PropertyToID("_CRTIsEnabled");
         public static readonly int _CRTBloom = Shader.PropertyToID("_CRTBloom");
