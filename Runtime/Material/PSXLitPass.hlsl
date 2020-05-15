@@ -297,7 +297,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
 #endif
 
     float3 V = normalize(-i.positionVS);
-    float3 R = reflect(V, i.normalWS);
+    float3 R = reflect(normalWS, V);
     float4 reflectionCubemap = SAMPLE_TEXTURECUBE(_ReflectionCubemap, sampler_ReflectionCubemap, R);
     reflectionCubemap.rgb *= reflectionCubemap.a;
     reflectionCubemap.rgb = floor(reflectionCubemap.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
