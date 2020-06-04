@@ -274,8 +274,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
 
 #ifdef _EMISSION
     // Convert to sRGB 5:6:5 color space, then from sRGB to Linear.
-    float2 uvEmission = TRANSFORM_TEX(uv, _EmissionTexture);
-    float3 emission = _EmissionColor.rgb * SAMPLE_TEXTURE2D(_EmissionTexture, sampler_EmissionTexture, uvEmission).rgb;
+    float3 emission = _EmissionColor.rgb * SAMPLE_TEXTURE2D(_EmissionTexture, sampler_EmissionTexture, uvColor).rgb;
     emission = floor(emission * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
     emission = SRGBToLinear(emission);
 
@@ -287,8 +286,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
 #endif
 
 #if defined(_REFLECTION_ON)
-    float2 uvReflection = TRANSFORM_TEX(uv, _ReflectionTexture);
-    float3 reflection = _ReflectionColor.rgb * SAMPLE_TEXTURE2D(_ReflectionTexture, sampler_ReflectionTexture, uvReflection).rgb;
+    float3 reflection = _ReflectionColor.rgb * SAMPLE_TEXTURE2D(_ReflectionTexture, sampler_ReflectionTexture, uvColor).rgb;
     reflection = floor(reflection * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
     reflection = SRGBToLinear(reflection);
 

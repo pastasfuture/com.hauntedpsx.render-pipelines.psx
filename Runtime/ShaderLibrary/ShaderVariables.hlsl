@@ -147,7 +147,6 @@ float4 _MainTex_ST;
 float4 _MainColor;
 TEXTURE2D(_EmissionTexture);
 SAMPLER(sampler_EmissionTexture);
-float4 _EmissionTexture_ST;
 float3 _EmissionColor;
 float _EmissionBakedMultiplier;
 float _AlphaClippingDitherIsEnabled;
@@ -158,7 +157,6 @@ TEXTURECUBE(_ReflectionCubemap);
 SAMPLER(sampler_ReflectionCubemap);
 TEXTURE2D(_ReflectionTexture);
 SAMPLER(sampler_ReflectionTexture);
-float4 _ReflectionTexture_ST;
 float4 _ReflectionColor;
 int _ReflectionBlendMode;
 CBUFFER_END
