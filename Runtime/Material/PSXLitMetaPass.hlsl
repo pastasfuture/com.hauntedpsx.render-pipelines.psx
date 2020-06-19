@@ -131,8 +131,7 @@ half4 LitMetaPassFragment(Varyings i) : SV_Target
     color.rgb = SRGBToLinear(color.rgb);
 
 #ifdef _EMISSION
-    float2 emissionUV = TRANSFORM_TEX(i.uv, _EmissionTexture);
-    half3 emission = _EmissionColor * SAMPLE_TEXTURE2D(_EmissionTexture, sampler_EmissionTexture, emissionUV).rgb;
+    half3 emission = _EmissionColor * SAMPLE_TEXTURE2D(_EmissionTexture, sampler_EmissionTexture, colorUV).rgb;
     emission = SRGBToLinear(emission);
     emission *= _EmissionBakedMultiplier;
 
