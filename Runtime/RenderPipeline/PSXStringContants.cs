@@ -8,6 +8,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_PackagePath = "Packages/com.hauntedpsx.render-pipelines.psx";
         public static readonly string s_GlobalRenderPipelineStr = "PSXRenderPipeline";
         public static readonly string s_CommandBufferRenderForwardStr = "PSXRenderPipeline.RenderForward";
+        public static readonly string s_CommandBufferRenderPreWorldSpaceUIStr = "PSXRenderPipeline.RenderPreWorldSpaceUI";
         public static readonly string s_CommandBufferRenderPostProcessStr = "PSXRenderPipeline.PostProcessing";
     }
 
@@ -20,6 +21,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_PushTonemapperParametersStr = "Push Tonemapper Parameters";
         public static readonly string s_PushLightingParametersStr = "Push Lighting Parameters";
         public static readonly string s_PushDynamicLightingParametersStr = "Push Dynamic Lighting Parameters";
+        public static readonly string s_PreWorldSpaceUIParametersStr = "Push Pre World Space UI Parameters";
         public static readonly string s_PushPrecisionParametersStr = "Push Precision Parameters";
         public static readonly string s_PushFogParametersStr = "Push Fog Parameters";
         public static readonly string s_PushCompressionParametersStr = "Push Compression Parameters";
@@ -32,6 +34,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static ProfilingSampler s_PushTonemapperParameters = new ProfilingSampler(s_PushTonemapperParametersStr);
         public static ProfilingSampler s_PushLightingParameters = new ProfilingSampler(s_PushLightingParametersStr);
         public static ProfilingSampler s_PushDynamicLightingParameters = new ProfilingSampler(s_PushDynamicLightingParametersStr);
+        public static ProfilingSampler s_PreWorldSpaceUIParameters = new ProfilingSampler(s_PreWorldSpaceUIParametersStr);
         public static ProfilingSampler s_PushPrecisionParameters = new ProfilingSampler(s_PushPrecisionParametersStr);
         public static ProfilingSampler s_PushFogParameters = new ProfilingSampler(s_PushFogParametersStr);
         public static ProfilingSampler s_PushCompressionParameters = new ProfilingSampler(s_PushCompressionParametersStr);

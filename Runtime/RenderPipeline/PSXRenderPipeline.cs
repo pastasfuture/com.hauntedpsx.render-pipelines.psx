@@ -221,6 +221,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     
                     DrawOpaque(context, camera, ref cullingResults);
                     DrawTransparent(context, camera, ref cullingResults);
+
+                    cmd = CommandBufferPool.Get(PSXStringConstants.s_CommandBufferRenderPreWorldSpaceUIStr);
+                    PushPreWorldSpaceUIParameters(camera, cmd);
+                    context.ExecuteCommandBuffer(cmd);
+                    cmd.Release();
+
                     // TODO: DrawSkybox(context, camera);
                     DrawLegacyCanvasUI(context, camera, ref cullingResults);
 
@@ -337,6 +343,22 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetGlobalFloat(PSXShaderIDs._BakedLightingMultiplier, volumeSettings.bakedLightingMultiplier.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._VertexColorLightingMultiplier, volumeSettings.vertexColorLightingMultiplier.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._DynamicLightingMultiplier, volumeSettings.dynamicLightingMultiplier.value);
+            }
+        }
+
+        static void PushPreWorldSpaceUIParameters(Camera camera, CommandBuffer cmd)
+        {
+            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PreWorldSpaceUIParameters))
+            {
+                var volumeSettings = VolumeManager.instance.stack.GetComponent<CameraVolume>();
+                if (!volumeSettings) volumeSettings = CameraVolume.@default;
+
+                bool isClearDepthBeforeUIEnabled = volumeSettings.isClearDepthBeforeUIEnabled.value;
+                if (isClearDepthBeforeUIEnabled)
+                {
+                    Color clearColorUnused = Color.black;
+                    CoreUtils.ClearRenderTarget(cmd, ClearFlag.Depth, clearColorUnused);
+                }
             }
         }
 

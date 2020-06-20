@@ -26,6 +26,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public CameraAspectModeParameter aspectMode = new CameraAspectModeParameter(CameraAspectMode.Free); 
         public ClampedIntParameter targetRasterizationResolutionWidth = new ClampedIntParameter(256, 1, 4096);
         public ClampedIntParameter targetRasterizationResolutionHeight = new ClampedIntParameter(224, 1, 4096);
+        public BoolParameter isClearDepthBeforeUIEnabled = new BoolParameter(false);
 
         static CameraVolume s_Default = null;
         public static CameraVolume @default
