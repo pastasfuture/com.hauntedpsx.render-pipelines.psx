@@ -577,7 +577,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     1.0f / alphaClippingDitherTex.height
                 ));
 
-                bool flipProj = GL.GetGPUProjectionMatrix(camera.projectionMatrix, true).inverse.MultiplyPoint(new Vector3(0, 1, 0)).y < 0;
+                bool flipProj = ComputeCameraProjectionIsFlippedY(camera);
                 float n = camera.nearClipPlane;
                 float f = camera.farClipPlane;
                 Vector4 projectionParams = new Vector4(flipProj ? -1 : 1, n, f, 1.0f / f);
@@ -589,7 +589,14 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushGlobalPostProcessingParameters))
             {
-                bool flipY = !(IsMainGameView(camera) && camera.targetTexture == null);
+                bool flipY = ComputeCameraProjectionIsFlippedY(camera);
+                if (flipY && IsMainGameView(camera) && camera.targetTexture == null)
+                {
+                    // in DirectX mode (flip Y), there is an additional flip that needs to occur for the game view,
+                    // as an extra blit seems to occur.
+                    flipY = false;
+                }
+
                 cmd.SetGlobalInt(PSXShaderIDs._FlipY, flipY ? 1 : 0);
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / (float)camera.pixelWidth, 1.0f / (float)camera.pixelHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._FrameBufferScreenSize, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
@@ -1007,6 +1014,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 return false;
             }
         #endif
+        }
+
+        static bool ComputeCameraProjectionIsFlippedY(Camera camera)
+        {
+            return GL.GetGPUProjectionMatrix(camera.projectionMatrix, true).inverse.MultiplyPoint(new Vector3(0, 1, 0)).y < 0;
         }
     }
 }
