@@ -15,6 +15,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         SerializedDataParameter m_AspectMode;
         SerializedDataParameter m_TargetRasterizationResolutionWidth;
         SerializedDataParameter m_TargetRasterizationResolutionHeight;
+        SerializedDataParameter m_IsDepthBufferEnabled;
         SerializedDataParameter m_IsClearDepthBeforeUIEnabled;
 
         public override void OnEnable()
@@ -26,6 +27,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             m_AspectMode = Unpack(o.Find(x => x.aspectMode));
             m_TargetRasterizationResolutionWidth = Unpack(o.Find(x => x.targetRasterizationResolutionWidth));
             m_TargetRasterizationResolutionHeight = Unpack(o.Find(x => x.targetRasterizationResolutionHeight));
+            m_IsDepthBufferEnabled = Unpack(o.Find(x => x.isDepthBufferEnabled));
             m_IsClearDepthBeforeUIEnabled = Unpack(o.Find(x => x.isClearDepthBeforeUIEnabled));
         }
 
@@ -41,6 +43,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PropertyField(m_TargetRasterizationResolutionWidth, EditorGUIUtility.TrTextContent("Rasterization Resolution X", "Controls the pixel width of the framebuffer that objects are rendered to. i.e: to simulate PSX Mode 0 rendering, set this to 256. If Aspect Ratio Mode is set to Free, this value is treated as a target, rather than an absolute resolution. HPSXRP will automatically adapt the true resolution of it's framebuffer to correctly match the screen aspect ratio, while keeping the pixel density of the target specified here."));
             PropertyField(m_TargetRasterizationResolutionHeight, EditorGUIUtility.TrTextContent("Rasterization Resolution Y", "Controls the pixel height of the framebuffer that objects are rendered to. i.e: to simulate PSX Mode 0 rendering, set this to 240. If Aspect Ratio Mode is set to Free, this value is treated as a target, rather than an absolute resolution. HPSXRP will automatically adapt the true resolution of it's framebuffer to correctly match the screen aspect ratio, while keeping the pixel density of the target specified here."));
         
+            PropertyField(m_IsDepthBufferEnabled, EditorGUIUtility.TrTextContent("Depth Buffer Enabled", "Controls whether or not a depth buffer is used during rendering. Set to true to ensure pixel perfect sorting for opaque objects. Set to false for a more authentic PSX look, as PSX hardware did not have a depth buffer.\nSetting to false will also trigger draw calls to render back to front, which approximately gives you correct sorting, but will still have failure cases.\nDisabling the depth buffer also comes at a performance cost, as back to front rendering will trigger more pixels to be shaded compared to a depth buffer and front to back rendering."));
             PropertyField(m_IsClearDepthBeforeUIEnabled, EditorGUIUtility.TrTextContent("Clear Depth Before UI Rendering", "Controls whether or not the depth buffer is cleared before rendering world space UI. Clearing the depth buffer before rendering world space UI is useful for stopping UI from clipping against world geometry, while still allowing the UI to be rendered at the rasterization resolution."));
         }
     }

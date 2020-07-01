@@ -195,7 +195,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                         width = rasterizationWidth,
                         height = rasterizationHeight,
                         volumeDepth = 1,
-                        depthBufferBits = 24,
+                        depthBufferBits = EvaluateIsDepthBufferEnabledFromVolume() ? 24 : 0,
                         graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm,
                         sRGB = false,
                         msaaSamples = 1,
@@ -275,6 +275,13 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             var volumeSettings = VolumeManager.instance.stack.GetComponent<QualityOverrideVolume>();
             if (!volumeSettings) volumeSettings = QualityOverrideVolume.@default;
             return volumeSettings.isPSXQualityEnabled.value;
+        }
+
+        static bool EvaluateIsDepthBufferEnabledFromVolume()
+        {
+            var volumeSettings = VolumeManager.instance.stack.GetComponent<CameraVolume>();
+            if (!volumeSettings) volumeSettings = CameraVolume.@default;
+            return volumeSettings.isDepthBufferEnabled.value;
         }
 
         static void PushQualityOverrideParameters(Camera cmaera, CommandBuffer cmd, bool isPSXQualityEnabled)
@@ -865,10 +872,18 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
         static void DrawOpaque(ScriptableRenderContext context, Camera camera, ref CullingResults cullingResults)
         {
+            // If the depth buffer is disabled, trigger back to front rendering, instead of QuantizedFrontToBack rendering.
+            // Note there are additional criteria flags that we always care about, such as SortingLayer, RenderQueue, etc, which are outlined here:
+            // https://docs.unity3d.com/ScriptReference/Rendering.SortingCriteria.CommonOpaque.html
+            //
+            SortingCriteria criteria = EvaluateIsDepthBufferEnabledFromVolume()
+                ? SortingCriteria.CommonOpaque
+                : ((SortingCriteria.CommonOpaque & (~SortingCriteria.QuantizedFrontToBack)) | SortingCriteria.BackToFront);
+
             // Draw opaque objects using PSX shader pass
             var sortingSettings = new SortingSettings(camera)
             {
-                criteria = SortingCriteria.CommonOpaque
+                criteria = criteria
             };
 
             var drawingSettings = new DrawingSettings(PSXShaderPassNames.s_PSXLit, sortingSettings)
