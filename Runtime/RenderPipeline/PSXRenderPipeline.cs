@@ -500,7 +500,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     1.0f / framebufferDitherTex.height
                 ));
 
-                cmd.SetGlobalFloat(PSXShaderIDs._DrawDistance, volumeSettings.drawDistance.value);
+                int drawDistanceFalloffMode = (int)volumeSettings.drawDistanceFalloffMode.value;
+                cmd.SetGlobalInt(PSXShaderIDs._DrawDistanceFalloffMode, drawDistanceFalloffMode);
+                cmd.SetGlobalVector(PSXShaderIDs._DrawDistance, new Vector2(volumeSettings.drawDistance.value, volumeSettings.drawDistance.value * volumeSettings.drawDistance.value));
             }
         }
 

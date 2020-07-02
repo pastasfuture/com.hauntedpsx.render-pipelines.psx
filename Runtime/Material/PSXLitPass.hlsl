@@ -50,7 +50,7 @@ Varyings LitPassVertex(Attributes v)
     if (_IsPSXQualityEnabled)
     {
         // Force triangle to degenerate (by writing zero to all components including W) if vertex is greater than our user specified draw distance.
-        o.vertex = (abs(positionVS.z) > _DrawDistance) ? 0.0f : o.vertex;
+        o.vertex = EvaluateDrawDistanceIsVisible(positionWS, _WorldSpaceCameraPos, positionVS, _DrawDistanceFalloffMode, _DrawDistance.x, _DrawDistance.y) ? o.vertex : 0.0f;
 
         // Snap vertices to pixel centers. PSX does not support sub-pixel vertex accuracy.
         float w = o.vertex.w;

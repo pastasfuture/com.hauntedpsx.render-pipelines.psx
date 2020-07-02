@@ -253,26 +253,26 @@ float FetchAlphaClippingDither(float2 positionSS)
 
 float EvaluateFogFalloff(float3 positionWS, float3 cameraPositionWS, float3 positionVS, int fogFalloffMode, float4 fogDistanceScaleBias)
 {
-    float faloffDepth = 0.0f;
+    float falloffDepth = 0.0f;
 
     if (fogFalloffMode == PSX_FOG_FALLOFF_MODE_PLANAR)
     {
-        faloffDepth = abs(positionVS.z);
+        falloffDepth = abs(positionVS.z);
     }
     else if (fogFalloffMode == PSX_FOG_FALLOFF_MODE_CYLINDRICAL)
     {
-        faloffDepth = length(positionWS.xz - cameraPositionWS.xz);
+        falloffDepth = length(positionWS.xz - cameraPositionWS.xz);
     }
     else // fogFalloffMode == PSX_FOG_FALLOFF_MODE_SPHERICAL
     {
-        faloffDepth = length(positionVS);
+        falloffDepth = length(positionVS);
     }
 
     float falloffHeight = positionWS.y;
 
     // fogDistanceScaleBias.xy contains distance falloff scale bias terms.
     // fogDistanceScaleBias.zw contains height falloff scale bias terms.
-    return saturate(faloffDepth * fogDistanceScaleBias.x + fogDistanceScaleBias.y)
+    return saturate(falloffDepth * fogDistanceScaleBias.x + fogDistanceScaleBias.y)
         * saturate(falloffHeight * fogDistanceScaleBias.z + fogDistanceScaleBias.w);
 }
 
@@ -288,6 +288,24 @@ float ComputeFogAlphaDiscretization(float alpha, float2 positionSS)
     }
 
     return saturate(floor(alpha * _FogPrecisionAlphaAndInverse.x + dither) * _FogPrecisionAlphaAndInverse.y);
+}
+
+bool EvaluateDrawDistanceIsVisible(float3 positionWS, float3 cameraPositionWS, float3 positionVS, int drawDistanceFalloffMode, float drawDistance, float drawDistanceSquared)
+{
+    if (drawDistanceFalloffMode == PSX_DRAW_DISTANCE_FALLOFF_MODE_PLANAR)
+    {
+        return abs(positionVS.z) < drawDistance;
+    }
+    else if (drawDistanceFalloffMode == PSX_DRAW_DISTANCE_FALLOFF_MODE_CYLINDRICAL)
+    {
+        float2 offset = positionWS.xz - cameraPositionWS.xz; 
+        return dot(offset, offset) < drawDistanceSquared;
+    }
+    else // drawDistanceFalloffMode == PSX_DRAW_DISTANCE_FALLOFF_MODE_SPHERICAL
+    {
+        float3 offset = positionVS;
+        return dot(offset, offset) < drawDistanceSquared;
+    }
 }
 
 #endif
