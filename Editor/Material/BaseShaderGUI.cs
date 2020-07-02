@@ -10,7 +10,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
     {
         #region EnumsAndClasses
 
-        public enum RenderQueueCatagory
+        public enum RenderQueueCategory
         {
             Main = 0,
             Background,
@@ -80,8 +80,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly GUIContent VertexColorMode = new GUIContent("Vertex Color Mode",
                 "Controls how vertex colors are interpreted by the shader. VertexColorMode.Color multiplies the vertex color data with the MainTex value. This is useful for adding variation to the MainTex color per vertex, such as in a particle sim. VertexColorMode.Lighting interprets the vertexColor data as per-vertex lighting. The result will be added to other lighting that may be present.");
 
-            public static readonly GUIContent RenderQueueCatagory =
-                new GUIContent("Render Queue Catagory", "Controls when this object is rendered.\nMaterials set to Background are rendered first.\nMaterials set to Main are rendered second.\nMaterials set to UIOverlay are rendered last.\nThe CameraVolume override controls whether or not the depth buffer will be cleared between these stages.");
+            public static readonly GUIContent RenderQueueCategory =
+                new GUIContent("Render Queue Category", "Controls when this object is rendered.\nMaterials set to Background are rendered first.\nMaterials set to Main are rendered second.\nMaterials set to UIOverlay are rendered last.\nThe CameraVolume override controls whether or not the depth buffer will be cleared between these stages.");
 
             public static readonly GUIContent LightingMode =
                 new GUIContent("Lighting Mode", "Controls whether or not lighting is evaluated.");
@@ -158,7 +158,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialProperty vertexColorModeProp { get; set; }
 
-        protected MaterialProperty renderQueueCatagoryProp { get; set; }
+        protected MaterialProperty renderQueueCategoryProp { get; set; }
 
         protected MaterialProperty lightingModeProp { get; set; }
 
@@ -232,7 +232,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public virtual void FindProperties(MaterialProperty[] properties)
         {
             vertexColorModeProp = FindProperty("_VertexColorMode", properties);
-            renderQueueCatagoryProp = FindProperty("_RenderQueueCatagory", properties);
+            renderQueueCategoryProp = FindProperty("_RenderQueueCategory", properties);
             lightingModeProp = FindProperty("_LightingMode", properties);
             lightingBakedProp = FindProperty("_LightingBaked", properties);
             lightingDynamicProp = FindProperty("_LightingDynamic", properties);
@@ -337,7 +337,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public virtual void DrawSurfaceOptions(Material material)
         {
-            DoPopup(Styles.RenderQueueCatagory, renderQueueCatagoryProp, Enum.GetNames(typeof(RenderQueueCatagory)));
+            DoPopup(Styles.RenderQueueCategory, renderQueueCategoryProp, Enum.GetNames(typeof(RenderQueueCategory)));
 
             DoPopup(Styles.VertexColorMode, vertexColorModeProp, Enum.GetNames(typeof(VertexColorMode)));
 
@@ -660,14 +660,14 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 }   
         }
 
-        public static int GetRenderQueueFromCatagory(RenderQueueCatagory catagory, bool transparent, int offset, bool alphaClip)
+        public static int GetRenderQueueFromCategory(RenderQueueCategory category, bool transparent, int offset, bool alphaClip)
         {
-            switch (catagory)
+            switch (category)
             {
-                case RenderQueueCatagory.Background: return PSXRenderQueue.ChangeType(transparent ? PSXRenderQueue.RenderQueueType.BackgroundTransparent : PSXRenderQueue.RenderQueueType.BackgroundOpaque, offset, alphaClip);
-                case RenderQueueCatagory.Main: return PSXRenderQueue.ChangeType(transparent ? PSXRenderQueue.RenderQueueType.MainTransparent : PSXRenderQueue.RenderQueueType.MainOpaque, offset, alphaClip);
-                case RenderQueueCatagory.UIOverlay: return PSXRenderQueue.ChangeType(transparent ? PSXRenderQueue.RenderQueueType.UIOverlayTransparent : PSXRenderQueue.RenderQueueType.UIOverlayOpaque, offset, alphaClip);
-                default: throw new ArgumentException("catagory");
+                case RenderQueueCategory.Background: return PSXRenderQueue.ChangeType(transparent ? PSXRenderQueue.RenderQueueType.BackgroundTransparent : PSXRenderQueue.RenderQueueType.BackgroundOpaque, offset, alphaClip);
+                case RenderQueueCategory.Main: return PSXRenderQueue.ChangeType(transparent ? PSXRenderQueue.RenderQueueType.MainTransparent : PSXRenderQueue.RenderQueueType.MainOpaque, offset, alphaClip);
+                case RenderQueueCategory.UIOverlay: return PSXRenderQueue.ChangeType(transparent ? PSXRenderQueue.RenderQueueType.UIOverlayTransparent : PSXRenderQueue.RenderQueueType.UIOverlayOpaque, offset, alphaClip);
+                default: throw new ArgumentException("category");
             }
         }
 
@@ -677,12 +677,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 throw new ArgumentNullException("material");
 
             SurfaceType surfaceType = (SurfaceType)material.GetFloat("_Surface");
-            RenderQueueCatagory catagory = (RenderQueueCatagory)(int)material.GetFloat("_RenderQueueCatagory");
+            RenderQueueCategory category = (RenderQueueCategory)(int)material.GetFloat("_RenderQueueCategory");
             bool transparent = surfaceType == SurfaceType.Transparent;
             int renderQueueOffset = 0; // TODO: Expose options for user to offset within the queue.
             bool alphaClip = material.GetFloat("_AlphaClip") == 1;
 
-            material.renderQueue = GetRenderQueueFromCatagory(catagory, transparent, renderQueueOffset, alphaClip);
+            material.renderQueue = GetRenderQueueFromCategory(category, transparent, renderQueueOffset, alphaClip);
 
             if (alphaClip)
             {
