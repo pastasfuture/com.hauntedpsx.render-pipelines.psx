@@ -16,6 +16,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         SerializedDataParameter m_TargetRasterizationResolutionWidth;
         SerializedDataParameter m_TargetRasterizationResolutionHeight;
         SerializedDataParameter m_IsDepthBufferEnabled;
+        SerializedDataParameter m_IsClearDepthAfterBackgroundEnabled;
         SerializedDataParameter m_IsClearDepthBeforeUIEnabled;
 
         public override void OnEnable()
@@ -28,6 +29,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             m_TargetRasterizationResolutionWidth = Unpack(o.Find(x => x.targetRasterizationResolutionWidth));
             m_TargetRasterizationResolutionHeight = Unpack(o.Find(x => x.targetRasterizationResolutionHeight));
             m_IsDepthBufferEnabled = Unpack(o.Find(x => x.isDepthBufferEnabled));
+            m_IsClearDepthAfterBackgroundEnabled = Unpack(o.Find(x => x.isClearDepthAfterBackgroundEnabled));
             m_IsClearDepthBeforeUIEnabled = Unpack(o.Find(x => x.isClearDepthBeforeUIEnabled));
         }
 
@@ -44,7 +46,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PropertyField(m_TargetRasterizationResolutionHeight, EditorGUIUtility.TrTextContent("Rasterization Resolution Y", "Controls the pixel height of the framebuffer that objects are rendered to. i.e: to simulate PSX Mode 0 rendering, set this to 240. If Aspect Ratio Mode is set to Free, this value is treated as a target, rather than an absolute resolution. HPSXRP will automatically adapt the true resolution of it's framebuffer to correctly match the screen aspect ratio, while keeping the pixel density of the target specified here."));
         
             PropertyField(m_IsDepthBufferEnabled, EditorGUIUtility.TrTextContent("Depth Buffer Enabled", "Controls whether or not a depth buffer is used during rendering. Set to true to ensure pixel perfect sorting for opaque objects. Set to false for a more authentic PSX look, as PSX hardware did not have a depth buffer.\nSetting to false will also trigger draw calls to render back to front, which approximately gives you correct sorting, but will still have failure cases.\nDisabling the depth buffer also comes at a performance cost, as back to front rendering will trigger more pixels to be shaded compared to a depth buffer and front to back rendering."));
-            PropertyField(m_IsClearDepthBeforeUIEnabled, EditorGUIUtility.TrTextContent("Clear Depth Before UI Rendering", "Controls whether or not the depth buffer is cleared before rendering world space UI. Clearing the depth buffer before rendering world space UI is useful for stopping UI from clipping against world geometry, while still allowing the UI to be rendered at the rasterization resolution."));
+            PropertyField(m_IsClearDepthAfterBackgroundEnabled, EditorGUIUtility.TrTextContent("Clear Depth After Background Rendering", "Controls whether or not the depth buffer is cleared after rendering background catagory geometry. Clearing the depth buffer after the background is rendered is useful for stopping distant background sets from clipping against main catagory geometry.\nThis setting will only have an effect if you have materials set to the Background catagory, and materials set to the Main catagory."));
+            PropertyField(m_IsClearDepthBeforeUIEnabled, EditorGUIUtility.TrTextContent("Clear Depth Before UI Rendering", "Controls whether or not the depth buffer is cleared before rendering world space UI, and materials set to the UIOverlay catagory. Clearing the depth buffer before rendering world space UI is useful for stopping UI from clipping against world geometry, while still allowing the UI to be rendered at the rasterization resolution.\nThis setting will only have an effect if you have materials set to the Main catagory, and materials set to the UIOverlay catagory."));
         }
     }
 }

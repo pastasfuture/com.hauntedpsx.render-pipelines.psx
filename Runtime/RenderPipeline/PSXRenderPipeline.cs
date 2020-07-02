@@ -220,16 +220,28 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     PushDynamicLightingParameters(camera, cmd, ref cullingResults);
                     context.ExecuteCommandBuffer(cmd);
                     cmd.Release();
-                    
-                    DrawOpaque(context, camera, ref cullingResults);
-                    DrawTransparent(context, camera, ref cullingResults);
 
-                    cmd = CommandBufferPool.Get(PSXStringConstants.s_CommandBufferRenderPreWorldSpaceUIStr);
-                    PushPreWorldSpaceUIParameters(camera, cmd);
+                    DrawBackgroundOpaque(context, camera, ref cullingResults);
+                    DrawBackgroundTransparent(context, camera, ref cullingResults);
+
+                    cmd = CommandBufferPool.Get(PSXStringConstants.s_CommandBufferRenderPreMainStr);
+                    PushPreMainParameters(camera, cmd);
+                    context.ExecuteCommandBuffer(cmd);
+                    cmd.Release();
+                    
+                    DrawMainOpaque(context, camera, ref cullingResults);
+                    DrawMainTransparent(context, camera, ref cullingResults);
+
+                    // TODO: DrawSkybox(context, camera);
+
+                    cmd = CommandBufferPool.Get(PSXStringConstants.s_CommandBufferRenderPreUIOverlayStr);
+                    PushPreUIOverlayParameters(camera, cmd);
                     context.ExecuteCommandBuffer(cmd);
                     cmd.Release();
 
-                    // TODO: DrawSkybox(context, camera);
+                    DrawUIOverlayOpaque(context, camera, ref cullingResults);
+                    DrawUIOverlayTransparent(context, camera, ref cullingResults);
+
                     DrawLegacyCanvasUI(context, camera, ref cullingResults);
 
                     // TODO: Draw post image effect gizmos before or after CRT filter?
@@ -355,9 +367,25 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             }
         }
 
-        static void PushPreWorldSpaceUIParameters(Camera camera, CommandBuffer cmd)
+        static void PushPreMainParameters(Camera camera, CommandBuffer cmd)
         {
-            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PreWorldSpaceUIParameters))
+            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PreMainParameters))
+            {
+                var volumeSettings = VolumeManager.instance.stack.GetComponent<CameraVolume>();
+                if (!volumeSettings) volumeSettings = CameraVolume.@default;
+
+                bool isClearDepthAfterBackgroundEnabled = volumeSettings.isClearDepthAfterBackgroundEnabled.value;
+                if (isClearDepthAfterBackgroundEnabled)
+                {
+                    Color clearColorUnused = Color.black;
+                    CoreUtils.ClearRenderTarget(cmd, ClearFlag.Depth, clearColorUnused);
+                }
+            }
+        }
+
+        static void PushPreUIOverlayParameters(Camera camera, CommandBuffer cmd)
+        {
+            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PreUIOverlayParameters))
             {
                 var volumeSettings = VolumeManager.instance.stack.GetComponent<CameraVolume>();
                 if (!volumeSettings) volumeSettings = CameraVolume.@default;
@@ -870,7 +898,37 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         #endif
         }
 
-        static void DrawOpaque(ScriptableRenderContext context, Camera camera, ref CullingResults cullingResults)
+        static void DrawBackgroundOpaque(ScriptableRenderContext context, Camera camera, ref CullingResults cullingResults)
+        {
+            DrawOpaque(context, camera, PSXRenderQueue.k_RenderQueue_BackgroundAllOpaque, ref cullingResults);
+        }
+
+        static void DrawBackgroundTransparent(ScriptableRenderContext context, Camera camera, ref CullingResults cullingResults)
+        {
+            DrawTransparent(context, camera, PSXRenderQueue.k_RenderQueue_BackgroundTransparent, ref cullingResults);
+        }
+
+        static void DrawMainOpaque(ScriptableRenderContext context, Camera camera, ref CullingResults cullingResults)
+        {
+            DrawOpaque(context, camera, PSXRenderQueue.k_RenderQueue_MainAllOpaque, ref cullingResults);
+        }
+
+        static void DrawMainTransparent(ScriptableRenderContext context, Camera camera, ref CullingResults cullingResults)
+        {
+            DrawTransparent(context, camera, PSXRenderQueue.k_RenderQueue_MainTransparent, ref cullingResults);
+        }
+
+        static void DrawUIOverlayOpaque(ScriptableRenderContext context, Camera camera, ref CullingResults cullingResults)
+        {
+            DrawOpaque(context, camera, PSXRenderQueue.k_RenderQueue_UIOverlayAllOpaque, ref cullingResults);
+        }
+
+        static void DrawUIOverlayTransparent(ScriptableRenderContext context, Camera camera, ref CullingResults cullingResults)
+        {
+            DrawTransparent(context, camera, PSXRenderQueue.k_RenderQueue_UIOverlayTransparent, ref cullingResults);
+        }
+
+        static void DrawOpaque(ScriptableRenderContext context, Camera camera, RenderQueueRange range, ref CullingResults cullingResults)
         {
             // If the depth buffer is disabled, trigger back to front rendering, instead of QuantizedFrontToBack rendering.
             // Note there are additional criteria flags that we always care about, such as SortingLayer, RenderQueue, etc, which are outlined here:
@@ -893,7 +951,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             
             var filteringSettings = new FilteringSettings()
             {
-                renderQueueRange = RenderQueueRange.opaque,
+                renderQueueRange = range,
                 layerMask = camera.cullingMask, // Respect the culling mask specified on the camera so that users can selectively omit specific layers from rendering to this camera.
                 renderingLayerMask = UInt32.MaxValue, // Everything
                 excludeMotionVectorObjects = false
@@ -902,7 +960,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
         }
 
-        static void DrawTransparent(ScriptableRenderContext context, Camera camera, ref CullingResults cullingResults)
+        static void DrawTransparent(ScriptableRenderContext context, Camera camera, RenderQueueRange range, ref CullingResults cullingResults)
         {
             // Draw transparent objects using PSX shader pass
             var sortingSettings = new SortingSettings(camera)
@@ -917,7 +975,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             
             var filteringSettings = new FilteringSettings()
             {
-                renderQueueRange = RenderQueueRange.transparent,
+                renderQueueRange = range,
                 layerMask = camera.cullingMask, // Respect the culling mask specified on the camera so that users can selectively omit specific layers from rendering to this camera.
                 renderingLayerMask = UInt32.MaxValue, // Everything
                 excludeMotionVectorObjects = false

@@ -18,6 +18,7 @@
 
         // Blending state
         [HideInInspector] _VertexColorMode("__vertexColorMode", Float) = 0.0
+        [HideInInspector] _RenderQueueCatagory("__renderQueueCatagory", Float) = 0.0
         [HideInInspector] _LightingMode("__lightingMode", Float) = 0.0
         [HideInInspector] _LightingBaked("__lightingBaked", Float) = 1.0
         [HideInInspector] _LightingDynamic("__lightingDynamic", Float) = 1.0

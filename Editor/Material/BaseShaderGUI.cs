@@ -2,12 +2,20 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEditor;
+using HauntedPSX.RenderPipelines.PSX.Runtime;
 
 namespace HauntedPSX.RenderPipelines.PSX.Editor
 {
     public abstract class BaseShaderGUI : ShaderGUI
     {
         #region EnumsAndClasses
+
+        public enum RenderQueueCatagory
+        {
+            Main = 0,
+            Background,
+            UIOverlay
+        }
 
         public enum LightingMode
         {
@@ -71,6 +79,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent VertexColorMode = new GUIContent("Vertex Color Mode",
                 "Controls how vertex colors are interpreted by the shader. VertexColorMode.Color multiplies the vertex color data with the MainTex value. This is useful for adding variation to the MainTex color per vertex, such as in a particle sim. VertexColorMode.Lighting interprets the vertexColor data as per-vertex lighting. The result will be added to other lighting that may be present.");
+
+            public static readonly GUIContent RenderQueueCatagory =
+                new GUIContent("Render Queue Catagory", "Controls when this object is rendered.\nMaterials set to Background are rendered first.\nMaterials set to Main are rendered second.\nMaterials set to UIOverlay are rendered last.\nThe CameraVolume override controls whether or not the depth buffer will be cleared between these stages.");
 
             public static readonly GUIContent LightingMode =
                 new GUIContent("Lighting Mode", "Controls whether or not lighting is evaluated.");
@@ -147,6 +158,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialProperty vertexColorModeProp { get; set; }
 
+        protected MaterialProperty renderQueueCatagoryProp { get; set; }
+
         protected MaterialProperty lightingModeProp { get; set; }
 
         protected MaterialProperty lightingBakedProp { get; set; }
@@ -219,6 +232,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public virtual void FindProperties(MaterialProperty[] properties)
         {
             vertexColorModeProp = FindProperty("_VertexColorMode", properties);
+            renderQueueCatagoryProp = FindProperty("_RenderQueueCatagory", properties);
             lightingModeProp = FindProperty("_LightingMode", properties);
             lightingBakedProp = FindProperty("_LightingBaked", properties);
             lightingDynamicProp = FindProperty("_LightingDynamic", properties);
@@ -323,6 +337,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public virtual void DrawSurfaceOptions(Material material)
         {
+            DoPopup(Styles.RenderQueueCatagory, renderQueueCatagoryProp, Enum.GetNames(typeof(RenderQueueCatagory)));
+
             DoPopup(Styles.VertexColorMode, vertexColorModeProp, Enum.GetNames(typeof(VertexColorMode)));
 
             DoPopup(Styles.LightingMode, lightingModeProp, Enum.GetNames(typeof(LightingMode)));
@@ -644,12 +660,30 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 }   
         }
 
+        public static int GetRenderQueueFromCatagory(RenderQueueCatagory catagory, bool transparent, int offset, bool alphaClip)
+        {
+            switch (catagory)
+            {
+                case RenderQueueCatagory.Background: return PSXRenderQueue.ChangeType(transparent ? PSXRenderQueue.RenderQueueType.BackgroundTransparent : PSXRenderQueue.RenderQueueType.BackgroundOpaque, offset, alphaClip);
+                case RenderQueueCatagory.Main: return PSXRenderQueue.ChangeType(transparent ? PSXRenderQueue.RenderQueueType.MainTransparent : PSXRenderQueue.RenderQueueType.MainOpaque, offset, alphaClip);
+                case RenderQueueCatagory.UIOverlay: return PSXRenderQueue.ChangeType(transparent ? PSXRenderQueue.RenderQueueType.UIOverlayTransparent : PSXRenderQueue.RenderQueueType.UIOverlayOpaque, offset, alphaClip);
+                default: throw new ArgumentException("catagory");
+            }
+        }
+
         public static void SetupMaterialBlendMode(Material material)
         {
             if (material == null)
                 throw new ArgumentNullException("material");
 
+            SurfaceType surfaceType = (SurfaceType)material.GetFloat("_Surface");
+            RenderQueueCatagory catagory = (RenderQueueCatagory)(int)material.GetFloat("_RenderQueueCatagory");
+            bool transparent = surfaceType == SurfaceType.Transparent;
+            int renderQueueOffset = 0; // TODO: Expose options for user to offset within the queue.
             bool alphaClip = material.GetFloat("_AlphaClip") == 1;
+
+            material.renderQueue = GetRenderQueueFromCatagory(catagory, transparent, renderQueueOffset, alphaClip);
+
             if (alphaClip)
             {
                 material.EnableKeyword("_ALPHATEST_ON");
@@ -659,17 +693,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 material.DisableKeyword("_ALPHATEST_ON");
             }
 
-            SurfaceType surfaceType = (SurfaceType)material.GetFloat("_Surface");
+            
             if (surfaceType == SurfaceType.Opaque)
             {
                 if (alphaClip)
                 {
-                    material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
                     material.SetOverrideTag("RenderType", "TransparentCutout");
                 }
                 else
                 {
-                    material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
                     material.SetOverrideTag("RenderType", "Opaque");
                 }
                 material.SetInt("_BlendOp", (int)UnityEngine.Rendering.BlendOp.Add);
@@ -725,7 +757,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 // General Transparent Material Settings
                 material.SetOverrideTag("RenderType", "Transparent");
                 material.SetInt("_ZWrite", 0);
-                material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
                 // material.SetShaderPassEnabled("ShadowCaster", false);
             }
         }
