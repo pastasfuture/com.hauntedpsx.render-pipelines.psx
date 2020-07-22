@@ -16,10 +16,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         // material changed check
         public override void MaterialChanged(Material material)
         {
-            if (material == null)
-                throw new ArgumentNullException("material");
+            if (material == null) { throw new ArgumentNullException("material"); }
 
-            SetMaterialKeywords(material, null);
+            PSXMaterialUtils.SetMaterialKeywords(material);
         }
 
         // material main surface options
@@ -38,9 +37,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public override void DrawSurfaceInputs(Material material)
         {
             base.DrawSurfaceInputs(material);
-            DrawEmissionProperties(material, true);
+            DrawEmissionProperties(material);
             DrawReflectionProperties(material);
-            DrawTileOffset(materialEditor, mainTexProp);
+            PSXMaterialUtils.DrawTileOffset(materialEditor, mainTexProp);
         }
 
         // material main advanced options
@@ -65,23 +64,23 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             if (oldShader == null || !oldShader.name.Contains("Legacy Shaders/"))
             {
-                SetupMaterialBlendMode(material);
+                PSXMaterialUtils.SetupMaterialBlendMode(material);
                 return;
             }
 
-            SurfaceType surfaceType = SurfaceType.Opaque;
-            BlendMode blendMode = BlendMode.AlphaPostmultiply;
+            PSXMaterialUtils.SurfaceType surfaceType = PSXMaterialUtils.SurfaceType.Opaque;
+            PSXMaterialUtils.BlendMode blendMode = PSXMaterialUtils.BlendMode.AlphaPostmultiply;
             if (oldShader.name.Contains("/Transparent/Cutout/"))
             {
-                surfaceType = SurfaceType.Opaque;
+                surfaceType = PSXMaterialUtils.SurfaceType.Opaque;
                 material.SetFloat("_AlphaClip", 1);
             }
             else if (oldShader.name.Contains("/Transparent/"))
             {
                 // NOTE: legacy shaders did not provide physically based transparency
                 // therefore Fade mode
-                surfaceType = SurfaceType.Transparent;
-                blendMode = BlendMode.AlphaPostmultiply;
+                surfaceType = PSXMaterialUtils.SurfaceType.Transparent;
+                blendMode = PSXMaterialUtils.BlendMode.AlphaPostmultiply;
             }
             material.SetFloat("_Surface", (float)surfaceType);
             material.SetFloat("_Blend", (float)blendMode);

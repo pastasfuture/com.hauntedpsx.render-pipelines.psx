@@ -15,6 +15,12 @@ MonoBehaviour:
   shaders:
     crtPS: {fileID: 4800000, guid: 8e05d2f66aadbd84fb2998f8248241c2, type: 3}
     compressionCS: {fileID: 7200000, guid: df0df86f8582eae44b9aa77c0230a7e5, type: 3}
+    terrainDetailLitPS: {fileID: 4800000, guid: e27b34a93e5789948958f9e2e7a00b90,
+      type: 3}
+    terrainDetailGrassPS: {fileID: 4800000, guid: e2f62d116635ff549b612d9eff95e782,
+      type: 3}
+    terrainDetailGrassBillboardPS: {fileID: 4800000, guid: 9ee879eee9ade10488a2e65d4e3ca392,
+      type: 3}
   textures:
     whiteNoise1024RGBTex:
     - {fileID: 2800000, guid: 6228fe2e439c7704a8e26b3e19ab5e9f, type: 3}

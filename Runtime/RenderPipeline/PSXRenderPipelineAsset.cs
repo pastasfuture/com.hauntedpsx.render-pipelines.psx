@@ -53,6 +53,31 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             get { return renderPipelineResources?.materials.defaultOpaqueMat; }
         }
+
+        public override Shader terrainDetailLitShader
+        {
+            get { return renderPipelineResources?.shaders.terrainDetailLitPS; }
+        }
+
+        public override Shader terrainDetailGrassShader
+        {
+            get { return renderPipelineResources?.shaders.terrainDetailGrassPS; }
+        }
+
+        public override Shader terrainDetailGrassBillboardShader
+        {
+            get { return renderPipelineResources?.shaders.terrainDetailGrassBillboardPS; }
+        }
+
+        public override Shader defaultSpeedTree7Shader
+        {
+            get { return null; } // TODO
+        }
+
+        public override Shader defaultSpeedTree8Shader
+        {
+            get { return null; } // TODO
+        }
     #endif
 
         [SerializeField]

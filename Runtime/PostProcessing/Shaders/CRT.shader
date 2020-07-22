@@ -8,6 +8,10 @@ Shader "Hidden/HauntedPS1/CRT"
     #pragma exclude_renderers d3d11_9x
     #pragma target 3.0
 
+    // -------------------------------------
+    // Global Keywords (set by render pipeline)
+    #pragma multi_compile _OUTPUT_LDR _OUTPUT_HDR
+
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
@@ -108,7 +112,26 @@ Shader "Hidden/HauntedPS1/CRT"
 
     float4 FetchFrameBuffer(float2 uv)
     {
-        return SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, uv, 0);
+        float4 color = SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, uv, 0);
+
+    #if defined(_OUTPUT_HDR)
+
+        // Apply tonemapping and gamma correction.
+        // This is a departure from classic PS1 games, but it allows for greater flexibility, giving artists more controls for creating the final look and feel of their game.
+        // Otherwise, they would need to spend a lot more time in the texturing phase, getting the textures alone to produce the mood they are aiming for.
+        if (_TonemapperIsEnabled)
+        {
+            color.rgb = TonemapperGeneric(color.rgb);
+        }
+    
+        color.rgb = LinearToSRGB(color.rgb);
+
+        // Convert the final color value to 5:6:5 color space (default) - this will actually be whatever color space the user specified in the Precision Volume Override.
+        // This emulates a the limited bit-depth frame buffer.
+        color.rgb = ComputeFramebufferDiscretization(color.rgb, uv * _ScreenSize.xy);
+    #endif
+
+        return color;
     }
 
     // Nearest emulated sample given floating point position and texel offset.
