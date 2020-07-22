@@ -57,6 +57,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
     internal static class PSXShaderKeywords
     {
+        public static readonly string s_OUTPUT_LDR = "_OUTPUT_LDR";
+        public static readonly string s_OUTPUT_HDR = "_OUTPUT_HDR";
         public static readonly string s_CRT_MASK_COMPRESSED_TV = "_CRT_MASK_COMPRESSED_TV";
         public static readonly string s_CRT_MASK_APERATURE_GRILL = "_CRT_MASK_APERTURE_GRILL";
         public static readonly string s_CRT_MASK_VGA = "_CRT_MASK_VGA";

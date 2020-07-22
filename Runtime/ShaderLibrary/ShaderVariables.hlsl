@@ -146,27 +146,6 @@ float4x4 OptimizeProjectionMatrix(float4x4 M)
 #define UNITY_MATRIX_IT_MV transpose(mul(UNITY_MATRIX_I_M, UNITY_MATRIX_I_V))
 #define UNITY_MATRIX_MVP   mul(UNITY_MATRIX_VP, UNITY_MATRIX_M)
 
-CBUFFER_START(UnityPerMaterial)
-TEXTURE2D(_MainTex);
-SAMPLER(sampler_MainTex);
-float4 _MainTex_ST;
-float4 _MainColor;
-TEXTURE2D(_EmissionTexture);
-SAMPLER(sampler_EmissionTexture);
-float3 _EmissionColor;
-float _EmissionBakedMultiplier;
-float _AlphaClippingDitherIsEnabled;
-float _AffineTextureWarpingWeight;
-float _PrecisionGeometryWeight;
-float _FogWeight;
-TEXTURECUBE(_ReflectionCubemap);
-SAMPLER(sampler_ReflectionCubemap);
-TEXTURE2D(_ReflectionTexture);
-SAMPLER(sampler_ReflectionTexture);
-float4 _ReflectionColor;
-int _ReflectionBlendMode;
-CBUFFER_END
-
 // These are the samplers available in the HDRenderPipeline.
 // Avoid declaring extra samplers as they are 4x SGPR each on GCN.
 SAMPLER(s_point_clamp_sampler);

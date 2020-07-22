@@ -15,6 +15,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             public Shader crtPS;
             [Reload("Runtime/PostProcessing/Shaders/Compression.compute")]
             public ComputeShader compressionCS;
+
+            [Reload("Runtime/Material/PSXTerrain/PSXTerrainDetailLit.shader")]
+            public Shader terrainDetailLitPS;
+
+            [Reload("Runtime/Material/PSXTerrain/PSXWavingGrass.shader")]
+            public Shader terrainDetailGrassPS;
+
+            [Reload("Runtime/Material/PSXTerrain/PSXWavingGrassBillboard.shader")]
+            public Shader terrainDetailGrassBillboardPS;
         }
 
         [Serializable, ReloadGroup]

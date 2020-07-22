@@ -237,11 +237,11 @@ float3 ComputeFramebufferDiscretization(float3 color, float2 positionSS)
     return floor(color.xyz * _PrecisionColor.rgb + framebufferDither) * _PrecisionColorInverse.rgb;
 }
 
-float FetchAlphaClippingDither(float2 positionSS)
+float FetchAlphaClippingDither(float2 positionSS, float alphaClippingDitherIsEnabled)
 {
     float dither = 0.5f;
 
-    if (_AlphaClippingDitherIsEnabled > 0.5f)
+    if (alphaClippingDitherIsEnabled > 0.5f)
     {
         uint2 alphaClippingDitherTexelCoord = (uint2)floor(frac(positionSS * _AlphaClippingDitherSize.zw) * _AlphaClippingDitherSize.xy);
         dither = LOAD_TEXTURE2D_LOD(_AlphaClippingDitherTexture, alphaClippingDitherTexelCoord, 0).a;

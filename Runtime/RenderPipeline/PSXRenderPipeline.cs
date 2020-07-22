@@ -188,6 +188,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 // per-camera built-in shader variables).
                 context.SetupCameraProperties(camera);
 
+                bool hdrIsSupported = false;
                 RenderTexture rasterizationRT = RenderTexture.GetTemporary(
                     new RenderTextureDescriptor
                     {
@@ -196,7 +197,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                         height = rasterizationHeight,
                         volumeDepth = 1,
                         depthBufferBits = EvaluateIsDepthBufferEnabledFromVolume() ? 24 : 0,
-                        graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm,
+                        graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm,// GetFrameBufferRenderTextureFormatHDR(out bool hdrIsSupported),
                         sRGB = false,
                         msaaSamples = 1,
                         memoryless = RenderTextureMemoryless.None,
@@ -208,10 +209,27 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     }
                 ); 
 
+                // var rasterizationRTDescriptor = new RenderTextureDescriptor(
+                //     rasterizationWidth,
+                //     rasterizationHeight,
+                //     GetFrameBufferRenderTextureFormatHDR(out bool hdrIsSupported),
+                //     EvaluateIsDepthBufferEnabledFromVolume() ? 24 : 0
+                // );
+                // // rasterizationRTDescriptor.useMipMap = false;
+                // // rasterizationRTDescriptor.autoGenerateMips = false;
+                // // rasterizationRTDescriptor.enableRandomWrite = IsComputeShaderSupportedPlatform();
+                // // rasterizationRTDescriptor.sRGB = false;
+                // // rasterizationRTDescriptor.vrUsage = VRTextureUsage.None;
+                // // rasterizationRTDescriptor.useDynamicScale = false;
+
+                // Debug.Log("rasterizationRTDescriptor.graphicsFormat = " + rasterizationRTDescriptor.graphicsFormat);
+
+                // RenderTexture rasterizationRT = RenderTexture.GetTemporary(rasterizationRTDescriptor);
+
                 cmd.SetRenderTarget(rasterizationRT);
                 {
                     // Clear background to fog color to create seamless blend between forward-rendered fog, and "sky" / infinity.
-                    PushGlobalRasterizationParameters(camera, cmd, rasterizationWidth, rasterizationHeight);
+                    PushGlobalRasterizationParameters(camera, cmd, rasterizationWidth, rasterizationHeight, hdrIsSupported);
                     PushQualityOverrideParameters(camera, cmd, isPSXQualityEnabled);
                     PushPrecisionParameters(camera, cmd, m_Asset);
                     PushFogParameters(camera, cmd);
@@ -596,7 +614,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             }
         }
 
-        void PushGlobalRasterizationParameters(Camera camera, CommandBuffer cmd, int rasterizationWidth, int rasterizationHeight)
+        void PushGlobalRasterizationParameters(Camera camera, CommandBuffer cmd, int rasterizationWidth, int rasterizationHeight, bool hdrIsSupported)
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushGlobalRasterizationParameters))
             {
@@ -619,6 +637,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 float f = camera.farClipPlane;
                 Vector4 projectionParams = new Vector4(flipProj ? -1 : 1, n, f, 1.0f / f);
                 cmd.SetGlobalVector(PSXShaderIDs._ProjectionParams, projectionParams);
+
+                if (hdrIsSupported)
+                {
+                    Shader.EnableKeyword(PSXShaderKeywords.s_OUTPUT_HDR);
+                }
+                else
+                {
+                    Shader.EnableKeyword(PSXShaderKeywords.s_OUTPUT_LDR);
+                }
             }  
         }
 
@@ -1089,6 +1116,32 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 return false;
             }
         #endif
+        }
+
+        public static RenderTextureFormat GetFrameBufferRenderTextureFormatHDR(out bool hdrIsSupported)
+        {
+            // TODO: Implement.
+            // if (SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.ARGBHalf))
+            // {
+            //     hdrIsSupported = true;
+            //     return RenderTextureFormat.ARGBHalf;
+            // }
+            // else if (SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.ARGBFloat))
+            // {
+            //     hdrIsSupported = true;
+            //     return RenderTextureFormat.ARGBFloat;
+            // }
+            // else if (SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.ARGB32))
+            {
+                hdrIsSupported = false;
+                return RenderTextureFormat.ARGB32;
+            }
+            // else
+            // {
+            //     hdrIsSupported = false;
+            //     return RenderTextureFormat.Default;
+            // }
+
         }
 
         static bool ComputeCameraProjectionIsFlippedY(Camera camera)

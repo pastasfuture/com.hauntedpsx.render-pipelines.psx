@@ -16,7 +16,7 @@
         _ReflectionColor("_ReflectionColor", Color) = (1,1,1,1)
         _ReflectionBlendMode("_ReflectionBlendMode", Int) = 0
 
-        // Blending state
+        // C# side material state tracking.
         [HideInInspector] _VertexColorMode("__vertexColorMode", Float) = 0.0
         [HideInInspector] _RenderQueueCategory("__renderQueueCategory", Float) = 0.0
         [HideInInspector] _LightingMode("__lightingMode", Float) = 0.0
@@ -55,6 +55,10 @@
             #pragma target 3.0
 
             // -------------------------------------
+            // Global Keywords (set by render pipeline)
+            #pragma multi_compile _OUTPUT_LDR _OUTPUT_HDR
+
+            // -------------------------------------
             // Material Keywords
             #pragma shader_feature _ _VERTEX_COLOR_MODE_COLOR _VERTEX_COLOR_MODE_LIGHTING
             #pragma shader_feature _LIGHTING_BAKED_ON
@@ -78,7 +82,8 @@
             #pragma vertex LitPassVertex
             #pragma fragment LitPassFragment
 
-            #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/Material/PSXLitPass.hlsl"            
+            #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/Material/PSXLit/PSXLitInput.hlsl"
+            #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/Material/PSXLit/PSXLitPass.hlsl"            
             ENDHLSL
         }
 
@@ -106,7 +111,8 @@
             #pragma vertex LitMetaPassVertex
             #pragma fragment LitMetaPassFragment
 
-            #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/Material/PSXLitMetaPass.hlsl"
+            #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/Material/PSXLit/PSXLitInput.hlsl"
+            #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/Material/PSXLit/PSXLitMetaPass.hlsl"
 
             ENDHLSL
         }
