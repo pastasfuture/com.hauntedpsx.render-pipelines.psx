@@ -65,6 +65,7 @@ float _TonemapperSaturation;
 float _TonemapperCrossTalkSaturation;
 
 float4 _ScreenSize;
+float4 _ScreenSizeRasterization;
 
 float4x4 glstate_matrix_projection;
 float4x4 unity_MatrixV;

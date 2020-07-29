@@ -20,7 +20,6 @@ Shader "Hidden/HauntedPS1/CRT"
     #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/ShaderFunctions.hlsl"
 
     int _FlipY;
-    float4 _FrameBufferScreenSize;
     float4 _BlueNoiseSize;
     float4 _WhiteNoiseSize;
     float4 _CRTGrateMaskSize;
@@ -43,7 +42,7 @@ Shader "Hidden/HauntedPS1/CRT"
     // Emulated input resolution.
 #if 1
     // Fix resolution to set amount.
-    #define res (_FrameBufferScreenSize.xy)
+    #define res (_ScreenSizeRasterization.xy)
 #else
     // Optimize for resize.
     #define res ((_ScreenSize.xy / 6.0f * _CRTGrateMaskScale.y))
@@ -453,7 +452,7 @@ Shader "Hidden/HauntedPS1/CRT"
         // This occurs due to rounding error, or due to locked rasterization aspect ratio (i.e: to simulate CRT 1.33).
         // TODO: This scale bias term could be computed CPU side. That said, this calculation is only run on four vertices.
         // Probably not worth adding an additional uniform to deal with this.
-        float2 ratioXY = _FrameBufferScreenSize.xy * _ScreenSize.zw;
+        float2 ratioXY = _ScreenSizeRasterization.xy * _ScreenSize.zw;
         float2 ratioXYMax = max(ratioXY.x, ratioXY.y);
         float2 uvScale = ratioXYMax / ratioXY;
         float2 uvBias = 0.5 - (0.5 * uvScale);

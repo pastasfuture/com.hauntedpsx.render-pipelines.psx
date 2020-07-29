@@ -80,6 +80,11 @@ half4 LitPassFragment(Varyings i) : SV_Target
     clip((color.a > alphaClippingDither) ? 1.0f : -1.0f);
 #endif
 
+#if defined(SCENESELECTIONPASS)
+    // We use depth prepass for scene selection in the editor, this code allow to output the outline correctly
+    return float4(_ObjectId, _PassValue, 1.0, 1.0);
+#endif
+
     if (!_IsPSXQualityEnabled)
     {
         // TODO: Handle premultiply alpha case here?
@@ -93,7 +98,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
     float3 lighting = EvaluateLightingPerPixel(i.positionWS, normalWS, i.lighting, i.lightmapUV, interpolatorNormalization);
     color = ApplyLightingToColor(lighting, color);
 
-#ifdef _EMISSION
+#if defined(_EMISSION)
     // Convert to sRGB 5:6:5 color space, then from sRGB to Linear.
     float3 emission = _EmissionColor.rgb * SAMPLE_TEXTURE2D(_EmissionTexture, sampler_EmissionTexture, uvColor).rgb;
     emission = ApplyPrecisionColorToColorSRGB(float4(emission, 0.0f)).rgb;

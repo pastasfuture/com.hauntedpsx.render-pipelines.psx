@@ -620,6 +620,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             {
                 cmd.ClearRenderTarget(clearDepth: true, clearColor: true, backgroundColor: GetFogColorFromFogVolume());
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
+                cmd.SetGlobalVector(PSXShaderIDs._ScreenSizeRasterization, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._Time, new Vector4(Time.timeSinceLevelLoad / 20.0f, Time.timeSinceLevelLoad, Time.timeSinceLevelLoad * 2.0f, Time.timeSinceLevelLoad * 3.0f));
                 cmd.SetGlobalVector(PSXShaderIDs._WorldSpaceCameraPos, camera.transform.position);
             
@@ -663,7 +664,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
                 cmd.SetGlobalInt(PSXShaderIDs._FlipY, flipY ? 1 : 0);
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / (float)camera.pixelWidth, 1.0f / (float)camera.pixelHeight));
-                cmd.SetGlobalVector(PSXShaderIDs._FrameBufferScreenSize, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
+                cmd.SetGlobalVector(PSXShaderIDs._ScreenSizeRasterization, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalTexture(PSXShaderIDs._FrameBufferTexture, rasterizationRT);
 
                 Texture2D whiteNoiseTexture = GetWhiteNoise1024RGBTexFromAssetAndFrame(asset, (uint)Time.frameCount);

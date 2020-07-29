@@ -116,6 +116,39 @@
 
             ENDHLSL
         }
+
+        Pass
+        {
+            Name "SceneSelectionPass"
+            Tags { "LightMode" = "SceneSelectionPass" }
+
+            BlendOp[_BlendOp]
+            Blend[_SrcBlend][_DstBlend]
+            ZWrite[_ZWrite]
+            Cull[_Cull]
+
+            HLSLPROGRAM
+            // Required to compile gles 2.0 with standard srp library
+            #pragma prefer_hlslcc gles
+            #pragma exclude_renderers d3d11_9x
+            #pragma target 3.0
+
+            // -------------------------------------
+            // Material Keywords
+            #pragma shader_feature _ALPHATEST_ON
+
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+
+            #pragma vertex LitPassVertex
+            #pragma fragment LitPassFragment
+
+            #define SCENESELECTIONPASS // This will drive the output of the scene selection shader
+            #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/Material/PSXLit/PSXLitInput.hlsl"
+            #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/Material/PSXLit/PSXLitPass.hlsl"            
+            ENDHLSL
+        }
     }
 
     CustomEditor "HauntedPSX.RenderPipelines.PSX.Editor.PSXLitShaderGUI"

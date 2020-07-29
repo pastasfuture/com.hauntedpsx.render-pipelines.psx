@@ -19,7 +19,7 @@ float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, 
         float w = positionCS.w;
         positionCS.xy *= rcp(w); // Apply divide by W to temporarily homogenize coordinates.
 
-        float4 screenSizePrecisionGeometry = _ScreenSize * _PrecisionGeometry.xxyy;
+        float4 screenSizePrecisionGeometry = _ScreenSizeRasterization * _PrecisionGeometry.xxyy;
         float2 positionSS = floor((positionCS.xy * 0.5f + 0.5f) * screenSizePrecisionGeometry.xy + 0.5f);
 
         // Material can locally decrease vertex snapping contribution with _PrecisionGeometryWeight.

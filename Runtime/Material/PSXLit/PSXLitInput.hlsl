@@ -23,6 +23,13 @@ TEXTURE2D(_ReflectionTexture);
 SAMPLER(sampler_ReflectionTexture);
 float4 _ReflectionColor;
 int _ReflectionBlendMode;
+
+#if defined(SCENESELECTIONPASS)
+// Following two variables are feeded by the C++ Editor for Scene selection
+int _ObjectId;
+int _PassValue;
+#endif
+
 CBUFFER_END
 
 #endif
