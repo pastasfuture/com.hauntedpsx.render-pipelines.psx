@@ -9,3 +9,6 @@ https://github.com/pastasfuture/com.hauntedpsx.render-pipelines.psx/wiki/Install
 # Discord Server
 The Haunted PS1 -> Collabs -> hpsxrp
 https://discord.com/invite/3Yg3Yhh
+
+# Itch.io
+https://hpsxrp.itch.io/
