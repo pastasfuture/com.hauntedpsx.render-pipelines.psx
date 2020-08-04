@@ -472,16 +472,19 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
                 cmd.SetGlobalVector(PSXShaderIDs._PrecisionGeometry, new Vector3(precisionGeometryScale, precisionGeometryScaleInverse));
 
-                int precisionColorIndex = Mathf.FloorToInt(volumeSettings.color.value * 5.0f + 0.5f);
+                int precisionColorIndex = Mathf.FloorToInt(volumeSettings.color.value * 7.0f + 0.5f);
+                float precisionChromaBit = volumeSettings.chroma.value;
                 Vector3 precisionColor = Vector3.zero; // Silence the compiler warnings.
                 switch (precisionColorIndex)
                 {
-                    case 5: precisionColor = new Vector3(1 << 5, 1 << 6, 1 << 5); break; // Standard PS1 5:6:5 color space.
-                    case 4: precisionColor = new Vector3(1 << 4, 1 << 4, 1 << 4); break;
-                    case 3: precisionColor = new Vector3(1 << 3, 1 << 3, 1 << 3); break;
-                    case 2: precisionColor = new Vector3(1 << 2, 1 << 2, 1 << 2); break;
-                    case 1: precisionColor = new Vector3(1 << 1, 1 << 1, 1 << 1); break;
-                    case 0: precisionColor = new Vector3(1 << 0, 1 << 0, 1 << 0); break;
+                    case 7: precisionColor = new Vector3(255.0f, 255.0f, 255.0f); break;
+                    case 6: precisionColor = new Vector3(127.0f, Mathf.Pow(2.0f, 7.0f + (precisionChromaBit * (8.0f - 7.0f))) - 1.0f, 127.0f); break;
+                    case 5: precisionColor = new Vector3(63.0f, Mathf.Pow(2.0f, 6.0f + (precisionChromaBit * (8.0f - 6.0f))) - 1.0f, 63.0f); break;
+                    case 4: precisionColor = new Vector3(31.0f, Mathf.Pow(2.0f, 5.0f + (precisionChromaBit * (8.0f - 5.0f))) - 1.0f, 31.0f); break; // Standard PS1 5:6:5 color space.
+                    case 3: precisionColor = new Vector3(15.0f, Mathf.Pow(2.0f, 4.0f + (precisionChromaBit * (8.0f - 4.0f))) - 1.0f, 15.0f); break;
+                    case 2: precisionColor = new Vector3(7.0f, Mathf.Pow(2.0f, 3.0f + (precisionChromaBit * (8.0f - 3.0f))) - 1.0f, 7.0f); break;
+                    case 1: precisionColor = new Vector3(3.0f, Mathf.Pow(2.0f, 2.0f + (precisionChromaBit * (8.0f - 2.0f))) - 1.0f, 3.0f); break;
+                    case 0: precisionColor = new Vector3(1.0f, Mathf.Pow(2.0f, 1.0f + (precisionChromaBit * (8.0f - 1.0f))) - 1.0f, 1.0f); break;
                     default: Debug.Assert(false); break;
                 }
 
@@ -492,14 +495,14 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 float precisionAlpha = 0.0f; // Silence the compiler warnings.
                 switch (precisionAlphaIndex)
                 {
-                    case 7: precisionAlpha = (float)(1 << 7); break;
-                    case 6: precisionAlpha = (float)(1 << 6); break;
-                    case 5: precisionAlpha = (float)(1 << 5); break;
-                    case 4: precisionAlpha = (float)(1 << 4); break;
-                    case 3: precisionAlpha = (float)(1 << 3); break;
-                    case 2: precisionAlpha = (float)(1 << 2); break;
-                    case 1: precisionAlpha = (float)(1 << 1); break;
-                    case 0: precisionAlpha = (float)(1 << 0); break;
+                    case 7: precisionAlpha = 255.0f; break;
+                    case 6: precisionAlpha = 127.0f; break;
+                    case 5: precisionAlpha = 63.0f; break;
+                    case 4: precisionAlpha = 31.0f; break;
+                    case 3: precisionAlpha = 15.0f; break;
+                    case 2: precisionAlpha = 7.0f; break;
+                    case 1: precisionAlpha = 3.0f; break;
+                    case 0: precisionAlpha = 1.0f; break;
                     default: Debug.Assert(false); break;
                 }
 
@@ -559,14 +562,14 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 float precisionAlpha = 0.0f; // Silence the compiler warnings.
                 switch (precisionAlphaIndex)
                 {
-                    case 7: precisionAlpha = (float)(1 << 7); break;
-                    case 6: precisionAlpha = (float)(1 << 6); break;
-                    case 5: precisionAlpha = (float)(1 << 5); break;
-                    case 4: precisionAlpha = (float)(1 << 4); break;
-                    case 3: precisionAlpha = (float)(1 << 3); break;
-                    case 2: precisionAlpha = (float)(1 << 2); break;
-                    case 1: precisionAlpha = (float)(1 << 1); break;
-                    case 0: precisionAlpha = (float)(1 << 0); break;
+                    case 7: precisionAlpha = 255.0f; break;
+                    case 6: precisionAlpha = 127.0f; break;
+                    case 5: precisionAlpha = 63.0f; break;
+                    case 4: precisionAlpha = 31.0f; break;
+                    case 3: precisionAlpha = 15.0f; break;
+                    case 2: precisionAlpha = 7.0f; break;
+                    case 1: precisionAlpha = 3.0f; break;
+                    case 0: precisionAlpha = 1.0f; break;
                     default: Debug.Assert(false); break;
                 }
 

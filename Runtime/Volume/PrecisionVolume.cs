@@ -23,7 +23,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         }
 
         public ClampedFloatParameter geometry = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
-        public ClampedFloatParameter color = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
+        public ClampedFloatParameter color = new ClampedFloatParameter(4.0f / 7.0f, 0.0f, 1.0f);
+        public ClampedFloatParameter chroma = new ClampedFloatParameter(1.0f / 3.0f, 0.0f, 1.0f);
         public ClampedFloatParameter alpha = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
         public ClampedFloatParameter affineTextureWarping = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
         public ClampedFloatParameter framebufferDither = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
