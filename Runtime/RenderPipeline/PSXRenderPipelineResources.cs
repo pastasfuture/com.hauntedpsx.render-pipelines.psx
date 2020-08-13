@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
 using UnityEngine;
@@ -16,7 +17,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             [Reload("Runtime/PostProcessing/Shaders/Compression.compute")]
             public ComputeShader compressionCS;
 
-            [Reload("Runtime/Material/PSXTerrain/PSXTerrainDetailLit.shader")]
+            [Reload("Runtime/Material/PSXTerrain/PSXTerrainDetail.shader")]
             public Shader terrainDetailLitPS;
 
             [Reload("Runtime/Material/PSXTerrain/PSXWavingGrass.shader")]
@@ -30,13 +31,13 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public sealed class TextureResources
         {
             // Pre-baked noise
-            [Reload("Runtime/RenderPipelineResources/Texture/WhiteNoise1024RGB.png")]
+            [Reload("Runtime/RenderPipelineResources/Texture/WhiteNoise1024RGB.png", 0, 2)]
             public Texture2D[] whiteNoise1024RGBTex;
 
-            [Reload("Runtime/RenderPipelineResources/Texture/Bayer/BayerL4x4.png")]
+            [Reload("Runtime/RenderPipelineResources/Texture/Bayer/BayerL4x4.png", 0, 2)]
             public Texture2D[] framebufferDitherTex;
 
-            [Reload("Runtime/RenderPipelineResources/Texture/Bayer/BayerL4x4.png")]
+            [Reload("Runtime/RenderPipelineResources/Texture/Bayer/BayerL4x4.png", 0, 2)]
             public Texture2D[] alphaClippingDitherTex;
 
             [Reload("Runtime/RenderPipelineResources/Texture/BlueNoise16/L/LDR_LLL1_{0}.png", 0, 32)]
@@ -57,20 +58,4 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public TextureResources textures;
         public MaterialResources materials;
     }
-
-#if UNITY_EDITOR
-    [ExecuteInEditMode]
-    static class PSXRenderPipelineResourcesFactory
-    {
-        static readonly string s_DefaultPath = "Assets/PSXRenderPipelineResources.asset";
-
-        [UnityEditor.MenuItem("HauntedPS1/Create HauntedPS1 Render Pipeline Resources")]
-        static void CreatePSXRenderPipelineAsset()
-        {
-            var newAsset = ScriptableObject.CreateInstance<PSXRenderPipelineResources>();
-            ResourceReloader.ReloadAllNullIn(newAsset, PSXStringConstants.s_PackagePath);
-            UnityEditor.AssetDatabase.CreateAsset(newAsset, s_DefaultPath);
-        }
-    }
-#endif
 }

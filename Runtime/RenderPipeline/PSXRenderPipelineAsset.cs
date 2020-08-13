@@ -85,20 +85,4 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         [SerializeField]
         public bool isSRPBatcherEnabled = false;
     }
-
-#if UNITY_EDITOR
-    [ExecuteInEditMode]
-    public static class PSXRenderPipelineAssetFactory
-    {
-        static readonly string s_DefaultPath = "Assets/PSXRenderPipelineAsset.asset";
-
-        [UnityEditor.MenuItem("HauntedPS1/Create HauntedPS1 Render Pipeline Asset")]
-        public static void CreatePSXRenderPipelineAsset()
-        {
-            var newAsset = ScriptableObject.CreateInstance<PSXRenderPipelineAsset>();
-            ResourceReloader.ReloadAllNullIn(newAsset, PSXStringConstants.s_PackagePath);
-            UnityEditor.AssetDatabase.CreateAsset(newAsset, s_DefaultPath);
-        }
-    }
-#endif
 }
