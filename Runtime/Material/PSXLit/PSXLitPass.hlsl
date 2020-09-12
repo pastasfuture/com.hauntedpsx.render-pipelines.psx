@@ -67,7 +67,11 @@ half4 LitPassFragment(Varyings i) : SV_Target
 
     float2 uv = i.uvw.xy * interpolatorNormalization;
     float2 uvColor = TRANSFORM_TEX(uv, _MainTex);
-    float4 color = _MainColor * SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uvColor);
+
+    float4 texelSizeLod;
+    float lod;
+    ComputeLODAndTexelSizeMaybeCallDDX(texelSizeLod, lod, uvColor, _MainTex_TexelSize);
+    float4 color = _MainColor * SampleTextureWithFilterMode(_MainTex, sampler_MainTex, uvColor, texelSizeLod, lod);
 
 #if defined(_VERTEX_COLOR_MODE_COLOR)
     color *= i.color * interpolatorNormalization;
@@ -100,7 +104,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
 
 #if defined(_EMISSION)
     // Convert to sRGB 5:6:5 color space, then from sRGB to Linear.
-    float3 emission = _EmissionColor.rgb * SAMPLE_TEXTURE2D(_EmissionTexture, sampler_EmissionTexture, uvColor).rgb;
+    float3 emission = _EmissionColor.rgb * SampleTextureWithFilterMode(_EmissionTexture, sampler_EmissionTexture, uvColor, texelSizeLod, lod).rgb;
     emission = ApplyPrecisionColorToColorSRGB(float4(emission, 0.0f)).rgb;
     emission = SRGBToLinear(emission);
     emission = ApplyAlphaBlendTransformToEmission(emission, color.a);

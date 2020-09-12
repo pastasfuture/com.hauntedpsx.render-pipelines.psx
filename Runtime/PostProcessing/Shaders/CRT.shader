@@ -13,6 +13,7 @@ Shader "Hidden/HauntedPS1/CRT"
     #pragma multi_compile _OUTPUT_LDR _OUTPUT_HDR
 
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+    #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Macros.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 

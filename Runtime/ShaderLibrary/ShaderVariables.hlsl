@@ -98,7 +98,8 @@ real4 unity_SHC;
 CBUFFER_END
 
 // Dynamic Lighting:
-#if defined(SHADER_API_MOBILE) || defined(SHADER_API_GLCORE)
+#if defined(SHADER_API_MOBILE) || defined(SHADER_API_GLCORE) || defined(SHADER_API_GLES) || defined(SHADER_API_GLES3)
+    // Platforms like WebGL will error out with Error: Too many uniforms if the max visible lights is too large.
     #define MAX_VISIBLE_LIGHTS 32
 #else
     #define MAX_VISIBLE_LIGHTS 256

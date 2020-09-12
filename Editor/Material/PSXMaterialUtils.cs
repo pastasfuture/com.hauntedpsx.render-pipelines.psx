@@ -16,6 +16,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             UIOverlay
         }
 
+        public enum TextureFilterMode
+        {
+            TextureImportSettings = 0,
+            Point,
+            PointMipmaps,
+            N64,
+            N64Mipmaps
+        }
+
         public enum LightingMode
         {
             Lit = 0,
@@ -74,6 +83,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public static class PropertyNames
         {
+            public static readonly string _TextureFilterMode = "_TextureFilterMode";
             public static readonly string _VertexColorMode = "_VertexColorMode";
             public static readonly string _RenderQueueCategory = "_RenderQueueCategory";
             public static readonly string _LightingMode = "_LightingMode";
@@ -108,6 +118,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public static class PropertyIDs
         {
+            public static readonly int _TextureFilterMode = Shader.PropertyToID(PropertyNames._TextureFilterMode);
             public static readonly int _VertexColorMode = Shader.PropertyToID(PropertyNames._VertexColorMode);
             public static readonly int _RenderQueueCategory = Shader.PropertyToID(PropertyNames._RenderQueueCategory);
             public static readonly int _LightingMode = Shader.PropertyToID(PropertyNames._LightingMode);
@@ -154,6 +165,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public static class Keywords
         {
+
+            public static readonly string _TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS = "_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS";
+            public static readonly string _TEXTURE_FILTER_MODE_POINT = "_TEXTURE_FILTER_MODE_POINT";
+            public static readonly string _TEXTURE_FILTER_MODE_POINT_MIPMAPS = "_TEXTURE_FILTER_MODE_POINT_MIPMAPS";
+            public static readonly string _TEXTURE_FILTER_MODE_N64 = "_TEXTURE_FILTER_MODE_N64";
+            public static readonly string _TEXTURE_FILTER_MODE_N64_MIPMAPS = "_TEXTURE_FILTER_MODE_N64_MIPMAPS";
             public static readonly string _VERTEX_COLOR_MODE_COLOR = "_VERTEX_COLOR_MODE_COLOR";
             public static readonly string _VERTEX_COLOR_MODE_LIGHTING = "_VERTEX_COLOR_MODE_LIGHTING";
             public static readonly string _LIGHTING_BAKED_ON = "_LIGHTING_BAKED_ON";
@@ -179,6 +196,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent AdvancedLabel = new GUIContent("Advanced",
                 "These settings affect behind-the-scenes rendering and underlying calculations.");
+
+            public static readonly GUIContent TextureFilterMode = new GUIContent("Texture Filter Mode",
+                "Controls how MainTex and EmissionTex are filtered.\nTextureFilterMode.TextureImportSettings is the standard unity behavior. Textures will be filtered using the texture's import settings.\nTextureFilterMode.Point will force PSX era nearest neighbor point sampling, regardless of texture import settings.\nTextureFilterMode.PointMipmaps is the same as TextureFilterMode.Point but supports supports point sampled lods via the texture's mipmap chain.\nTextureFilterMode.N64 will force N64 era 3-point barycentric texture filtering.\nTextureFilterMode.N64MipMaps is the same as TextureFilterMode.N64 but supports N64 sampled lods via the texture's mipmap chain.");
 
             public static readonly GUIContent VertexColorMode = new GUIContent("Vertex Color Mode",
                 "Controls how vertex colors are interpreted by the shader. VertexColorMode.Color multiplies the vertex color data with the MainTex value. This is useful for adding variation to the MainTex color per vertex, such as in a particle sim. VertexColorMode.Lighting interprets the vertexColor data as per-vertex lighting. The result will be added to other lighting that may be present.");
@@ -245,6 +265,18 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent reflectionBlendMode = new GUIContent("Reflection Blend Mode",
                 "Controls how reflections are blending with other incoming light at the surface. Additive is the standard, physically-based approach. Subtractive and Multiply blend modes are for special effects.");
+
+            public const string textureFilterModeErrorBilinearDisabled = "Error: Texture Filter Mode {0} requires Bilinear filtering to be enabled on {1}.\nPlease select your texture and set Filter Mode to Bilinear in the Texture Import Settings in the inspector.";
+            public const string textureFilterModeErrorMipmapsDisabled = "Error: Texture Filter Mode {0} requires Mipmaps to be generated on {1}.\nPlease select your texture and set Generate Mip Maps to true in the Texture Import Settings in the inspector.";
+
+            public static readonly string[] textureFilterModeNames =
+            {
+                "Texture Import Settings",
+                "Point",
+                "Point Mip Maps",
+                "N64",
+                "N64 Mip Maps"
+            };
         }
 
         // Copied from shaderGUI as it is a protected function in an abstract class, unavailable to others
@@ -271,6 +303,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             // Clear all keywords for fresh start
             ClearMaterialKeywords(material);
 
+            SetupMaterialTextureFilterMode(material);
             SetupMaterialLightingMode(material);
             SetupMaterialShadingEvaluationMode(material);
             SetupMaterialBlendMode(material);
@@ -316,6 +349,60 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                     Debug.Assert(false);
                     break;
             }   
+        }
+
+        public static void SetupMaterialTextureFilterMode(Material material)
+        {
+            if (material == null) { throw new ArgumentNullException("material"); }
+
+            TextureFilterMode textureFilterMode = (TextureFilterMode)material.GetFloat(PropertyIDs._TextureFilterMode);
+
+            switch (textureFilterMode)
+            {
+                case TextureFilterMode.TextureImportSettings:
+                    material.EnableKeyword(Keywords._TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_POINT);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_N64);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                    break;
+
+                case TextureFilterMode.Point:
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                    material.EnableKeyword(Keywords._TEXTURE_FILTER_MODE_POINT);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_N64);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                    break;
+
+                case TextureFilterMode.PointMipmaps:
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_POINT);
+                    material.EnableKeyword(Keywords._TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_N64);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                    break;
+
+                case TextureFilterMode.N64:
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_POINT);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                    material.EnableKeyword(Keywords._TEXTURE_FILTER_MODE_N64);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                    break;
+
+                case TextureFilterMode.N64Mipmaps:
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_POINT);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                    material.DisableKeyword(Keywords._TEXTURE_FILTER_MODE_N64);
+                    material.EnableKeyword(Keywords._TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                    break;
+
+                default:
+                    Debug.Assert(false);
+                    break;
+            }
         }
 
         public static void SetupMaterialLightingMode(Material material, bool vertexColorSupported = true)
@@ -633,6 +720,30 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                     material.SetTextureScale(PropertyIDs._MainTex, new Vector2(mainTexTiling.x, mainTexTiling.y));
                     material.SetTextureOffset(PropertyIDs._MainTex, new Vector2(mainTexTiling.z, mainTexTiling.w));
                 }
+
+                DrawTextureFilterModeErrorMessagesForTexture(material, materialEditor, mainTexProp, PropertyNames._MainTex);
+            }
+        }
+
+        public static void DrawTextureFilterModeErrorMessagesForTexture(Material material, MaterialEditor materialEditor, MaterialProperty texProp, string propertyName)
+        {
+            if (texProp == null) { return; }
+
+            TextureFilterMode textureFilterMode = (TextureFilterMode)material.GetFloat(PropertyIDs._TextureFilterMode);
+            bool requiresBilinear = (textureFilterMode == TextureFilterMode.N64) || (textureFilterMode == TextureFilterMode.N64Mipmaps);
+            bool requiresMipmaps = (textureFilterMode == TextureFilterMode.PointMipmaps) || (textureFilterMode == TextureFilterMode.N64Mipmaps);
+            Texture texture = texProp.textureValue;
+
+            if (texture == null) { return; }
+
+            if (requiresBilinear && texture != null && texture.filterMode == FilterMode.Point)
+            {
+                EditorGUILayout.HelpBox(String.Format(Styles.textureFilterModeErrorBilinearDisabled, Styles.textureFilterModeNames[(int)textureFilterMode], propertyName), MessageType.Error);
+            }
+
+            if (requiresMipmaps && texture != null && texture.mipmapCount == 1 && (Mathf.Min(texture.width, texture.height) > 1))
+            {
+                EditorGUILayout.HelpBox(String.Format(Styles.textureFilterModeErrorMipmapsDisabled, Styles.textureFilterModeNames[(int)textureFilterMode], propertyName), MessageType.Error);
             }
         }
 
@@ -659,7 +770,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 if (EditorGUI.EndChangeCheck())
                     emissionBakedMultiplierProp.floatValue = emissionBakedMultiplier;
 
-                
+                 DrawTextureFilterModeErrorMessagesForTexture(material, materialEditor, emissionTextureProp, PropertyNames._EmissionTexture);
             }
             EditorGUI.EndDisabledGroup();
 
@@ -719,6 +830,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public static void DrawRenderQueueCategory(MaterialEditor materialEditor, MaterialProperty renderQueueCategoryProp)
         {
             DoPopup(Styles.RenderQueueCategory, renderQueueCategoryProp, Enum.GetNames(typeof(RenderQueueCategory)), materialEditor);
+        }
+
+        public static void DrawTextureFilterMode(MaterialEditor materialEditor, MaterialProperty textureFilterModeProp)
+        {
+            DoPopup(Styles.TextureFilterMode, textureFilterModeProp, Enum.GetNames(typeof(TextureFilterMode)), materialEditor);
         }
 
         public static void DrawVertexColorMode(MaterialEditor materialEditor, MaterialProperty vertexColorModeProp)

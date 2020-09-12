@@ -11,6 +11,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
     {
         protected MaterialEditor materialEditor { get; set; }
 
+        protected MaterialProperty textureFilterModeProp { get; set; }
+
         protected MaterialProperty vertexColorModeProp { get; set; }
 
         protected MaterialProperty renderQueueCategoryProp { get; set; }
@@ -76,6 +78,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public virtual void FindProperties(MaterialProperty[] properties)
         {
+            textureFilterModeProp = FindProperty(PropertyNames._TextureFilterMode, properties);
             vertexColorModeProp = FindProperty(PropertyNames._VertexColorMode, properties);
             renderQueueCategoryProp = FindProperty(PropertyNames._RenderQueueCategory, properties);
             lightingModeProp = FindProperty(PropertyNames._LightingMode, properties);
@@ -176,6 +179,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public virtual void DrawSurfaceOptions(Material material)
         {
             PSXMaterialUtils.DrawRenderQueueCategory(materialEditor, renderQueueCategoryProp);
+            PSXMaterialUtils.DrawTextureFilterMode(materialEditor, textureFilterModeProp);
             PSXMaterialUtils.DrawVertexColorMode(materialEditor, vertexColorModeProp);
             PSXMaterialUtils.DrawLightingMode(material, materialEditor, lightingModeProp, lightingBakedProp, lightingDynamicProp);
             PSXMaterialUtils.DrawShadingEvaluationMode(materialEditor, shadingEvaluationModeProp);

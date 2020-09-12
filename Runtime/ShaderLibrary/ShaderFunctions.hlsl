@@ -308,4 +308,100 @@ bool EvaluateDrawDistanceIsVisible(float3 positionWS, float3 cameraPositionWS, f
     }
 }
 
+float ComputeLODFromTexelDDXDDY(float2 texelDDX, float2 texelDDY)
+{
+    // In isotropic mipmapping, we simply take the max magnitude of x and y.
+    float ddMaxSquared = max(dot(texelDDX, texelDDX), dot(texelDDY, texelDDY));
+
+    // log2(1) == 0
+    // clamp to lod 0 and guard against -infinity at the same time via max(1, x).
+    ddMaxSquared = max(1.0f, ddMaxSquared);
+    
+    // 0.5 * log2(x) == log2(sqrt(x))
+    float lod = 0.5f * log2(ddMaxSquared);
+
+    return lod;
+}
+
+void ComputeLODAndTexelSizeFromEvaluateDDXDDY(out float4 texelSizeLod, out float lod, float2 uv, float4 texelSize)
+{
+    // WARNING: Because we are calling ddx(), we need to ensure we do not discard any fragments via clip() before this function call.
+    // Otherwise, the result of ddx() will be undefined.
+    float2 texel = uv * texelSize.zw;
+    float2 texelDDX = ddx(texel);
+    float2 texelDDY = ddy(texel);
+    lod = ComputeLODFromTexelDDXDDY(texelDDX, texelDDY);
+
+    // Simulate bilinear filtering where we simply round to the nearest, rather then blending between neighboring lod steps.
+    // Rounding seems to give closest results to hardware in our tests.
+    // ceil() would be more conservative, and would guarentee less aliasing, but also would overblur more compared to round.
+    // floor() would be least conservative and would guarentee less blurring, but would also alias more compared to round.
+    lod = floor(lod + 0.5f);
+
+    // Alternatively, we could perform exp2(lod) on xy rather than rcp(). Unsure which is faster in practice.
+    texelSizeLod.zw = texelSize.zw * exp2(-lod);
+    texelSizeLod.xy = rcp(texelSizeLod.zw);
+}
+
+float4 SampleTextureWithFilterModePoint(TEXTURE2D_PARAM(tex, samp), float2 uv, float4 texelSizeLod, float lod)
+{
+    float2 texel = floor(uv * texelSizeLod.zw) + 0.5f;
+    float2 uvPoint = texel * texelSizeLod.xy;
+
+    return SAMPLE_TEXTURE2D_LOD(tex, samp, uvPoint, lod);
+}
+
+float4 SampleTextureWithFilterModeN64(TEXTURE2D_PARAM(tex, samp), float2 uv, float4 texelSizeLod, float lod)
+{
+    float2 texel = uv * texelSizeLod.zw - 0.5f;
+
+    // Calculate weights for the three points of our sample triangle.
+    //
+    //     0    1
+    //   0 +----+
+    //     |   /|
+    //     |  / |
+    //     | /  |
+    //     |/   |
+    //   1 +----+
+    //
+    float2 texelFrac = frac(texel);
+    float3 weights = float3(
+        abs(texelFrac.x + texelFrac.y - 1.0f),
+        min(
+            abs(texelFrac.xx - float2(0.0f, 1.0f)),
+            abs(texelFrac.yy - float2(1.0f, 0.0f))
+        )
+    );
+
+    // Calculate pixel center uvs for the three points of our sample triangle.
+    float2 uvLL = (floor(texel + texelFrac.yx) + 0.5f) * texelSizeLod.xy;
+    float2 uvLR = (floor(texel) + float2(1.5f, 0.5f)) * texelSizeLod.xy;
+    float2 uvUL = (floor(texel) + float2(0.5f, 1.5f)) * texelSizeLod.xy;
+
+#if 1
+    // sample points
+    // Rely on hardware filtering to blend samples A and B so that we only need to take 2 samples instead of 3.
+    // This comes at the cost of some additional ALU and should be profiled.
+    float weightAB = weights.x + weights.y;
+    float weightABInverse = (weightAB > 1e-5f) ? rcp(weightAB) : 0.0f;
+    float2 uvAB = (uvLL * weights.x + uvLR * weights.y) * weightABInverse;
+
+    float4 AB = SAMPLE_TEXTURE2D_LOD(tex, samp, uvAB, lod);
+    float4 C = SAMPLE_TEXTURE2D_LOD(tex, samp, uvUL, lod);
+
+    // blend and return
+    return AB * weightAB + C * weights.z;
+#else
+
+    // sample points
+    float4 A = SAMPLE_TEXTURE2D_LOD(tex, samp, uvLL, lod);
+    float4 B = SAMPLE_TEXTURE2D_LOD(tex, samp, uvLR, lod);
+    float4 C = SAMPLE_TEXTURE2D_LOD(tex, samp, uvUL, lod);
+
+    // blend and return
+    return A * weights.x + B * weights.y + C * weights.z;
+#endif
+}
+
 #endif

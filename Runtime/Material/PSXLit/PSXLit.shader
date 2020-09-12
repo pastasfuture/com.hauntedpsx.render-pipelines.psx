@@ -17,6 +17,7 @@
         _ReflectionBlendMode("_ReflectionBlendMode", Int) = 0
 
         // C# side material state tracking.
+        [HideInInspector] _TextureFilterMode("__textureFilterMode", Float) = 0.0
         [HideInInspector] _VertexColorMode("__vertexColorMode", Float) = 0.0
         [HideInInspector] _RenderQueueCategory("__renderQueueCategory", Float) = 0.0
         [HideInInspector] _LightingMode("__lightingMode", Float) = 0.0
@@ -60,6 +61,7 @@
 
             // -------------------------------------
             // Material Keywords
+            #pragma shader_feature _TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS _TEXTURE_FILTER_MODE_POINT _TEXTURE_FILTER_MODE_POINT_MIPMAPS _TEXTURE_FILTER_MODE_N64 _TEXTURE_FILTER_MODE_N64_MIPMAPS
             #pragma shader_feature _ _VERTEX_COLOR_MODE_COLOR _VERTEX_COLOR_MODE_LIGHTING
             #pragma shader_feature _LIGHTING_BAKED_ON
             #pragma shader_feature _LIGHTING_DYNAMIC_ON
