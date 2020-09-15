@@ -35,6 +35,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialProperty alphaClippingDitherIsEnabledProp { get; set; }
 
+        protected MaterialProperty alphaClippingScaleBiasMinMaxProp { get; set; }
+
         protected MaterialProperty affineTextureWarpingWeightProp { get; set; }
 
         protected MaterialProperty precisionGeometryWeightProp { get; set; }
@@ -90,6 +92,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             cullingProp = FindProperty(PropertyNames._Cull, properties);
             alphaClipProp = FindProperty(PropertyNames._AlphaClip, properties);
             alphaClippingDitherIsEnabledProp = FindProperty(PropertyNames._AlphaClippingDitherIsEnabled, properties);
+            alphaClippingScaleBiasMinMaxProp = FindProperty(PropertyNames._AlphaClippingScaleBiasMinMax, properties);
             affineTextureWarpingWeightProp = FindProperty(PropertyNames._AffineTextureWarpingWeight, properties);
             precisionGeometryWeightProp = FindProperty(PropertyNames._PrecisionGeometryWeight, properties);
             fogWeightProp = FindProperty(PropertyNames._FogWeight, properties);
@@ -185,7 +188,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PSXMaterialUtils.DrawShadingEvaluationMode(materialEditor, shadingEvaluationModeProp);
             PSXMaterialUtils.DrawSurfaceTypeAndBlendMode(material, materialEditor, surfaceTypeProp, blendModeProp);
             PSXMaterialUtils.DrawCullingSettings(material, materialEditor, cullingProp);
-            PSXMaterialUtils.DrawAlphaClippingSettings(material, alphaClipProp, alphaClippingDitherIsEnabledProp);
+            PSXMaterialUtils.DrawAlphaClippingSettings(material, alphaClipProp, alphaClippingDitherIsEnabledProp, alphaClippingScaleBiasMinMaxProp);
 
             PSXMaterialUtils.DrawAffineTextureWarpingWeight(affineTextureWarpingWeightProp);
             PSXMaterialUtils.DrawPrecisionGeometryWeight(precisionGeometryWeightProp);

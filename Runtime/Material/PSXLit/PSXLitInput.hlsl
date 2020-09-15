@@ -15,6 +15,7 @@ SAMPLER(sampler_EmissionTexture);
 float3 _EmissionColor;
 float _EmissionBakedMultiplier;
 float _AlphaClippingDitherIsEnabled;
+float4 _AlphaClippingScaleBiasMinMax;
 float _AffineTextureWarpingWeight;
 float _PrecisionGeometryWeight;
 float _FogWeight;

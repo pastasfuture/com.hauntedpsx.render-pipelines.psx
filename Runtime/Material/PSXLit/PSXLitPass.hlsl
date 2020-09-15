@@ -71,7 +71,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
     float4 texelSizeLod;
     float lod;
     ComputeLODAndTexelSizeMaybeCallDDX(texelSizeLod, lod, uvColor, _MainTex_TexelSize);
-    float4 color = _MainColor * SampleTextureWithFilterMode(_MainTex, sampler_MainTex, uvColor, texelSizeLod, lod);
+    float4 color = _MainColor * SampleTextureWithFilterMode(TEXTURE2D_ARGS(_MainTex, sampler_MainTex), uvColor, texelSizeLod, lod);
 
 #if defined(_VERTEX_COLOR_MODE_COLOR)
     color *= i.color * interpolatorNormalization;
@@ -80,8 +80,10 @@ half4 LitPassFragment(Varyings i) : SV_Target
 #if _ALPHATEST_ON
     // Perform alpha cutoff transparency (i.e: discard pixels in the holes of a chain link fence texture, or in the negative space of a leaf texture).
     // Any alpha value < alphaClippingDither will trigger the pixel to be discarded, any alpha value greater than or equal to alphaClippingDither will trigger the pixel to be preserved.
-    float alphaClippingDither = FetchAlphaClippingDither(positionSS, _AlphaClippingDitherIsEnabled);
-    clip((color.a > alphaClippingDither) ? 1.0f : -1.0f);
+    float alphaClippingDither;
+    float alphaForClipping;
+    ComputeAndFetchAlphaClippingParameters(alphaClippingDither, alphaForClipping, color.a, positionSS, _AlphaClippingDitherIsEnabled, _AlphaClippingScaleBiasMinMax);
+    clip((alphaForClipping > alphaClippingDither) ? 1.0f : -1.0f);
 #endif
 
 #if defined(SCENESELECTIONPASS)
@@ -104,7 +106,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
 
 #if defined(_EMISSION)
     // Convert to sRGB 5:6:5 color space, then from sRGB to Linear.
-    float3 emission = _EmissionColor.rgb * SampleTextureWithFilterMode(_EmissionTexture, sampler_EmissionTexture, uvColor, texelSizeLod, lod).rgb;
+    float3 emission = _EmissionColor.rgb * SampleTextureWithFilterMode(TEXTURE2D_ARGS(_EmissionTexture, sampler_EmissionTexture), uvColor, texelSizeLod, lod).rgb;
     emission = ApplyPrecisionColorToColorSRGB(float4(emission, 0.0f)).rgb;
     emission = SRGBToLinear(emission);
     emission = ApplyAlphaBlendTransformToEmission(emission, color.a);

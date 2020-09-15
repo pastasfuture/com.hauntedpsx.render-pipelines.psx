@@ -99,6 +99,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _ZWrite = "_ZWrite";
             public static readonly string _AlphaClip = "_AlphaClip";
             public static readonly string _AlphaClippingDitherIsEnabled = "_AlphaClippingDitherIsEnabled";
+            public static readonly string _AlphaClippingScaleBiasMinMax = "_AlphaClippingScaleBiasMinMax";
             public static readonly string _AffineTextureWarpingWeight = "_AffineTextureWarpingWeight";
             public static readonly string _PrecisionGeometryWeight = "_PrecisionGeometryWeight";
             public static readonly string _FogWeight = "_FogWeight";
@@ -134,6 +135,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly int _ZWrite = Shader.PropertyToID(PropertyNames._ZWrite);
             public static readonly int _AlphaClip = Shader.PropertyToID(PropertyNames._AlphaClip);
             public static readonly int _AlphaClippingDitherIsEnabled = Shader.PropertyToID(PropertyNames._AlphaClippingDitherIsEnabled);
+            public static readonly int _AlphaClippingScaleBiasMinMax = Shader.PropertyToID(PropertyNames._AlphaClippingScaleBiasMinMax);
             public static readonly int _AffineTextureWarpingWeight = Shader.PropertyToID(PropertyNames._AffineTextureWarpingWeight);
             public static readonly int _PrecisionGeometryWeight = Shader.PropertyToID(PropertyNames._PrecisionGeometryWeight);
             public static readonly int _FogWeight = Shader.PropertyToID(PropertyNames._FogWeight);
@@ -235,6 +237,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent alphaClippingDitherText = new GUIContent("Alpha Clipping Dither",
                 "Makes your Material Cutout use the dither pattern specified in PSXRenderPipelineResources. Use this to create a transparent effect with approximate smooth transparency. The results are noiser than true transparency, but does not suffer from sorting problems.");
+
+            public static readonly GUIContent alphaClippingScaleBiasMinMaxText = new GUIContent("Alpha Clipping Range",
+                "Defines the range of alpha values that alpha clipping dither will affect. A range of [0, 1] will perform dithering across the entire range of the alpha texture. A range of [0.25, 0.75] will perform dithering between across the [0.25, 0.75] range of alpha values - where alpha values < 0.25 will be completely clipped (transparent) and alpha values > 0.75 will be completely opaque.");
 
             public static readonly GUIContent affineTextureWarpingWeight = new GUIContent("Affine Texture Warping Weight",
                 "Allows you to decrease the amount of affine texture warping on your material. A value of 1.0 results in no change, and simply uses the Affine Texture Warping parameter from the Volume System. A value of 0.0 results in no affine texture warping. A value of 0.5 results in 50% of the affine texture warping from the Volume System.");
@@ -721,20 +726,17 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                     material.SetTextureOffset(PropertyIDs._MainTex, new Vector2(mainTexTiling.z, mainTexTiling.w));
                 }
 
-                DrawTextureFilterModeErrorMessagesForTexture(material, materialEditor, mainTexProp, PropertyNames._MainTex);
+                DrawTextureFilterModeErrorMessagesForTexture(material, materialEditor, mainTexProp.textureValue, PropertyNames._MainTex);
             }
         }
 
-        public static void DrawTextureFilterModeErrorMessagesForTexture(Material material, MaterialEditor materialEditor, MaterialProperty texProp, string propertyName)
+        public static void DrawTextureFilterModeErrorMessagesForTexture(Material material, MaterialEditor materialEditor, Texture texture, string propertyName)
         {
-            if (texProp == null) { return; }
+            if (texture == null) { return; }
 
             TextureFilterMode textureFilterMode = (TextureFilterMode)material.GetFloat(PropertyIDs._TextureFilterMode);
             bool requiresBilinear = (textureFilterMode == TextureFilterMode.N64) || (textureFilterMode == TextureFilterMode.N64Mipmaps);
             bool requiresMipmaps = (textureFilterMode == TextureFilterMode.PointMipmaps) || (textureFilterMode == TextureFilterMode.N64Mipmaps);
-            Texture texture = texProp.textureValue;
-
-            if (texture == null) { return; }
 
             if (requiresBilinear && texture != null && texture.filterMode == FilterMode.Point)
             {
@@ -770,7 +772,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 if (EditorGUI.EndChangeCheck())
                     emissionBakedMultiplierProp.floatValue = emissionBakedMultiplier;
 
-                 DrawTextureFilterModeErrorMessagesForTexture(material, materialEditor, emissionTextureProp, PropertyNames._EmissionTexture);
+                DrawTextureFilterModeErrorMessagesForTexture(material, materialEditor, emissionTextureProp.textureValue, PropertyNames._EmissionTexture);
             }
             EditorGUI.EndDisabledGroup();
 
@@ -897,28 +899,66 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             EditorGUI.showMixedValue = false;
         }
 
-        public static void DrawAlphaClippingSettings(Material material, MaterialProperty alphaClipProp, MaterialProperty alphaClippingDitherIsEnabledProp)
+        public static void DrawAlphaClippingSettings(Material material, MaterialProperty alphaClipProp, MaterialProperty alphaClippingDitherIsEnabledProp, MaterialProperty alphaClippingScaleBiasMinMaxProp)
         {
-            if ((SurfaceType)material.GetFloat(PropertyIDs._Surface) == SurfaceType.Transparent)
-            {
-                alphaClipProp.floatValue = 0;
-                alphaClippingDitherIsEnabledProp.floatValue = 0;
-            }
-            else
+            // Alpha Clipping can be applied to any blend mode.
+            // Previously, it only worked for opaque surfaces, since technically you can achive higher quality results with regular transparency blend modes if those are already in use.
+            // However, the community determined it was valuble for creative purposes to be able to apply dithered alpha clipping to transparent blend modes as well.
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.showMixedValue = alphaClipProp.hasMixedValue;
+            var alphaClipEnabled = EditorGUILayout.Toggle(Styles.alphaClipText, alphaClipProp.floatValue == 1);
+            if (EditorGUI.EndChangeCheck())
+                alphaClipProp.floatValue = alphaClipEnabled ? 1 : 0;
+            EditorGUI.showMixedValue = false;
+
+            bool alphaClippingDitherIsEnabledChanged = false;
+            if (alphaClipProp.floatValue > 0.5f)
             {
                 EditorGUI.BeginChangeCheck();
-                EditorGUI.showMixedValue = alphaClipProp.hasMixedValue;
-                var alphaClipEnabled = EditorGUILayout.Toggle(Styles.alphaClipText, alphaClipProp.floatValue == 1);
+                bool alphaClippingDitherIsEnabled = EditorGUILayout.Toggle(Styles.alphaClippingDitherText, alphaClippingDitherIsEnabledProp.floatValue == 1);
                 if (EditorGUI.EndChangeCheck())
-                    alphaClipProp.floatValue = alphaClipEnabled ? 1 : 0;
-                EditorGUI.showMixedValue = false;
-
-                if (alphaClipProp.floatValue > 0.5f)
                 {
+                    alphaClippingDitherIsEnabledProp.floatValue = alphaClippingDitherIsEnabled ? 1 : 0;
+                    alphaClippingDitherIsEnabledChanged = true;
+                }
+            }
+
+            if (alphaClipEnabled)
+            {
+                bool alphaClippingDitherIsEnabled = alphaClippingDitherIsEnabledProp.floatValue > 0.5f;
+                if (alphaClippingDitherIsEnabled)
+                {
+                    // When alpha clipping is enabled, we draw a min/max range slider.
                     EditorGUI.BeginChangeCheck();
-                    bool alphaClippingDitherIsEnabled = EditorGUILayout.Toggle(Styles.alphaClippingDitherText, alphaClippingDitherIsEnabledProp.floatValue == 1);
-                    if (EditorGUI.EndChangeCheck())
-                        alphaClippingDitherIsEnabledProp.floatValue = alphaClippingDitherIsEnabled ? 1 : 0;
+                    float alphaClippingMin = alphaClippingScaleBiasMinMaxProp.vectorValue.z;
+                    float alphaClippingMax = alphaClippingDitherIsEnabledChanged ? Mathf.Min(1.0f, alphaClippingMin + 1e-5f) : alphaClippingScaleBiasMinMaxProp.vectorValue.w;
+
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.MinMaxSlider(Styles.alphaClippingScaleBiasMinMaxText, ref alphaClippingMin, ref alphaClippingMax, 0.0f, 1.0f);
+                    alphaClippingMin = EditorGUILayout.FloatField(alphaClippingMin, GUILayout.Width(50));
+                    alphaClippingMax = EditorGUILayout.FloatField(alphaClippingMax, GUILayout.Width(50));
+                    EditorGUILayout.EndHorizontal();
+                    if (EditorGUI.EndChangeCheck() || alphaClippingDitherIsEnabledChanged)
+                    {
+                        alphaClippingMin = Mathf.Clamp(alphaClippingMin, 0.0f, 1.0f);
+                        alphaClippingMax = Mathf.Clamp(alphaClippingMax, Mathf.Min(1.0f, alphaClippingMin + 1e-5f), 1.0f);
+                        alphaClippingScaleBiasMinMaxProp.vectorValue = new Vector4(1.0f / (alphaClippingMax - alphaClippingMin), -alphaClippingMin / (alphaClippingMax - alphaClippingMin), alphaClippingMin, alphaClippingMax);
+                    }
+
+                }
+                else
+                {
+                    // When alpha clipping is disabled, we simply draw a regular slider, and assign it's value to the min value.
+                    EditorGUI.BeginChangeCheck();
+                    float alphaClippingMin = alphaClippingDitherIsEnabledChanged
+                        ? ((alphaClippingScaleBiasMinMaxProp.vectorValue.z + alphaClippingScaleBiasMinMaxProp.vectorValue.w) * 0.5f)
+                        : alphaClippingScaleBiasMinMaxProp.vectorValue.z;
+                    alphaClippingMin = EditorGUILayout.Slider(Styles.alphaClippingScaleBiasMinMaxText, alphaClippingMin, 0.0f, 1.0f);
+                    if (EditorGUI.EndChangeCheck() || alphaClippingDitherIsEnabledChanged)
+                    {
+                        float alphaClippingMax = Mathf.Min(alphaClippingMin + 1e-5f, 1.0f);
+                        alphaClippingScaleBiasMinMaxProp.vectorValue = new Vector4(1.0f / (alphaClippingMax - alphaClippingMin), -alphaClippingMin / (alphaClippingMax - alphaClippingMin), alphaClippingMin, alphaClippingMax);
+                    }
                 }
             }
         }

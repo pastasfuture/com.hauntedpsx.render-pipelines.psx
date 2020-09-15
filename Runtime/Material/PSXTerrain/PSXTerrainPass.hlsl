@@ -100,14 +100,41 @@ struct InputData
 
 #ifndef TERRAIN_SPLAT_BASEPASS
 
-void SplatmapMix(float4 uvMainAndLM, float4 uvSplat01, float4 uvSplat23, inout half4 splatControl, out half weight, out half4 mixedDiffuse)
+#if defined(_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS) || defined(_TEXTURE_FILTER_MODE_POINT) || defined(_TEXTURE_FILTER_MODE_POINT_MIPMAPS) || defined(_TEXTURE_FILTER_MODE_N64) || defined(_TEXTURE_FILTER_MODE_N64_MIPMAPS)
+#define _TEXTURE_FILTER_MODE_ENABLED
+#endif
+
+void SplatmapMix(
+    float4 uvMainAndLM,
+    float4 uvSplat01,
+    float4 uvSplat23,
+#if defined(_TEXTURE_FILTER_MODE_ENABLED)
+    float4 splat0TexelSizeLod,
+    float splat0LOD,
+    float4 splat1TexelSizeLod,
+    float splat1LOD,
+    float4 splat2TexelSizeLod,
+    float splat2LOD,
+    float4 splat3TexelSizeLod,
+    float splat3LOD,
+#endif
+    inout half4 splatControl,
+    out half weight,
+    out half4 mixedDiffuse)
 {
     half4 diffAlbedo[4];
 
+#if defined(_TEXTURE_FILTER_MODE_ENABLED)
+    diffAlbedo[0] = SampleTextureWithFilterMode(TEXTURE2D_ARGS(_Splat0, sampler_Splat0), uvSplat01.xy, splat0TexelSizeLod, splat0LOD);
+    diffAlbedo[1] = SampleTextureWithFilterMode(TEXTURE2D_ARGS(_Splat1, sampler_Splat0), uvSplat01.zw, splat1TexelSizeLod, splat1LOD);
+    diffAlbedo[2] = SampleTextureWithFilterMode(TEXTURE2D_ARGS(_Splat2, sampler_Splat0), uvSplat23.xy, splat2TexelSizeLod, splat2LOD);
+    diffAlbedo[3] = SampleTextureWithFilterMode(TEXTURE2D_ARGS(_Splat3, sampler_Splat0), uvSplat23.zw, splat3TexelSizeLod, splat3LOD);
+#else
     diffAlbedo[0] = SAMPLE_TEXTURE2D(_Splat0, sampler_Splat0, uvSplat01.xy);
     diffAlbedo[1] = SAMPLE_TEXTURE2D(_Splat1, sampler_Splat0, uvSplat01.zw);
     diffAlbedo[2] = SAMPLE_TEXTURE2D(_Splat2, sampler_Splat0, uvSplat23.xy);
     diffAlbedo[3] = SAMPLE_TEXTURE2D(_Splat3, sampler_Splat0, uvSplat23.zw);
+#endif
 
 // #ifndef _TERRAIN_BLEND_HEIGHT
     // 20.0 is the number of steps in inputAlphaMask (Density mask. We decided 20 empirically)
@@ -270,17 +297,48 @@ half4 TerrainLitPassFrag(Varyings i) : SV_TARGET
     float2 uv = i.uvw.xy * interpolatorNormalization;
     float4 uvMainAndLM = float4(uv, uv * unity_LightmapST.xy + unity_LightmapST.zw);
 
+    // Need to compute UVs and LOD before ClipHoles() because we rely on DDX and DDY calls
+    // which have undefined behavior after clip() calls.
+    float4 uvSplat01 = float4(TRANSFORM_TEX(uv, _Splat0), TRANSFORM_TEX(uv, _Splat1));
+    float4 uvSplat23 = float4(TRANSFORM_TEX(uv, _Splat2), TRANSFORM_TEX(uv, _Splat3));
+
+#if defined(_TEXTURE_FILTER_MODE_ENABLED)
+#ifdef TERRAIN_SPLAT_BASEPASS
+    float4 mainTexTexelSizeLod;
+    float mainTexLOD;
+    ComputeLODAndTexelSizeMaybeCallDDX(mainTexTexelSizeLod, mainTexLOD, uvMainAndLM.xy, _MainTex_TexelSize);
+#endif
+
+    float4 splat0TexelSizeLod;
+    float splat0LOD;
+    ComputeLODAndTexelSizeMaybeCallDDX(splat0TexelSizeLod, splat0LOD, uvSplat01.xy, _Splat0_TexelSize);
+
+    float4 splat1TexelSizeLod;
+    float splat1LOD;
+    ComputeLODAndTexelSizeMaybeCallDDX(splat1TexelSizeLod, splat1LOD, uvSplat01.zw, _Splat1_TexelSize);
+
+    float4 splat2TexelSizeLod;
+    float splat2LOD;
+    ComputeLODAndTexelSizeMaybeCallDDX(splat2TexelSizeLod, splat2LOD, uvSplat23.xy, _Splat2_TexelSize);
+
+    float4 splat3TexelSizeLod;
+    float splat3LOD;
+    ComputeLODAndTexelSizeMaybeCallDDX(splat3TexelSizeLod, splat3LOD, uvSplat23.zw, _Splat3_TexelSize);
+#endif
+
 #ifdef _ALPHATEST_ON
     ClipHoles(uvMainAndLM.xy);
 #endif
 
 #ifdef TERRAIN_SPLAT_BASEPASS
+#if defined(_TEXTURE_FILTER_MODE_ENABLED)
+    float4 color = SampleTextureWithFilterMode(TEXTURE2D_ARGS(_MainTex, sampler_MainTex), uvMainAndLM.xy, mainTexLOD, mainTexTexelSizeLod);
+#else
     float4 color = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uvMainAndLM.xy);
+#endif
     color *= _BaseColor;
 #else
 
-    float4 uvSplat01 = float4(TRANSFORM_TEX(uv, _Splat0), TRANSFORM_TEX(uv, _Splat1));
-    float4 uvSplat23 = float4(TRANSFORM_TEX(uv, _Splat2), TRANSFORM_TEX(uv, _Splat3));
     float2 splatUV = (uvMainAndLM.xy * (_Control_TexelSize.zw - 1.0f) + 0.5f) * _Control_TexelSize.xy;
     half4 splatControl = SAMPLE_TEXTURE2D(_Control, sampler_Control, splatUV);
 
@@ -293,7 +351,23 @@ half4 TerrainLitPassFrag(Varyings i) : SV_TARGET
 
     half weight;
     half4 mixedDiffuse;
-    SplatmapMix(uvMainAndLM, uvSplat01, uvSplat23, splatControl, weight, mixedDiffuse);
+    SplatmapMix(
+        uvMainAndLM,
+        uvSplat01, uvSplat23,
+    #if defined(_TEXTURE_FILTER_MODE_ENABLED)
+        splat0TexelSizeLod,
+        splat0LOD,
+        splat1TexelSizeLod,
+        splat1LOD,
+        splat2TexelSizeLod,
+        splat2LOD,
+        splat3TexelSizeLod,
+        splat3LOD,
+    #endif
+        splatControl,
+        weight,
+        mixedDiffuse
+    );
 
     float4 color = float4(mixedDiffuse.rgb, weight);
 #endif // !TERRAIN_SPLAT_BASEPASS

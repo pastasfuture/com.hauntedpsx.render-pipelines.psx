@@ -337,9 +337,9 @@ void ComputeLODAndTexelSizeMaybeCallDDX(out float4 texelSizeLod, out float lod, 
 float4 SampleTextureWithFilterMode(TEXTURE2D_PARAM(tex, samp), float2 uv, float4 texelSizeLod, float lod)
 {
 #if defined(_TEXTURE_FILTER_MODE_POINT) || defined(_TEXTURE_FILTER_MODE_POINT_MIPMAPS) 
-    return SampleTextureWithFilterModePoint(tex, samp, uv, texelSizeLod, lod);
+    return SampleTextureWithFilterModePoint(TEXTURE2D_ARGS(tex, samp), uv, texelSizeLod, lod);
 #elif defined(_TEXTURE_FILTER_MODE_N64) || defined(_TEXTURE_FILTER_MODE_N64_MIPMAPS)
-    return SampleTextureWithFilterModeN64(tex, samp, uv, texelSizeLod, lod);
+    return SampleTextureWithFilterModeN64(TEXTURE2D_ARGS(tex, samp), uv, texelSizeLod, lod);
 #else // defined(_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS)
     return SAMPLE_TEXTURE2D(tex, samp, uv);
 #endif

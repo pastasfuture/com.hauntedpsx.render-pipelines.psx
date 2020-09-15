@@ -237,18 +237,20 @@ float3 ComputeFramebufferDiscretization(float3 color, float2 positionSS)
     return floor(color.xyz * _PrecisionColor.rgb + framebufferDither) * _PrecisionColorInverse.rgb;
 }
 
-float FetchAlphaClippingDither(float2 positionSS, float alphaClippingDitherIsEnabled)
+void ComputeAndFetchAlphaClippingParameters(out float alphaClippingDither, out float alphaForClipping, float alpha, float2 positionSS, float alphaClippingDitherIsEnabled, float4 alphaClippingScaleBiasMinMax)
 {
-    float dither = 0.5f;
-
     if (alphaClippingDitherIsEnabled > 0.5f)
     {
         uint2 alphaClippingDitherTexelCoord = (uint2)floor(frac(positionSS * _AlphaClippingDitherSize.zw) * _AlphaClippingDitherSize.xy);
-        dither = LOAD_TEXTURE2D_LOD(_AlphaClippingDitherTexture, alphaClippingDitherTexelCoord, 0).a;
-        dither = min(0.999f, dither);
+        alphaClippingDither = LOAD_TEXTURE2D_LOD(_AlphaClippingDitherTexture, alphaClippingDitherTexelCoord, 0).a;
+        alphaClippingDither = min(0.999f, alphaClippingDither);
+        alphaForClipping = saturate(alpha * alphaClippingScaleBiasMinMax.x + alphaClippingScaleBiasMinMax.y);
     }
-
-    return dither;
+    else
+    {
+        alphaClippingDither = alphaClippingScaleBiasMinMax.z;
+        alphaForClipping = alpha;
+    }
 }
 
 float EvaluateFogFalloff(float3 positionWS, float3 cameraPositionWS, float3 positionVS, int fogFalloffMode, float4 fogDistanceScaleBias)

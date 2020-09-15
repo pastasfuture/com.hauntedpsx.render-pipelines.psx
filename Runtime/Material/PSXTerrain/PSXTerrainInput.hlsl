@@ -13,6 +13,7 @@ float4 _Control_TexelSize;
 half _DiffuseHasAlpha0, _DiffuseHasAlpha1, _DiffuseHasAlpha2, _DiffuseHasAlpha3;
 // half _LayerHasMask0, _LayerHasMask1, _LayerHasMask2, _LayerHasMask3;
 half4 _Splat0_ST, _Splat1_ST, _Splat2_ST, _Splat3_ST;
+half4 _Splat0_TexelSize, _Splat1_TexelSize, _Splat2_TexelSize, _Splat3_TexelSize;
 half _NumLayersCount;
 
 // #ifdef UNITY_INSTANCING_ENABLED

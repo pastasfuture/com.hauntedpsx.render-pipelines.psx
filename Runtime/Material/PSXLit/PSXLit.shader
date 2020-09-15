@@ -8,6 +8,7 @@
         _EmissionColor("EmissionColor", Color) = (0,0,0,0)
         _EmissionBakedMultiplier("EmissionBakedMultiplier", Float) = 1.0
         _AlphaClippingDitherIsEnabled("_AlphaClippingDitherIsEnabled", Float) = 0.0
+        _AlphaClippingScaleBiasMinMax("_AlphaClippingScaleBiasMinMax", Vector) = (1.0, 0.0, 0.0, 1.0)
         _AffineTextureWarpingWeight("_AffineTextureWarpingWeight", Float) = 1.0
         _PrecisionGeometryWeight("_PrecisionGeometryWeight", Float) = 1.0
         _FogWeight("_FogWeight", Float) = 1.0

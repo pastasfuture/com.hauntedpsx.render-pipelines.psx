@@ -178,8 +178,11 @@ half4 LitPassFragmentGrass(GrassVaryings i) : SV_Target
     // for now we simply hardcode this as disabled which should be a reasonable default.
     // TODO: Figure out the best way to expose these to the user.
     const float alphaClippingDitherIsEnabled = 0.0f;
-    float alphaClippingDither = FetchAlphaClippingDither(positionSS, alphaClippingDitherIsEnabled);
-    clip((color.a > alphaClippingDither) ? 1.0f : -1.0f);
+    const float4 alphaClippingScaleBiasMinMax = float4(1.0f, 0.0f, 0.5f, 0.5f + 1e-5f);
+    float alphaClippingDither;
+    float alphaForClipping;
+    ComputeAndFetchAlphaClippingParameters(alphaClippingDither, alphaForClipping, color.a, positionSS, alphaClippingDitherIsEnabled, alphaClippingScaleBiasMinMax);
+    clip((alphaForClipping > alphaClippingDither) ? 1.0f : -1.0f);
 #endif
 
     if (!_IsPSXQualityEnabled)

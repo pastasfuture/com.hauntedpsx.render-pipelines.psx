@@ -20,6 +20,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialEditor materialEditor { get; set; }
 
+        protected MaterialProperty textureFilterModeProp { get; set; }
+
         // protected MaterialProperty vertexColorModeProp { get; set; }
 
         protected MaterialProperty renderQueueCategoryProp { get; set; }
@@ -85,6 +87,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public virtual void FindProperties(MaterialProperty[] properties)
         {
+            textureFilterModeProp = FindProperty(PropertyNames._TextureFilterMode, properties);
             // vertexColorModeProp = FindProperty(PropertyNames._VertexColorMode, properties);
             renderQueueCategoryProp = FindProperty(PropertyNames._RenderQueueCategory, properties);
             lightingModeProp = FindProperty(PropertyNames._LightingMode, properties);
@@ -121,6 +124,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             // Clear all keywords for fresh start
             PSXMaterialUtils.ClearMaterialKeywords(material);
 
+            PSXMaterialUtils.SetupMaterialTextureFilterMode(material);
             PSXMaterialUtils.SetupMaterialLightingModeNoVertexColorSupported(material);
             PSXMaterialUtils.SetupMaterialShadingEvaluationMode(material);
             // PSXMaterialUtils.SetupMaterialBlendMode(material);
@@ -203,6 +207,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public void DrawSurfaceOptions(Material material)
         {
             PSXMaterialUtils.DrawRenderQueueCategory(materialEditor, renderQueueCategoryProp);
+            PSXMaterialUtils.DrawTextureFilterMode(materialEditor, textureFilterModeProp);
             // PSXMaterialUtils.DrawVertexColorMode(materialEditor, vertexColorModeProp);
             PSXMaterialUtils.DrawLightingMode(material, materialEditor, lightingModeProp, lightingBakedProp, lightingDynamicProp);
             PSXMaterialUtils.DrawShadingEvaluationMode(materialEditor, shadingEvaluationModeProp);
@@ -252,6 +257,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 //     enableDensity = EditorGUI.Toggle(rect, styles.opacityAsDensity, diffuseRemapMin.w > 0);
                 // }
 
+                if (materialEditor != null)
+                {
+                    Material material = materialEditor.target as Material;
+                    DrawTextureFilterModeErrorMessagesForTexture(material, materialEditor, terrainLayer.diffuseTexture, "Terrain Layer Diffuse Texture");
+                }
+                
                 --EditorGUI.indentLevel;
             }
             diffuseRemapMax.w = 1;
