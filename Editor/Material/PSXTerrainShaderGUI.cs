@@ -212,7 +212,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PSXMaterialUtils.DrawLightingMode(material, materialEditor, lightingModeProp, lightingBakedProp, lightingDynamicProp);
             PSXMaterialUtils.DrawShadingEvaluationMode(materialEditor, shadingEvaluationModeProp);
             // PSXMaterialUtils.DrawSurfaceTypeAndBlendMode(material, materialEditor, surfaceTypeProp, blendModeProp);
-            PSXMaterialUtils.DrawCullingSettings(material, materialEditor, cullingProp);
+            // PSXMaterialUtils.DrawCullingSettings(material, materialEditor, cullingProp); // HACK FIXME: 
             // PSXMaterialUtils.DrawAlphaClippingSettings(material, alphaClipProp, alphaClippingDitherIsEnabledProp);
 
             PSXMaterialUtils.DrawAffineTextureWarpingWeight(affineTextureWarpingWeightProp);

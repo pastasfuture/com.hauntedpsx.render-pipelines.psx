@@ -65,6 +65,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialProperty reflectionBlendModeProp { get; set; }
 
+        protected MaterialProperty doubleSidedNormalModeProp { get; set; }
+
+        protected MaterialProperty doubleSidedConstantsProp { get; set; }
+
         public bool m_FirstTimeApply = true;
 
         // Header foldout states
@@ -106,6 +110,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             reflectionTextureProp = FindProperty(PropertyNames._ReflectionTexture, properties, false);
             reflectionColorProp = FindProperty(PropertyNames._ReflectionColor, properties, false);
             reflectionBlendModeProp = FindProperty(PropertyNames._ReflectionBlendMode, properties, false);
+            doubleSidedNormalModeProp = FindProperty(PropertyNames._DoubleSidedNormalMode, properties);
+            doubleSidedConstantsProp = FindProperty(PropertyNames._DoubleSidedConstants, properties);
         }
 
         public override void OnGUI(MaterialEditor materialEditorIn, MaterialProperty[] properties)
@@ -187,7 +193,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PSXMaterialUtils.DrawLightingMode(material, materialEditor, lightingModeProp, lightingBakedProp, lightingDynamicProp);
             PSXMaterialUtils.DrawShadingEvaluationMode(materialEditor, shadingEvaluationModeProp);
             PSXMaterialUtils.DrawSurfaceTypeAndBlendMode(material, materialEditor, surfaceTypeProp, blendModeProp);
-            PSXMaterialUtils.DrawCullingSettings(material, materialEditor, cullingProp);
+            PSXMaterialUtils.DrawCullingSettings(material, materialEditor, cullingProp, doubleSidedNormalModeProp, doubleSidedConstantsProp);
             PSXMaterialUtils.DrawAlphaClippingSettings(material, alphaClipProp, alphaClippingDitherIsEnabledProp, alphaClippingScaleBiasMinMaxProp);
 
             PSXMaterialUtils.DrawAffineTextureWarpingWeight(affineTextureWarpingWeightProp);

@@ -66,6 +66,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             Both = 0
         }
 
+        public enum DoubleSidedNormalMode
+        {
+            Front = 0,
+            Flip
+        }
+
         public enum ReflectionBlendMode
         {
             Additive = 0,
@@ -115,6 +121,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _ReflectionTexture = "_ReflectionTexture";
             public static readonly string _ReflectionColor = "_ReflectionColor";
             public static readonly string _ReflectionBlendMode = "_ReflectionBlendMode";
+            public static readonly string _DoubleSidedConstants = "_DoubleSidedConstants";
+            public static readonly string _DoubleSidedNormalMode = "_DoubleSidedNormalMode";
         }
 
         public static class PropertyIDs
@@ -151,6 +159,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly int _ReflectionTexture = Shader.PropertyToID(PropertyNames._ReflectionTexture);
             public static readonly int _ReflectionColor = Shader.PropertyToID(PropertyNames._ReflectionColor);
             public static readonly int _ReflectionBlendMode = Shader.PropertyToID(PropertyNames._ReflectionBlendMode);
+            public static readonly int _DoubleSidedConstants = Shader.PropertyToID(PropertyNames._DoubleSidedConstants);
+            public static readonly int _DoubleSidedNormalMode = Shader.PropertyToID(PropertyNames._DoubleSidedNormalMode);
         }
 
         public static class LegacyPropertyNames
@@ -185,6 +195,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _ALPHAMODULATE_ON = "_ALPHAMODULATE_ON";
             public static readonly string _REFLECTION_ON = "_REFLECTION_ON";
             public static readonly string _FOG_ON = "_FOG_ON";
+            public static readonly string _DOUBLE_SIDED_ON = "_DOUBLE_SIDED_ON";
         }
 
         public static class Styles
@@ -231,6 +242,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent cullingText = new GUIContent("Render Face",
                 "Specifies which faces to cull from your geometry. Front culls front faces. Back culls backfaces. None means that both sides are rendered.");
+
+            public static readonly GUIContent doubleSidedNormalMode = new GUIContent("Double Sided Normal Mode",
+                "Specifies how the surface normal is handled with backface geometry.\nFront means the front face surface normal will be used for the backface as is.\nFlip means the back face surface normal will point in the opposite direction.");
 
             public static readonly GUIContent alphaClipText = new GUIContent("Alpha Clipping",
                 "Makes your Material act like a Cutout shader. Use this to create a transparent effect with hard edges between opaque and transparent areas.");
@@ -315,6 +329,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             SetupMaterialFogKeyword(material);
             SetupMaterialReflectionKeyword(material);
             SetupMaterialEmissionKeyword(material);
+            SetupDoubleSidedKeyword(material);
         }
 
         public static void ClearMaterialKeywords(Material material)
@@ -331,6 +346,23 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 shouldEmissionBeEnabled = material.GetFloat(LegacyPropertyIDs._EmissionEnabled) >= 0.5f;
 
             CoreUtils.SetKeyword(material, Keywords._EMISSION, shouldEmissionBeEnabled);
+        }
+
+        public static void SetupDoubleSidedKeyword(Material material)
+        {
+            if (material == null) { throw new ArgumentNullException("material"); }
+
+            RenderFace renderFace = (RenderFace)material.GetFloat(PropertyIDs._Cull);
+            DoubleSidedNormalMode doubleSidedNormalMode = (DoubleSidedNormalMode)material.GetFloat(PropertyIDs._DoubleSidedNormalMode);
+
+            if ((renderFace != RenderFace.Front) && (doubleSidedNormalMode != DoubleSidedNormalMode.Front))
+            {
+                material.EnableKeyword(Keywords._DOUBLE_SIDED_ON);
+            }
+            else
+            {
+                material.DisableKeyword(Keywords._DOUBLE_SIDED_ON);
+            }
         }
 
         public static void SetupMaterialShadingEvaluationMode(Material material)
@@ -883,8 +915,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             }
         }
 
-        public static void DrawCullingSettings(Material material, MaterialEditor materialEditor, MaterialProperty cullingProp)
+        public static void DrawCullingSettings(Material material, MaterialEditor materialEditor, MaterialProperty cullingProp, MaterialProperty doubleSidedNormalModeProp, MaterialProperty doubleSidedConstantsProp)
         {
+            bool doubleSidedNormalModeNeedsUpdate = false;
+
             EditorGUI.BeginChangeCheck();
             EditorGUI.showMixedValue = cullingProp.hasMixedValue;
             var culling = (RenderFace)cullingProp.floatValue;
@@ -894,9 +928,49 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 materialEditor.RegisterPropertyChangeUndo(Styles.cullingText.text);
                 cullingProp.floatValue = (float)culling;
                 material.doubleSidedGI = (RenderFace)cullingProp.floatValue != RenderFace.Front;
+
+                doubleSidedNormalModeNeedsUpdate = true;
             }
 
             EditorGUI.showMixedValue = false;
+
+            if (culling == RenderFace.Back || culling == RenderFace.Both)
+            {
+                EditorGUI.BeginChangeCheck();
+                EditorGUI.showMixedValue = doubleSidedNormalModeProp.hasMixedValue;
+                DoubleSidedNormalMode doubleSidedNormalMode = (DoubleSidedNormalMode)doubleSidedNormalModeProp.floatValue;
+                doubleSidedNormalMode = (DoubleSidedNormalMode)EditorGUILayout.EnumPopup(Styles.doubleSidedNormalMode, doubleSidedNormalMode);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    materialEditor.RegisterPropertyChangeUndo(Styles.doubleSidedNormalMode.text);
+                    doubleSidedNormalModeProp.floatValue = (float)doubleSidedNormalMode;
+
+                    doubleSidedNormalModeNeedsUpdate = true;
+                }
+            }
+            else
+            {
+                doubleSidedNormalModeProp.floatValue = (float)DoubleSidedNormalMode.Front;
+            }
+
+            if (doubleSidedNormalModeNeedsUpdate)
+            {
+                DoubleSidedNormalMode doubleSidedNormalMode = (culling == RenderFace.Front) ? DoubleSidedNormalMode.Front : (DoubleSidedNormalMode)doubleSidedNormalModeProp.floatValue;
+                switch (doubleSidedNormalMode)
+                {
+                    case DoubleSidedNormalMode.Front: // Front mode (in tangent space)
+                        doubleSidedConstantsProp.vectorValue = new Vector4(1.0f, 1.0f, 1.0f, 0.0f);
+                        break;
+
+                    case DoubleSidedNormalMode.Flip: // Flip mode (in tangent space)
+                        doubleSidedConstantsProp.vectorValue = new Vector4(-1.0f, -1.0f, -1.0f, 0.0f);
+                        break;
+
+                    default:
+                        Debug.Assert(false);
+                        break;
+                }
+            }
         }
 
         public static void DrawAlphaClippingSettings(Material material, MaterialProperty alphaClipProp, MaterialProperty alphaClippingDitherIsEnabledProp, MaterialProperty alphaClippingScaleBiasMinMaxProp)

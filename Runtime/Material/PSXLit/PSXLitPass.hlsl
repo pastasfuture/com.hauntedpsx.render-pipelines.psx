@@ -48,14 +48,15 @@ Varyings LitPassVertex(Attributes v)
     o.positionVS = positionVS; // TODO: Apply affine warping?
     o.positionWS = positionWS; // TODO: Apply affine warping?
     o.lightmapUV = v.lightmapUV.xy * unity_LightmapST.xy + unity_LightmapST.zw; // TODO: Apply affine warping?
-    o.normalWS = TransformObjectToWorldNormal(v.normal);    
+    o.normalWS = TransformObjectToWorldNormal(v.normal);
+    o.normalWS = EvaluateNormalDoubleSidedPerVertex(o.normalWS, o.positionWS, _WorldSpaceCameraPos);
     o.lighting = EvaluateLightingPerVertex(positionWS, o.normalWS, v.color, o.lightmapUV, o.uvw.z);
     o.fog = EvaluateFogPerVertex(positionWS, positionVS, o.uvw.z, _FogWeight);
 
     return o;
 }
 
-half4 LitPassFragment(Varyings i) : SV_Target
+half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC) : SV_Target
 {
     float2 positionSS = i.vertex.xy;
 
@@ -64,6 +65,7 @@ half4 LitPassFragment(Varyings i) : SV_Target
     float interpolatorNormalization = 1.0f / i.uvw.z;
 
     float3 normalWS = normalize(i.normalWS);
+    normalWS = EvaluateNormalDoubleSidedPerPixel(normalWS, cullFace);
 
     float2 uv = i.uvw.xy * interpolatorNormalization;
     float2 uvColor = TRANSFORM_TEX(uv, _MainTex);

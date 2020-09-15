@@ -16,6 +16,7 @@
         _ReflectionTexture("_ReflectionTexture", 2D) = "white" {}
         _ReflectionColor("_ReflectionColor", Color) = (1,1,1,1)
         _ReflectionBlendMode("_ReflectionBlendMode", Int) = 0
+        [HideInInspector] _DoubleSidedConstants("_DoubleSidedConstants", Vector) = (1, 1, 1, 0)
 
         // C# side material state tracking.
         [HideInInspector] _TextureFilterMode("__textureFilterMode", Float) = 0.0
@@ -34,6 +35,7 @@
         [HideInInspector] _ZWrite("__zw", Float) = 1.0
         [HideInInspector] _Cull("__cull", Float) = 2.0
         [HideInInspector] _Reflection("__reflection", Float) = 0.0
+        [HideInInspector] _DoubleSidedNormalMode("__doubleSidedNormalMode", Float) = 0.0
     }
     SubShader
     {
@@ -72,6 +74,7 @@
             #pragma shader_feature _ _ALPHAPREMULTIPLY_ON _ALPHAMODULATE_ON
             #pragma shader_feature _REFLECTION_ON
             #pragma shader_feature _FOG_ON
+            #pragma shader_feature _DOUBLE_SIDED_ON
 
             // -------------------------------------
             // Unity defined keywords

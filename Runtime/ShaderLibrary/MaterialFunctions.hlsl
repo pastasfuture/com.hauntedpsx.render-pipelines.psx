@@ -56,6 +56,37 @@ float4 EvaluateColorPerVertex(float4 vertexColor, float affineWarpingScale)
     return color;
 }
 
+float3 EvaluateNormalDoubleSidedPerVertex(float3 normalFrontFaceWS, float3 positionWS, float3 worldSpaceCameraPos)
+{
+    float3 normalWS = normalFrontFaceWS;
+
+#if defined(_SHADING_EVALUATION_MODE_PER_VERTEX) && defined(_DOUBLE_SIDED_ON)
+    // Double-sided normal is only needs to be resolved at the vertex stage if we are performing per-vertex lighting.
+    // When performing per-pixel lighting we can defer to the pixel shader, which has a higher cost, but allows us to use VFACE semantic
+    // for accurate detection of whether we are rendering the front face or back face.
+    // For per-vertex lighting, we need to rely on extrapolating an approximate detection of back faces via the sign of dot(normal, view)
+    // which is accurate with hard surface normals, but results in some normal flipping around edges with soft normals and glancing angles.
+    // Note: No need to normalize the V vector, or the normal vector, as we only care about the sign of NdotV.
+    float3 V = worldSpaceCameraPos - positionWS;
+    float NdotV = dot(normalWS, V);
+    normalWS *= (NdotV >= 0.0f) ? 1.0f : _DoubleSidedConstants.z;
+#endif
+
+    return normalWS;
+}
+
+float3 EvaluateNormalDoubleSidedPerPixel(float3 normalFrontFaceWS, FRONT_FACE_TYPE cullFace)
+{
+    float3 normalWS = normalFrontFaceWS;
+
+#if defined(_SHADING_EVALUATION_MODE_PER_PIXEL) && defined(_DOUBLE_SIDED_ON)
+    bool isFrontFace = IS_FRONT_VFACE(cullFace, true, false);
+    normalWS *= isFrontFace ? 1.0f : _DoubleSidedConstants.z;
+#endif
+
+    return normalWS;
+}
+
 float3 EvaluateLightingPerVertex(float3 positionWS, float3 normalWS, float4 vertexColor, float2 lightmapUV, float affineWarpingScale)
 {
     float3 lighting = 0.0f;

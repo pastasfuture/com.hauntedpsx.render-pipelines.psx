@@ -3,6 +3,7 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Macros.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 
 // Warning: These definitions must stay in sync with PrecisionVolume.DrawDistanceFalloffMode enum.
 #define PSX_DRAW_DISTANCE_FALLOFF_MODE_PLANAR (0)
