@@ -77,6 +77,9 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
 
 #if defined(_VERTEX_COLOR_MODE_COLOR)
     color *= i.color * interpolatorNormalization;
+#elif defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND)
+    color.rgb = lerp(i.color.rgb * interpolatorNormalization, color.rgb, color.a);
+    color.a = 1.0f;
 #endif
 
 #if _ALPHATEST_ON
