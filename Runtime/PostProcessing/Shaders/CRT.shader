@@ -102,8 +102,12 @@ Shader "Hidden/HauntedPS1/CRT"
 
     float3 CompositeSignalAndNoise(TEXTURE2D(noiseTextureSampler), float2 posNoiseSignal, float2 posNoiseCRT, float2 off, float3 c)
     {
+    #if 0
         float3 steps = float3(64.0, 32.0, 32.0);
         float3 cyuv = floor(FCCYIQFromSRGB(c) * steps + 0.5) / steps;
+    #else
+        float3 cyuv = FCCYIQFromSRGB(c);
+    #endif
         float3 noiseSignalYUV = FetchNoise(posNoiseSignal, noiseTextureSampler);
         float3 noiseCRTYUV = FetchNoise(posNoiseCRT, noiseTextureSampler);
 
