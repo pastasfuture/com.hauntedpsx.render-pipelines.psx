@@ -121,6 +121,7 @@ half4 LitMetaPassFragment(Varyings i) : SV_Target
     // Any alpha value < alphaClippingDither will trigger the pixel to be discarded, any alpha value greater than or equal to alphaClippingDither will trigger the pixel to be preserved.
     float alphaClippingDither;
     float alphaForClipping;
+    float2 positionSS = i.positionCS.xy;
     ComputeAndFetchAlphaClippingParameters(alphaClippingDither, alphaForClipping, color.a, positionSS, _AlphaClippingDitherIsEnabled, _AlphaClippingScaleBiasMinMax);
     clip((alphaForClipping > alphaClippingDither) ? 1.0f : -1.0f);
 #endif
