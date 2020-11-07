@@ -775,7 +775,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 var volumeSettings = VolumeManager.instance.stack.GetComponent<CompressionVolume>();
                 if (!volumeSettings) volumeSettings = CompressionVolume.@default;
 
-                bool isEnabled = volumeSettings.isEnabled.value;
+                bool isEnabled = volumeSettings.isEnabled.value || (volumeSettings.weight.value < 1e-5f);
                 if (!isEnabled) { return; }
 
                 int compressionKernelIndex = ComputeCompressionKernelIndex(volumeSettings.mode.value, volumeSettings.colorspace.value);
