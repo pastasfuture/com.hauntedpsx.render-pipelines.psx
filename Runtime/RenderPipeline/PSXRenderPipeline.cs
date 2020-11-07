@@ -541,12 +541,17 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     volumeSettings.heightMax.value / (volumeSettings.heightMax.value - volumeSettings.heightMin.value)
                 );
 
+                float fogFalloffCurvePower = (volumeSettings.fogFalloffCurve.value > 0.0f)
+                    ? (1.0f - Mathf.Min(0.999f, volumeSettings.fogFalloffCurve.value)) // shoulder increases as value increases from [0, 1]
+                    : (1.0f / (1.0f + Mathf.Max(-0.999f, volumeSettings.fogFalloffCurve.value))); // toe increases as value decreases from [0, -1]
+
                 // Respect the Scene View fog enable / disable toggle.
                 bool isFogEnabled = volumeSettings.isEnabled.value && CoreUtils.IsSceneViewFogEnabled(camera);
                 if (!isFogEnabled)
                 {
                     // To visually disable fog, we simply throw fog start and end to infinity.
                     fogDistanceScaleBias = new Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+                    fogFalloffCurvePower = 1.0f;
                 }
                 else if (!volumeSettings.heightFalloffEnabled.value)
                 {
@@ -586,6 +591,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetGlobalFloat(PSXShaderIDs._FogPrecisionAlphaDither, volumeSettings.precisionAlphaDither.value);
 
                 cmd.SetGlobalVector(PSXShaderIDs._FogDistanceScaleBias, fogDistanceScaleBias);
+                cmd.SetGlobalFloat(PSXShaderIDs._FogFalloffCurvePower, fogFalloffCurvePower);
 
                 bool isAdditionalLayerEnabled = volumeSettings.isAdditionalLayerEnabled.value; 
                 cmd.SetGlobalInt(PSXShaderIDs._FogIsAdditionalLayerEnabled, isAdditionalLayerEnabled ? 1 : 0);
@@ -602,9 +608,14 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                         volumeSettings.heightMaxLayer1.value / (volumeSettings.heightMaxLayer1.value - volumeSettings.heightMinLayer1.value)
                     );
 
+                    float fogFalloffCurvePowerLayer1 = (volumeSettings.fogFalloffCurveLayer1.value > 0.0f)
+                        ? (1.0f - Mathf.Min(0.999f, volumeSettings.fogFalloffCurveLayer1.value)) // shoulder increases as value increases from [0, 1]
+                        : (1.0f / (1.0f + Mathf.Max(-0.999f, volumeSettings.fogFalloffCurveLayer1.value))); // toe increases as value decreases from [0, -1]
+
                     if (!isFogEnabled)
                     {
                         fogDistanceScaleBiasLayer1 = new Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+                        fogFalloffCurvePowerLayer1 = 1.0f;
                     }
                     else if (!volumeSettings.heightFalloffEnabledLayer1.value)
                     {
@@ -613,6 +624,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     }
 
                     cmd.SetGlobalVector(PSXShaderIDs._FogDistanceScaleBiasLayer1, fogDistanceScaleBiasLayer1);
+                    cmd.SetGlobalFloat(PSXShaderIDs._FogFalloffCurvePowerLayer1, fogFalloffCurvePowerLayer1);
                 }
             }
         }

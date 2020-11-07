@@ -18,6 +18,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         SerializedDataParameter m_PrecisionAlphaDither;
         SerializedDataParameter m_DistanceMin;
         SerializedDataParameter m_DistanceMax;
+        SerializedDataParameter m_FogFalloffCurve;
         SerializedDataParameter m_HeightFalloffEnabled;
         SerializedDataParameter m_HeightMin;
         SerializedDataParameter m_HeightMax;
@@ -27,6 +28,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         SerializedDataParameter m_ColorLayer1;
         SerializedDataParameter m_DistanceMinLayer1;
         SerializedDataParameter m_DistanceMaxLayer1;
+        SerializedDataParameter m_FogFalloffCurveLayer1;
         SerializedDataParameter m_HeightFalloffEnabledLayer1;
         SerializedDataParameter m_HeightMinLayer1;
         SerializedDataParameter m_HeightMaxLayer1;
@@ -42,6 +44,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             m_PrecisionAlphaDither = Unpack(o.Find(x => x.precisionAlphaDither));
             m_DistanceMin = Unpack(o.Find(x => x.distanceMin));
             m_DistanceMax = Unpack(o.Find(x => x.distanceMax));
+            m_FogFalloffCurve = Unpack(o.Find(x => x.fogFalloffCurve));
             m_HeightFalloffEnabled = Unpack(o.Find(x => x.heightFalloffEnabled));
             m_HeightMin = Unpack(o.Find(x => x.heightMin));
             m_HeightMax = Unpack(o.Find(x => x.heightMax));
@@ -51,6 +54,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             m_ColorLayer1 = Unpack(o.Find(x => x.colorLayer1));
             m_DistanceMinLayer1 = Unpack(o.Find(x => x.distanceMinLayer1));
             m_DistanceMaxLayer1 = Unpack(o.Find(x => x.distanceMaxLayer1));
+            m_FogFalloffCurveLayer1 = Unpack(o.Find(x => x.fogFalloffCurveLayer1));
             m_HeightFalloffEnabledLayer1 = Unpack(o.Find(x => x.heightFalloffEnabledLayer1));
             m_HeightMinLayer1 = Unpack(o.Find(x => x.heightMinLayer1));
             m_HeightMaxLayer1 = Unpack(o.Find(x => x.heightMaxLayer1));
@@ -71,6 +75,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PropertyField(m_PrecisionAlphaDither, EditorGUIUtility.TrTextContent("Alpha Dither", "Controls the amount of dither applied between fog precision alpha banding steps.\nA value of 1.0 fully breaks up banding (at the cost of dither noise).\nA value of 0.0 applies no dither, so banding artifacts from low precision fog alpha are fully visible."));
             PropertyField(m_DistanceMin, EditorGUIUtility.TrTextContent("Distance Min", "Controls the distance that the global fog starts."));
             PropertyField(m_DistanceMax, EditorGUIUtility.TrTextContent("Distance Max", "Controls the distance that the global fog ends."));
+            PropertyField(m_FogFalloffCurve, EditorGUIUtility.TrTextContent("Falloff Curve", "Controls the curve of the fog falloff over distance and height.\nA value of 0.0 is a standard linear falloff between distance min and distance max (and height min and height max with height falloff).\nValues > 0.0 increasingly add a shoulder to the falloff (ease in). A value < 0.0 decreasingly add a toe to the falloff (ease out)."));
             PropertyField(m_HeightFalloffEnabled, EditorGUIUtility.TrTextContent("Height Falloff Enabled", "Controls whether or not the fog falls off vertically, in addition to in depth."));
             if (m_HeightFalloffEnabled.value.boolValue)
             {
@@ -86,6 +91,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
                 PropertyField(m_DistanceMinLayer1, EditorGUIUtility.TrTextContent("Distance Min Secondary", "Controls the distance that the global fog starts."));
                 PropertyField(m_DistanceMaxLayer1, EditorGUIUtility.TrTextContent("Distance Max Secondary", "Controls the distance that the global fog ends."));
+                PropertyField(m_FogFalloffCurveLayer1, EditorGUIUtility.TrTextContent("Falloff Curve Secondary", "Controls the curve of the fog falloff over distance and height.\nA value of 0.0 is a standard linear falloff between distance min and distance max (and height min and height max with height falloff).\nValues > 0.0 increasingly add a shoulder to the falloff (ease in). A value < 0.0 decreasingly add a toe to the falloff (ease out)."));
                 PropertyField(m_HeightFalloffEnabledLayer1, EditorGUIUtility.TrTextContent("Height Falloff Enabled Secondary", "Controls whether or not the fog falls off vertically, in addition to in depth."));
                 if (m_HeightFalloffEnabledLayer1.value.boolValue)
                 {

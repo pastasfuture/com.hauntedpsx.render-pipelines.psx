@@ -30,6 +30,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public ClampedFloatParameter precisionAlphaDither = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
         public MinFloatParameter distanceMin = new MinFloatParameter(0.0f, 0.0f);
         public MinFloatParameter distanceMax = new MinFloatParameter(100.0f, 1e-5f);
+        public ClampedFloatParameter fogFalloffCurve = new ClampedFloatParameter(0.0f, -1.0f, 1.0f);
         public BoolParameter heightFalloffEnabled = new BoolParameter(false);
         public FloatParameter heightMin = new FloatParameter(0.0f);
         public FloatParameter heightMax = new FloatParameter(10.0f);
@@ -39,6 +40,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public ColorParameter colorLayer1 = new ColorParameter(new Color(0.5f, 0.5f, 0.5f, 1.0f));
         public MinFloatParameter distanceMinLayer1 = new MinFloatParameter(0.0f, 0.0f);
         public MinFloatParameter distanceMaxLayer1 = new MinFloatParameter(100.0f, 1e-5f);
+        public ClampedFloatParameter fogFalloffCurveLayer1 = new ClampedFloatParameter(0.0f, -1.0f, 1.0f);
         public BoolParameter heightFalloffEnabledLayer1 = new BoolParameter(false);
         public FloatParameter heightMinLayer1 = new FloatParameter(0.0f);
         public FloatParameter heightMaxLayer1 = new FloatParameter(10.0f);

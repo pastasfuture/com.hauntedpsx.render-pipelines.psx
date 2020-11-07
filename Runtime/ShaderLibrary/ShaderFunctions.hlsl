@@ -253,7 +253,7 @@ void ComputeAndFetchAlphaClippingParameters(out float alphaClippingDither, out f
     }
 }
 
-float EvaluateFogFalloff(float3 positionWS, float3 cameraPositionWS, float3 positionVS, int fogFalloffMode, float4 fogDistanceScaleBias)
+float EvaluateFogFalloff(float3 positionWS, float3 cameraPositionWS, float3 positionVS, int fogFalloffMode, float4 fogDistanceScaleBias, float fogFalloffCurvePower)
 {
     float falloffDepth = 0.0f;
 
@@ -274,8 +274,12 @@ float EvaluateFogFalloff(float3 positionWS, float3 cameraPositionWS, float3 posi
 
     // fogDistanceScaleBias.xy contains distance falloff scale bias terms.
     // fogDistanceScaleBias.zw contains height falloff scale bias terms.
-    return saturate(falloffDepth * fogDistanceScaleBias.x + fogDistanceScaleBias.y)
+    float falloff = saturate(falloffDepth * fogDistanceScaleBias.x + fogDistanceScaleBias.y)
         * saturate(falloffHeight * fogDistanceScaleBias.z + fogDistanceScaleBias.w);
+
+    falloff = pow(falloff, fogFalloffCurvePower);
+
+    return falloff;
 }
 
 float ComputeFogAlphaDiscretization(float alpha, float2 positionSS)

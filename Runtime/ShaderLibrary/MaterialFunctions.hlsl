@@ -200,7 +200,7 @@ float4 EvaluateFogPerVertex(float3 positionWS, float3 positionVS, float affineWa
 #if defined(_FOG_ON) && defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
     if (_IsPSXQualityEnabled)
     {
-        float fogAlpha = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogDistanceScaleBias);
+        float fogAlpha = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogDistanceScaleBias, _FogFalloffCurvePower);
         fogAlpha *= _FogColor.a;
 
         // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
@@ -211,7 +211,7 @@ float4 EvaluateFogPerVertex(float3 positionWS, float3 positionVS, float affineWa
 
         if (_FogIsAdditionalLayerEnabled)
         {
-            float fogAlphaLayer1 = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1);
+            float fogAlphaLayer1 = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
             fogAlphaLayer1 *= _FogColorLayer1.a;
 
             float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
@@ -301,7 +301,7 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
     fogColor = vertexFog.rgb * affineWarpingScaleInverse;
     fogAlpha = vertexFog.a * affineWarpingScaleInverse;
 #elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
-    fogAlpha = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogDistanceScaleBias);
+    fogAlpha = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogDistanceScaleBias, _FogFalloffCurvePower);
     fogAlpha *= _FogColor.a;
     
     // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
@@ -311,7 +311,7 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
 
     if (_FogIsAdditionalLayerEnabled)
     {
-        float fogAlphaLayer1 = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1);
+        float fogAlphaLayer1 = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
         fogAlphaLayer1 *= _FogColorLayer1.a;
 
         float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;

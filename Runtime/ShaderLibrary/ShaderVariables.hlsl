@@ -40,6 +40,7 @@ float _AffineTextureWarping;
 int _FogFalloffMode;
 float4 _FogColor;
 float4 _FogDistanceScaleBias;
+float _FogFalloffCurvePower;
 float2 _FogPrecisionAlphaAndInverse;
 TEXTURE2D(_FogPrecisionAlphaDitherTexture);
 float4 _FogPrecisionAlphaDitherSize;
@@ -48,6 +49,7 @@ int _FogIsAdditionalLayerEnabled;
 int _FogFalloffModeLayer1;
 float4 _FogColorLayer1;
 float4 _FogDistanceScaleBiasLayer1;
+float _FogFalloffCurvePowerLayer1;
 
 // Lighting (In the future this might be moved to UnityPerMaterial if we get multiple lights):
 int _LightingIsEnabled;
