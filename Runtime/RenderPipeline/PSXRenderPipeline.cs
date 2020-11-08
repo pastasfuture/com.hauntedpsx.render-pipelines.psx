@@ -293,11 +293,88 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             return camera.cameraType == CameraType.Game; 
         }
 
+        static Color ComputeClearColorFromVolume()
+        {
+            Color fogColorSRGB = GetFogColorFromFogVolume();
+
+            ComputeTonemapperSettingsFromVolume(
+                out bool isEnabled,
+                out float contrast,
+                out float shoulder,
+                out float whitepoint,
+                out Vector2 graypointCoefficients,
+                out float crossTalk,
+                out float saturation,
+                out float crossTalkSaturation
+            );
+
+            Vector3 fogColorLinearPremultipliedAlpha = PSXColor.RGBFromSRGB(new Vector3(fogColorSRGB.r, fogColorSRGB.g, fogColorSRGB.b)) * fogColorSRGB.a;
+
+            if (!isEnabled)
+            {
+                // Tonemapper is disabled, simply premultiply alpha and return.
+                Vector3 fogColorSRGBPremultipliedAlpha = PSXColor.SRGBFromRGB(fogColorLinearPremultipliedAlpha);
+                return new Color(fogColorSRGBPremultipliedAlpha.x, fogColorSRGBPremultipliedAlpha.y, fogColorSRGBPremultipliedAlpha.z, fogColorSRGB.a);
+            }
+            else
+            {
+                Vector3 fogColorSRGBPremultipliedAlphaTonemapped = PSXColor.SRGBFromRGB(
+                    PSXColor.TonemapperGeneric(
+                        fogColorLinearPremultipliedAlpha,
+                        contrast,
+                        shoulder,
+                        graypointCoefficients,
+                        crossTalk,
+                        saturation,
+                        crossTalkSaturation
+                    )
+                );
+
+                return new Color(fogColorSRGBPremultipliedAlphaTonemapped.x, fogColorSRGBPremultipliedAlphaTonemapped.y, fogColorSRGBPremultipliedAlphaTonemapped.z, fogColorSRGB.a);
+            }
+        }
+
         static Color GetFogColorFromFogVolume()
         {
             var volumeSettings = VolumeManager.instance.stack.GetComponent<FogVolume>();
             if (!volumeSettings) volumeSettings = FogVolume.@default;
             return volumeSettings.color.value;
+        }
+
+        static void ComputeTonemapperSettingsFromVolume(
+            out bool isEnabled,
+            out float contrast,
+            out float shoulder,
+            out float whitepoint,
+            out Vector2 graypointCoefficients,
+            out float crossTalk,
+            out float saturation,
+            out float crossTalkSaturation)
+        {
+            var volumeSettings = VolumeManager.instance.stack.GetComponent<TonemapperVolume>();
+            if (!volumeSettings) volumeSettings = TonemapperVolume.@default;
+
+            isEnabled = volumeSettings.isEnabled.value;
+
+            contrast = Mathf.Lerp(1e-5f, 1.95f, volumeSettings.contrast.value);
+            shoulder = Mathf.Lerp(0.9f, 1.1f, volumeSettings.shoulder.value);
+            whitepoint = volumeSettings.whitepoint.value;
+
+            float a = contrast;
+            float d = shoulder;
+            float m = whitepoint;
+            float i = volumeSettings.graypointIn.value;
+            float o = volumeSettings.graypointOut.value;
+
+            float b = -(o * Mathf.Pow(m, a) - Mathf.Pow(i, a)) / (o * (Mathf.Pow(i, a * d) - Mathf.Pow(m, a * d)));
+            float c = ((o * Mathf.Pow(i, a * d)) * Mathf.Pow(m, a) - Mathf.Pow(i, a) * Mathf.Pow(m, a * d))
+                / (o * (Mathf.Pow(i, a * d) - Mathf.Pow(m, a * d)));
+
+            graypointCoefficients = new Vector2(b, c + 1e-5f);
+
+            crossTalk = Mathf.Lerp(1e-5f, 32.0f, volumeSettings.crossTalk.value);
+            saturation = Mathf.Lerp(0.0f, 32.0f, volumeSettings.saturation.value);
+            crossTalkSaturation = Mathf.Lerp(1e-5f, 32.0f, volumeSettings.crossTalkSaturation.value);
         }
 
         static bool EvaluateIsPSXQualityEnabledFromVolume()
@@ -331,31 +408,18 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushTonemapperParameters))
             {
-                var volumeSettings = VolumeManager.instance.stack.GetComponent<TonemapperVolume>();
-                if (!volumeSettings) volumeSettings = TonemapperVolume.@default;
+                ComputeTonemapperSettingsFromVolume(
+                    out bool isEnabled,
+                    out float contrast,
+                    out float shoulder,
+                    out float whitepoint,
+                    out Vector2 graypointCoefficients,
+                    out float crossTalk,
+                    out float saturation,
+                    out float crossTalkSaturation
+                );
 
-                int isEnabled = volumeSettings.isEnabled.value ? 1 : 0;
-                float contrast = Mathf.Lerp(1e-5f, 1.95f, volumeSettings.contrast.value);
-                float shoulder = Mathf.Lerp(0.9f, 1.1f, volumeSettings.shoulder.value);
-                float whitepoint = volumeSettings.whitepoint.value;
-
-                float a = contrast;
-                float d = shoulder;
-                float m = whitepoint;
-                float i = volumeSettings.graypointIn.value;
-                float o = volumeSettings.graypointOut.value;
-
-                float b = -(o * Mathf.Pow(m, a) - Mathf.Pow(i, a)) / (o * (Mathf.Pow(i, a * d) - Mathf.Pow(m, a * d)));
-                float c = ((o * Mathf.Pow(i, a * d)) * Mathf.Pow(m, a) - Mathf.Pow(i, a) * Mathf.Pow(m, a * d))
-                    / (o * (Mathf.Pow(i, a * d) - Mathf.Pow(m, a * d)));
-
-                Vector2 graypointCoefficients = new Vector2(b, c + 1e-5f);
-
-                float crossTalk = Mathf.Lerp(1e-5f, 32.0f, volumeSettings.crossTalk.value);
-                float saturation = Mathf.Lerp(0.0f, 32.0f, volumeSettings.saturation.value);
-                float crossTalkSaturation = Mathf.Lerp(1e-5f, 32.0f, volumeSettings.crossTalkSaturation.value);
-
-                cmd.SetGlobalInt(PSXShaderIDs._TonemapperIsEnabled, isEnabled);
+                cmd.SetGlobalInt(PSXShaderIDs._TonemapperIsEnabled, isEnabled ? 1 : 0);
                 cmd.SetGlobalFloat(PSXShaderIDs._TonemapperContrast, contrast);
                 cmd.SetGlobalFloat(PSXShaderIDs._TonemapperShoulder, shoulder);
                 cmd.SetGlobalVector(PSXShaderIDs._TonemapperGraypointCoefficients, graypointCoefficients);
@@ -633,7 +697,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushGlobalRasterizationParameters))
             {
-                cmd.ClearRenderTarget(clearDepth: true, clearColor: true, backgroundColor: GetFogColorFromFogVolume());
+                cmd.ClearRenderTarget(clearDepth: true, clearColor: true, backgroundColor: ComputeClearColorFromVolume());
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSizeRasterization, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._Time, new Vector4(Time.timeSinceLevelLoad / 20.0f, Time.timeSinceLevelLoad, Time.timeSinceLevelLoad * 2.0f, Time.timeSinceLevelLoad * 3.0f));
