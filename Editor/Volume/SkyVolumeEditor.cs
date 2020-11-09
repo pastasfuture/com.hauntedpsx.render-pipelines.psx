@@ -62,7 +62,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public override void OnInspectorGUI()
         {
-            PropertyField(m_SkyMode, EditorGUIUtility.TrTextContent("Sky Mode", "Controls the mode the sky is rendered in.\nFog Color fills the sky with the fog color defined in the Fog Volume. Useful for smooth blending between fog and sky.\nBackground Color fills the sky with the background color defined on your Camera.\nSkybox fills the sky with the Skybox Texture specified on this SkyVolume."));
+            PropertyField(m_SkyMode, EditorGUIUtility.TrTextContent("Sky Mode", "Controls the mode the sky is rendered in.\nFog Color fills the sky with the fog color defined in the Fog Volume. Useful for smooth blending between fog and sky.\nBackground Color fills the sky with the background color defined on your Camera.\nSkybox fills the sky with the Skybox Texture specified on this SkyVolume.\nTiled Layers renders the sky using two 2D textures, projected onto an ellipsoid, tiled, scrolled, and blended. Useful for emulating Quake-era skys."));
             PropertyField(m_FramebufferDitherWeight, EditorGUIUtility.TrTextContent("Framebuffer Dither Weight", "Controls the amount of dither applied to the sky between precision steps. A value of 0.0 will apply no dither to the sky. A value of 1.0 will apply the maximum amount of dither specified in the PrecisionVolume settings."));
             
             if (m_SkyMode.value.intValue == (int)SkyVolume.SkyMode.Skybox
