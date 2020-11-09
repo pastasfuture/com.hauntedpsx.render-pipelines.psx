@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: PSXRenderPipelineResources
   m_EditorClassIdentifier: 
   shaders:
+    skyPS: {fileID: 4800000, guid: 6ec5e78dd02dbef42a1a3b87dd67fe9e, type: 3}
     crtPS: {fileID: 4800000, guid: 8e05d2f66aadbd84fb2998f8248241c2, type: 3}
     compressionCS: {fileID: 7200000, guid: df0df86f8582eae44b9aa77c0230a7e5, type: 3}
     terrainDetailLitPS: {fileID: 4800000, guid: e27b34a93e5789948958f9e2e7a00b90,
@@ -94,5 +95,7 @@ MonoBehaviour:
     - {fileID: 2800000, guid: 7641a2b116fafd64d9c3d6459fdfe801, type: 3}
     - {fileID: 2800000, guid: c6a5e40e6746fef4fa486e8f620ee8d4, type: 3}
     - {fileID: 2800000, guid: fd4189357c6dfb94fa2d36afbce72086, type: 3}
+    skyboxTextureCubeDefault: {fileID: 8900000, guid: a615f6de0224d55408b4e74da3b0bac0,
+      type: 3}
   materials:
     defaultOpaqueMat: {fileID: 2100000, guid: 0ac9aba1beafeb24997cc30de6fbd9bd, type: 2}

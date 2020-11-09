@@ -18,6 +18,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_PushCameraParametersStr = "Push Camera Parameters";
         public static readonly string s_PushGlobalRasterizationParametersStr = "Push Global Rasterization Parameters";
         public static readonly string s_PushGlobalPostProcessingParametersStr = "Push Global Rasterization Parameters";
+        public static readonly string s_PushSkyParametersStr = "Push Sky Parameters";
         public static readonly string s_PushQualityOverrideParametersStr = "Push Quality Override Parameters";
         public static readonly string s_PushTonemapperParametersStr = "Push Tonemapper Parameters";
         public static readonly string s_PushLightingParametersStr = "Push Lighting Parameters";
@@ -32,6 +33,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static ProfilingSampler s_PushCameraParameters = new ProfilingSampler(s_PushCameraParametersStr);
         public static ProfilingSampler s_PushGlobalRasterizationParameters = new ProfilingSampler(s_PushGlobalRasterizationParametersStr);
         public static ProfilingSampler s_PushGlobalPostProcessingParameters = new ProfilingSampler(s_PushGlobalPostProcessingParametersStr);
+        public static ProfilingSampler s_PushSkyParameters = new ProfilingSampler(s_PushSkyParametersStr);
         public static ProfilingSampler s_PushQualityOverrideParameters = new ProfilingSampler(s_PushQualityOverrideParametersStr);
         public static ProfilingSampler s_PushTonemapperParameters = new ProfilingSampler(s_PushTonemapperParametersStr);
         public static ProfilingSampler s_PushLightingParameters = new ProfilingSampler(s_PushLightingParametersStr);
@@ -65,6 +67,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_CRT_MASK_VGA_STRETCHED = "_CRT_MASK_VGA_STRETCHED";
         public static readonly string s_CRT_MASK_TEXTURE = "_CRT_MASK_TEXTURE";
         public static readonly string s_CRT_MASK_DISABLED = "_CRT_MASK_DISABLED";
+        public static readonly string s_SKY_MODE_FOG_COLOR = "_SKY_MODE_FOG_COLOR"; 
+        public static readonly string s_SKY_MODE_BACKGROUND_COLOR = "_SKY_MODE_BACKGROUND_COLOR";
+        public static readonly string s_SKY_MODE_SKYBOX = "_SKY_MODE_SKYBOX";
+        public static readonly string s_SKY_MODE_TILED_LAYERS = "_SKY_MODE_TILED_LAYERS";
+        public static readonly string s_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS = "_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS";
+        public static readonly string s_TEXTURE_FILTER_MODE_POINT = "_TEXTURE_FILTER_MODE_POINT";
+        public static readonly string s_TEXTURE_FILTER_MODE_POINT_MIPMAPS = "_TEXTURE_FILTER_MODE_POINT_MIPMAPS";
+        public static readonly string s_TEXTURE_FILTER_MODE_N64 = "_TEXTURE_FILTER_MODE_N64";
+        public static readonly string s_TEXTURE_FILTER_MODE_N64_MIPMAPS = "_TEXTURE_FILTER_MODE_N64_MIPMAPS";
     }
 
     internal static class PSXComputeKernels
@@ -166,5 +177,23 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _CompressionSourceIndicesMinMax = Shader.PropertyToID("_CompressionSourceIndicesMinMax");
         public static readonly int _CompressionWeight = Shader.PropertyToID("_CompressionWeight");
         public static readonly int _CompressionChromaQuantizationScaleAndInverse = Shader.PropertyToID("_CompressionChromaQuantizationScaleAndInverse");
+        public static readonly int _SkyColor = Shader.PropertyToID("_SkyColor");
+        public static readonly int _SkyboxTextureCube = Shader.PropertyToID("_SkyboxTextureCube");
+        public static readonly int _SkyPixelCoordToWorldSpaceViewDirectionMatrix = Shader.PropertyToID("_SkyPixelCoordToWorldSpaceViewDirectionMatrix");
+        public static readonly int _SkyFramebufferDitherWeight = Shader.PropertyToID("_SkyFramebufferDitherWeight");
+        public static readonly int _SkyTiledLayersSkyHeightScaleInverse = Shader.PropertyToID("_SkyTiledLayersSkyHeightScaleInverse");
+        public static readonly int _SkyTiledLayersSkyHorizonOffset = Shader.PropertyToID("_SkyTiledLayersSkyHorizonOffset");
+        public static readonly int _SkyTiledLayersSkyColorLayer0 = Shader.PropertyToID("_SkyTiledLayersSkyColorLayer0");
+        public static readonly int _SkyTiledLayersSkyTextureLayer0 = Shader.PropertyToID("_SkyTiledLayersSkyTextureLayer0");
+        public static readonly int _SkyTiledLayersSkyTextureScaleOffsetLayer0 = Shader.PropertyToID("_SkyTiledLayersSkyTextureScaleOffsetLayer0");
+        public static readonly int _SkyTiledLayersSkyRotationLayer0 = Shader.PropertyToID("_SkyTiledLayersSkyRotationLayer0"); 
+        public static readonly int _SkyTiledLayersSkyScrollScaleLayer0 = Shader.PropertyToID("_SkyTiledLayersSkyScrollScaleLayer0");
+        public static readonly int _SkyTiledLayersSkyScrollRotationLayer0 = Shader.PropertyToID("_SkyTiledLayersSkyScrollRotationLayer0");
+        public static readonly int _SkyTiledLayersSkyColorLayer1 = Shader.PropertyToID("_SkyTiledLayersSkyColorLayer1");
+        public static readonly int _SkyTiledLayersSkyTextureLayer1 = Shader.PropertyToID("_SkyTiledLayersSkyTextureLayer1");
+        public static readonly int _SkyTiledLayersSkyTextureScaleOffsetLayer1 = Shader.PropertyToID("_SkyTiledLayersSkyTextureScaleOffsetLayer1");
+        public static readonly int _SkyTiledLayersSkyRotationLayer1 = Shader.PropertyToID("_SkyTiledLayersSkyRotationLayer1");
+        public static readonly int _SkyTiledLayersSkyScrollScaleLayer1 = Shader.PropertyToID("_SkyTiledLayersSkyScrollScaleLayer1");
+        public static readonly int _SkyTiledLayersSkyScrollRotationLayer1 = Shader.PropertyToID("_SkyTiledLayersSkyScrollRotationLayer1");
     }
 }

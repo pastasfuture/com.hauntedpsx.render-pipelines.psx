@@ -15,6 +15,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         internal const PerObjectData k_RendererConfigurationBakedLightingWithShadowMask = k_RendererConfigurationBakedLighting | PerObjectData.OcclusionProbe | PerObjectData.OcclusionProbeProxyVolume | PerObjectData.ShadowMask;
         internal const PerObjectData k_RendererConfigurationDynamicLighting = PerObjectData.LightData | PerObjectData.LightIndices;
 
+        Material skyMaterial;
         Material crtMaterial;
         int[] compressionCSKernels;
 
@@ -57,6 +58,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
         internal protected void Allocate()
         {
+            this.skyMaterial = CoreUtils.CreateEngineMaterial(m_Asset.renderPipelineResources.shaders.skyPS);
             this.crtMaterial = CoreUtils.CreateEngineMaterial(m_Asset.renderPipelineResources.shaders.crtPS);
             FindComputeKernels();
             AllocateLighting();
@@ -66,6 +68,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             base.Dispose(disposing);
 
+            CoreUtils.Destroy(skyMaterial);
             CoreUtils.Destroy(crtMaterial);
             compressionCSKernels = null;
             DisposeLighting();
@@ -236,6 +239,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     PushLightingParameters(camera, cmd);
                     PushTonemapperParameters(camera, cmd);
                     PushDynamicLightingParameters(camera, cmd, ref cullingResults);
+                    PushSkyParameters(camera, cmd, skyMaterial, m_Asset, rasterizationWidth, rasterizationHeight);
+                    PSXRenderPipeline.DrawFullScreenQuad(cmd, skyMaterial);
                     context.ExecuteCommandBuffer(cmd);
                     cmd.Release();
 
@@ -697,7 +702,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushGlobalRasterizationParameters))
             {
-                cmd.ClearRenderTarget(clearDepth: true, clearColor: true, backgroundColor: ComputeClearColorFromVolume());
+                Color clearColorUnused = Color.black;
+                cmd.ClearRenderTarget(clearDepth: true, clearColor: false, backgroundColor: clearColorUnused);
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSizeRasterization, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._Time, new Vector4(Time.timeSinceLevelLoad / 20.0f, Time.timeSinceLevelLoad, Time.timeSinceLevelLoad * 2.0f, Time.timeSinceLevelLoad * 3.0f));
@@ -865,6 +871,175 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             
                 // TODO: Fix this when the rounding doesn't work.
                 cmd.DispatchCompute(asset.renderPipelineResources.shaders.compressionCS, compressionKernel, (rasterizationRT.width + 7) / 8, (rasterizationRT.height + 7) / 8, 1);
+            }
+        }
+
+        static void PushSkyParameters(Camera camera, CommandBuffer cmd, Material skyMaterial, PSXRenderPipelineAsset asset, int rasterizationWidth, int rasterizationHeight)
+        {
+            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushSkyParameters))
+            {
+                var volumeSettings = VolumeManager.instance.stack.GetComponent<SkyVolume>();
+                if (!volumeSettings) volumeSettings = SkyVolume.@default;
+
+                SkyVolume.SkyMode skyMode = volumeSettings.skyMode.value;
+
+                switch (skyMode)
+                {
+                    case SkyVolume.SkyMode.FogColor:
+                    {
+                        skyMaterial.EnableKeyword(PSXShaderKeywords.s_SKY_MODE_FOG_COLOR);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_SKY_MODE_BACKGROUND_COLOR);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_SKY_MODE_SKYBOX);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_SKY_MODE_TILED_LAYERS);
+                        break;
+                    }
+                    case SkyVolume.SkyMode.BackgroundColor:
+                    {
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_SKY_MODE_FOG_COLOR);
+                        skyMaterial.EnableKeyword(PSXShaderKeywords.s_SKY_MODE_BACKGROUND_COLOR);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_SKY_MODE_SKYBOX);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_SKY_MODE_TILED_LAYERS);
+                        break;
+                    }
+                    case SkyVolume.SkyMode.Skybox:
+                    {
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_SKY_MODE_FOG_COLOR);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_SKY_MODE_BACKGROUND_COLOR);
+                        skyMaterial.EnableKeyword(PSXShaderKeywords.s_SKY_MODE_SKYBOX);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_SKY_MODE_TILED_LAYERS);
+                        break;
+                    }
+                    case SkyVolume.SkyMode.TiledLayers:
+                    {
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_SKY_MODE_FOG_COLOR);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_SKY_MODE_BACKGROUND_COLOR);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_SKY_MODE_SKYBOX);
+                        skyMaterial.EnableKeyword(PSXShaderKeywords.s_SKY_MODE_TILED_LAYERS);
+                        break;
+                    }
+                    default:
+                    {
+                        Debug.Assert(false, "Error: Encountered unsupported SkyMode.");
+                        break;
+                    }
+                }
+
+                SkyVolume.TextureFilterMode textureFilterMode = volumeSettings.textureFilterMode.value;
+                switch (textureFilterMode)
+                {
+                    case SkyVolume.TextureFilterMode.TextureImportSettings:
+                    {
+                        skyMaterial.EnableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_POINT);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_N64);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                        break;
+                    }
+
+                    case SkyVolume.TextureFilterMode.Point:
+                    {
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                        skyMaterial.EnableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_POINT);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_N64);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                        break;
+                    }
+
+                    case SkyVolume.TextureFilterMode.PointMipmaps:
+                    {
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_POINT);
+                        skyMaterial.EnableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_N64);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                        break;
+                    }
+
+                    case SkyVolume.TextureFilterMode.N64:
+                    {
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_POINT);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                        skyMaterial.EnableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_N64);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                        break;
+                    }
+
+                    case SkyVolume.TextureFilterMode.N64Mipmaps:
+                    {
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_POINT);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                        skyMaterial.DisableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_N64);
+                        skyMaterial.EnableKeyword(PSXShaderKeywords.s_TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                        break;
+                    }
+
+                    default:
+                    {
+                        Debug.Assert(false, "Error: Encountered unsupported TextureFilterMode.");
+                        break;
+                    }
+                }
+
+                Color skyColor;
+                switch (skyMode)
+                {
+                    case SkyVolume.SkyMode.FogColor: skyColor = GetFogColorFromFogVolume(); break;
+                    case SkyVolume.SkyMode.BackgroundColor: skyColor = camera.backgroundColor; break;
+                    default: skyColor = Color.black; break;
+                }
+
+                cmd.SetGlobalVector(PSXShaderIDs._SkyColor, skyColor);
+
+                if (skyMode == SkyVolume.SkyMode.Skybox)
+                {
+                    Texture skyboxTexture = volumeSettings.skyboxTexture.value;
+                    if (skyboxTexture == null)
+                    {
+                        skyboxTexture = asset.renderPipelineResources.textures.skyboxTextureCubeDefault;
+                    }
+
+                    cmd.SetGlobalTexture(PSXShaderIDs._SkyboxTextureCube, skyboxTexture);
+                }
+
+                if (skyMode == SkyVolume.SkyMode.Skybox || skyMode == SkyVolume.SkyMode.TiledLayers)
+                {
+                    Vector4 rasterizationResolution = new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight);
+                    Matrix4x4 skyPixelCoordToWorldSpaceViewDirectionMatrix = ComputePixelCoordToWorldSpaceViewDirectionMatrix(camera, camera.worldToCameraMatrix, rasterizationResolution);
+
+                    Vector3 skyRotationEulerDegrees = volumeSettings.skyRotation.value;
+                    Quaternion skyRotationQuaternion = Quaternion.Euler(skyRotationEulerDegrees.x, skyRotationEulerDegrees.y, skyRotationEulerDegrees.z);
+                    Matrix4x4 skyRotationMatrix = Matrix4x4.Rotate(skyRotationQuaternion);
+
+                    cmd.SetGlobalMatrix(PSXShaderIDs._SkyPixelCoordToWorldSpaceViewDirectionMatrix, skyPixelCoordToWorldSpaceViewDirectionMatrix * skyRotationMatrix);
+                }
+                else
+                {
+                    cmd.SetGlobalMatrix(PSXShaderIDs._SkyPixelCoordToWorldSpaceViewDirectionMatrix, Matrix4x4.identity);
+                }
+
+                if (skyMode == SkyVolume.SkyMode.TiledLayers)
+                {
+                    cmd.SetGlobalFloat(PSXShaderIDs._SkyTiledLayersSkyHeightScaleInverse, 1.0f / volumeSettings.tiledLayersSkyHeightScale.value);
+                    cmd.SetGlobalFloat(PSXShaderIDs._SkyTiledLayersSkyHorizonOffset, volumeSettings.tiledLayersSkyHorizonOffset.value);
+                    cmd.SetGlobalVector(PSXShaderIDs._SkyTiledLayersSkyColorLayer0, volumeSettings.tiledLayersSkyColorLayer0.value);
+                    cmd.SetGlobalTexture(PSXShaderIDs._SkyTiledLayersSkyTextureLayer0, volumeSettings.tiledLayersSkyTextureLayer0.value);
+                    cmd.SetGlobalVector(PSXShaderIDs._SkyTiledLayersSkyTextureScaleOffsetLayer0, volumeSettings.tiledLayersSkyTextureScaleOffsetLayer0.value);
+                    cmd.SetGlobalFloat(PSXShaderIDs._SkyTiledLayersSkyRotationLayer0, Mathf.Deg2Rad * volumeSettings.tiledLayersSkyRotationLayer0.value);
+                    cmd.SetGlobalVector(PSXShaderIDs._SkyTiledLayersSkyScrollScaleLayer0, volumeSettings.tiledLayersSkyScrollScaleLayer0.value * 0.1f);
+                    cmd.SetGlobalFloat(PSXShaderIDs._SkyTiledLayersSkyScrollRotationLayer0, Mathf.Deg2Rad * volumeSettings.tiledLayersSkyScrollRotationLayer0.value);
+                    cmd.SetGlobalVector(PSXShaderIDs._SkyTiledLayersSkyColorLayer1, volumeSettings.tiledLayersSkyColorLayer1.value);
+                    cmd.SetGlobalTexture(PSXShaderIDs._SkyTiledLayersSkyTextureLayer1, volumeSettings.tiledLayersSkyTextureLayer1.value);
+                    cmd.SetGlobalVector(PSXShaderIDs._SkyTiledLayersSkyTextureScaleOffsetLayer1, volumeSettings.tiledLayersSkyTextureScaleOffsetLayer1.value);
+                    cmd.SetGlobalFloat(PSXShaderIDs._SkyTiledLayersSkyRotationLayer1, Mathf.Deg2Rad * volumeSettings.tiledLayersSkyRotationLayer1.value);
+                    cmd.SetGlobalVector(PSXShaderIDs._SkyTiledLayersSkyScrollScaleLayer1, volumeSettings.tiledLayersSkyScrollScaleLayer1.value * 0.1f);
+                    cmd.SetGlobalFloat(PSXShaderIDs._SkyTiledLayersSkyScrollRotationLayer1, Mathf.Deg2Rad * volumeSettings.tiledLayersSkyScrollRotationLayer1.value);
+                }
+
+                cmd.SetGlobalFloat(PSXShaderIDs._SkyFramebufferDitherWeight, volumeSettings.framebufferDitherWeight.value);
             }
         }
 
@@ -1227,6 +1402,72 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         static bool ComputeCameraProjectionIsFlippedY(Camera camera)
         {
             return GL.GetGPUProjectionMatrix(camera.projectionMatrix, true).inverse.MultiplyPoint(new Vector3(0, 1, 0)).y < 0;
+        }
+
+        // Taken from HDCamera:
+        /// <summary>
+        /// Compute the matrix from screen space (pixel) to world space direction (RHS).
+        ///
+        /// You can use this matrix on the GPU to compute the direction to look in a cubemap for a specific
+        /// screen pixel.
+        /// </summary>
+        /// <param name="viewConstants"></param>
+        /// <param name="resolution">The target texture resolution.</param>
+        /// <param name="aspect">
+        /// The aspect ratio to use.
+        ///
+        /// if negative, then the aspect ratio of <paramref name="resolution"/> will be used.
+        ///
+        /// It is different from the aspect ratio of <paramref name="resolution"/> for anamorphic projections.
+        /// </param>
+        /// <returns></returns>
+        static Matrix4x4 ComputePixelCoordToWorldSpaceViewDirectionMatrix(Camera camera, Matrix4x4 viewMatrix, Vector4 resolution, float aspect = -1)
+        {
+            float verticalFoV = camera.GetGateFittedFieldOfView() * Mathf.Deg2Rad;
+            Vector2 lensShift = camera.GetGateFittedLensShift();
+
+            return ComputePixelCoordToWorldSpaceViewDirectionMatrix(verticalFoV, lensShift, resolution, viewMatrix, true, aspect);
+        }
+
+        static Matrix4x4 ComputePixelCoordToWorldSpaceViewDirectionMatrix(float verticalFoV, Vector2 lensShift, Vector4 screenSize, Matrix4x4 worldToViewMatrix, bool renderToCubemap, float aspectRatio = -1)
+        {
+            aspectRatio = aspectRatio < 0 ? screenSize.x * screenSize.w : aspectRatio;
+
+            // Compose the view space version first.
+            // V = -(X, Y, Z), s.t. Z = 1,
+            // X = (2x / resX - 1) * tan(vFoV / 2) * ar = x * [(2 / resX) * tan(vFoV / 2) * ar] + [-tan(vFoV / 2) * ar] = x * [-m00] + [-m20]
+            // Y = (2y / resY - 1) * tan(vFoV / 2)      = y * [(2 / resY) * tan(vFoV / 2)]      + [-tan(vFoV / 2)]      = y * [-m11] + [-m21]
+
+            float tanHalfVertFoV = Mathf.Tan(0.5f * verticalFoV);
+
+            // Compose the matrix.
+            float m21 = (1.0f - 2.0f * lensShift.y) * tanHalfVertFoV;
+            float m11 = -2.0f * screenSize.w * tanHalfVertFoV;
+
+            float m20 = (1.0f - 2.0f * lensShift.x) * tanHalfVertFoV * aspectRatio;
+            float m00 = -2.0f * screenSize.z * tanHalfVertFoV * aspectRatio;
+
+            if (renderToCubemap)
+            {
+                // Flip Y.
+                m11 = -m11;
+                m21 = -m21;
+            }
+
+            var viewSpaceRasterTransform = new Matrix4x4(new Vector4(m00, 0.0f, 0.0f, 0.0f),
+                    new Vector4(0.0f, m11, 0.0f, 0.0f),
+                    new Vector4(m20, m21, -1.0f, 0.0f),
+                    new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+
+            // Remove the translation component.
+            var homogeneousZero = new Vector4(0, 0, 0, 1);
+            worldToViewMatrix.SetColumn(3, homogeneousZero);
+
+            // Flip the Z to make the coordinate system left-handed.
+            worldToViewMatrix.SetRow(2, -worldToViewMatrix.GetRow(2));
+
+            // Transpose for HLSL.
+            return Matrix4x4.Transpose(worldToViewMatrix.transpose * viewSpaceRasterTransform);
         }
     }
 }

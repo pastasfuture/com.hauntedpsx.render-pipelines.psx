@@ -12,6 +12,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         [Serializable, ReloadGroup]
         public sealed class ShaderResources
         {
+            [Reload("Runtime/PostProcessing/Shaders/Sky.shader")]
+            public Shader skyPS;
             [Reload("Runtime/PostProcessing/Shaders/CRT.shader")]
             public Shader crtPS;
             [Reload("Runtime/PostProcessing/Shaders/Compression.compute")]
@@ -45,6 +47,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             
             [Reload("Runtime/RenderPipelineResources/Texture/BlueNoise16/RGB/LDR_RGB1_{0}.png", 0, 32)]
             public Texture2D[] blueNoise16RGBTex;
+
+            [Reload("Runtime/RenderPipelineResources/Texture/SkyboxTextureCubeDefault.exr")]
+            public Texture skyboxTextureCubeDefault;
         }
 
         [Serializable, ReloadGroup]
