@@ -12,6 +12,8 @@
         _AffineTextureWarpingWeight("_AffineTextureWarpingWeight", Float) = 1.0
         _PrecisionGeometryWeight("_PrecisionGeometryWeight", Float) = 1.0
         _FogWeight("_FogWeight", Float) = 1.0
+        _DrawDistanceOverrideMode("_DrawDistanceOverrideMode", Int) = 0
+        _DrawDistanceOverride("_DrawDistanceOverride", Vector) = (100, 10000, 0, 0)
         _ReflectionCubemap("_ReflectionCubemap", Cube) = "black" {}
         _ReflectionTexture("_ReflectionTexture", 2D) = "white" {}
         _ReflectionColor("_ReflectionColor", Color) = (1,1,1,1)

@@ -20,6 +20,13 @@
 #define PSX_REFLECTION_BLEND_MODE_SUBTRACTIVE (1)
 #define PSX_REFLECTION_BLEND_MODE_MULTIPLY (2)
 
+// Warning: These definitions must stay in sync with DrawDistanceOverrideMode enum.
+#define PSX_DRAW_DISTANCE_OVERRIDE_MODE_NONE (0)
+#define PSX_DRAW_DISTANCE_OVERRIDE_MODE_DISABLED (1)
+#define PSX_DRAW_DISTANCE_OVERRIDE_MODE_OVERRIDE (2)
+#define PSX_DRAW_DISTANCE_OVERRIDE_MODE_ADD (3)
+#define PSX_DRAW_DISTANCE_OVERRIDE_MODE_MULTIPLY (4)
+
 // Globals:
 // Unity Standard:
 //

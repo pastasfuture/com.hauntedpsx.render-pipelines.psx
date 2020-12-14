@@ -19,6 +19,8 @@ float4 _AlphaClippingScaleBiasMinMax;
 float _AffineTextureWarpingWeight;
 float _PrecisionGeometryWeight;
 float _FogWeight;
+int _DrawDistanceOverrideMode;
+float2 _DrawDistanceOverride;
 TEXTURECUBE(_ReflectionCubemap);
 SAMPLER(sampler_ReflectionCubemap);
 TEXTURE2D(_ReflectionTexture);

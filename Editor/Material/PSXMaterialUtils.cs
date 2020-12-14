@@ -80,6 +80,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             Multiply
         }
 
+        public enum DrawDistanceOverrideMode
+        {
+            None = 0,
+            Disabled,
+            Override,
+            Add,
+            Multiply
+        }
+
         public static class Tags
         {
             public static readonly string RenderType = "RenderType";
@@ -110,6 +119,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _AffineTextureWarpingWeight = "_AffineTextureWarpingWeight";
             public static readonly string _PrecisionGeometryWeight = "_PrecisionGeometryWeight";
             public static readonly string _FogWeight = "_FogWeight";
+            public static readonly string _DrawDistanceOverrideMode = "_DrawDistanceOverrideMode";
+            public static readonly string _DrawDistanceOverride = "_DrawDistanceOverride";
             public static readonly string _Cutoff = "_Cutoff";
             public static readonly string _ReceiveShadows = "_ReceiveShadows";
             public static readonly string _MainTex = "_MainTex";
@@ -148,6 +159,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly int _AffineTextureWarpingWeight = Shader.PropertyToID(PropertyNames._AffineTextureWarpingWeight);
             public static readonly int _PrecisionGeometryWeight = Shader.PropertyToID(PropertyNames._PrecisionGeometryWeight);
             public static readonly int _FogWeight = Shader.PropertyToID(PropertyNames._FogWeight);
+            public static readonly int _DrawDistanceOverrideMode = Shader.PropertyToID(PropertyNames._DrawDistanceOverrideMode);
+            public static readonly int _DrawDistanceOverride = Shader.PropertyToID(PropertyNames._DrawDistanceOverride);
             public static readonly int _Cutoff = Shader.PropertyToID(PropertyNames._Cutoff);
             public static readonly int _ReceiveShadows = Shader.PropertyToID(PropertyNames._ReceiveShadows);
             public static readonly int _MainTex = Shader.PropertyToID(PropertyNames._MainTex);
@@ -265,6 +278,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent fogWeight = new GUIContent("Fog Weight",
                 "Specifies how much of the global Fog Volume is applied to this surface. In general this should be left at 1.0. Set to 0.0 to fully disable fog (and which avoids cost of evaluating fog). This parameter is particularly useful for tuning the look of skybox geometry.");
+
+            public static readonly GUIContent drawDistanceOverrideMode = new GUIContent("Draw Distance Override Mode",
+                "Allows you to override the draw distance that is specified on your Precision Volume. Useful for clipping specific materials earlier or later than the majority of your scene geometry.");
+
+            public static readonly GUIContent drawDistanceOverride = new GUIContent("Draw Distance",
+                "Controls the max distance (in meters) that triangles will render.");
 
             public static readonly GUIContent mainTex = new GUIContent("Main Tex",
                 "Specifies the base Material and/or Color of the surface. If you’ve selected Transparent or Alpha Clipping under Surface Options, your Material uses the Texture’s alpha channel or color.");
@@ -1075,6 +1094,26 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             if (EditorGUI.EndChangeCheck())
             {
                 fogWeightProp.floatValue = fogWeight;
+            }
+        }
+
+        public static void DrawDrawDistanceOverride(MaterialProperty drawDistanceOverrideModeProp, MaterialProperty drawDistanceOverrideProp)
+        {
+            EditorGUI.BeginChangeCheck();
+            var drawDistanceOverrideMode = (DrawDistanceOverrideMode)EditorGUILayout.EnumPopup(Styles.drawDistanceOverrideMode, (DrawDistanceOverrideMode)(int)drawDistanceOverrideModeProp.floatValue);
+            if (EditorGUI.EndChangeCheck())
+            {
+                drawDistanceOverrideModeProp.floatValue = (float)(int)drawDistanceOverrideMode;
+            }
+
+            if (drawDistanceOverrideMode != DrawDistanceOverrideMode.None && drawDistanceOverrideMode != DrawDistanceOverrideMode.Disabled)
+            {
+                EditorGUI.BeginChangeCheck();
+                var drawDistanceOverride = EditorGUILayout.FloatField(Styles.drawDistanceOverride, drawDistanceOverrideProp.vectorValue.x);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    drawDistanceOverrideProp.vectorValue = new Vector2(drawDistanceOverride, drawDistanceOverride * drawDistanceOverride);
+                }
             }
         }
 

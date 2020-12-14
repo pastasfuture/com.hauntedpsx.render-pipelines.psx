@@ -8,12 +8,32 @@
 // In practice, these functions will only ever be invoked within that context, and not having to thread so many uniforms through
 // improves code readability inside the *Pass.hlsl files.
 
-float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, float4 positionCS, float precisionGeometryWeight)
+float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, float4 positionCS, float precisionGeometryWeight, int drawDistanceOverrideMode, float2 drawDistanceOverride)
 {
     if (_IsPSXQualityEnabled)
     {
         // Force triangle to degenerate (by writing zero to all components including W) if vertex is greater than our user specified draw distance.
-        positionCS = EvaluateDrawDistanceIsVisible(positionWS, _WorldSpaceCameraPos, positionVS, _DrawDistanceFalloffMode, _DrawDistance.x, _DrawDistance.y) ? positionCS : 0.0f;
+        float2 drawDistance = _DrawDistance;
+        if (drawDistanceOverrideMode == PSX_DRAW_DISTANCE_OVERRIDE_MODE_DISABLED)
+        {
+            drawDistance = FLT_MAX;
+        }
+        else if (drawDistanceOverrideMode == PSX_DRAW_DISTANCE_OVERRIDE_MODE_OVERRIDE)
+        {
+            drawDistance = drawDistanceOverride; 
+        }
+        else if (drawDistanceOverrideMode == PSX_DRAW_DISTANCE_OVERRIDE_MODE_ADD)
+        {
+            drawDistance.x = max(0.0f, _DrawDistance.x + drawDistanceOverride.x);
+            drawDistance.y = drawDistance.x * drawDistance.x;
+        }
+        else if (drawDistanceOverrideMode == PSX_DRAW_DISTANCE_OVERRIDE_MODE_MULTIPLY)
+        {
+            drawDistance.x = max(0.0f, _DrawDistance.x * drawDistanceOverride.x);
+            drawDistance.y = drawDistance.x * drawDistance.x;
+        }
+
+        positionCS = EvaluateDrawDistanceIsVisible(positionWS, _WorldSpaceCameraPos, positionVS, _DrawDistanceFalloffMode, drawDistance.x, drawDistance.y) ? positionCS : 0.0f;
 
         // Snap vertices to pixel centers. PSX does not support sub-pixel vertex accuracy.
         float w = positionCS.w;
@@ -27,6 +47,13 @@ float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, 
         positionCS.xy *= w; // Unapply divide by W, as the hardware will automatically perform this transform between the vertex and fragment shaders.
     }
     return positionCS;
+}
+
+float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, float4 positionCS, float precisionGeometryWeight)
+{
+    int drawDistanceOverrideMode = PSX_DRAW_DISTANCE_OVERRIDE_MODE_NONE;
+    float2 drawDistanceOverrideUnused = float2(0.0f, 0.0f);
+    return ApplyPrecisionGeometryToPositionCS(positionWS, positionVS, positionCS, precisionGeometryWeight, drawDistanceOverrideMode, drawDistanceOverrideUnused);
 }
 
 float3 ApplyAffineTextureWarpingToUVW(float2 uv, float positionCSW, float affineTextureWarpingWeight)

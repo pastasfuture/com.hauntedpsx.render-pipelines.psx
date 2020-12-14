@@ -43,6 +43,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialProperty fogWeightProp { get; set; }
 
+        protected MaterialProperty drawDrawDistanceOverrideModeProp { get; set; }
+
+        protected MaterialProperty drawDrawDistanceOverrideProp { get; set; }
+
         // Common Surface Input properties
 
         protected MaterialProperty mainTexProp { get; set; }
@@ -100,6 +104,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             affineTextureWarpingWeightProp = FindProperty(PropertyNames._AffineTextureWarpingWeight, properties);
             precisionGeometryWeightProp = FindProperty(PropertyNames._PrecisionGeometryWeight, properties);
             fogWeightProp = FindProperty(PropertyNames._FogWeight, properties);
+            drawDrawDistanceOverrideModeProp = FindProperty(PropertyNames._DrawDistanceOverrideMode, properties);
+            drawDrawDistanceOverrideProp = FindProperty(PropertyNames._DrawDistanceOverride, properties);
             mainTexProp = FindProperty(PropertyNames._MainTex, properties, false);
             mainColorProp = FindProperty(PropertyNames._MainColor, properties, false);
             emissionTextureProp = FindProperty(PropertyNames._EmissionTexture, properties, false);
@@ -199,6 +205,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PSXMaterialUtils.DrawAffineTextureWarpingWeight(affineTextureWarpingWeightProp);
             PSXMaterialUtils.DrawPrecisionGeometryWeight(precisionGeometryWeightProp);
             PSXMaterialUtils.DrawFogWeight(fogWeightProp);
+            PSXMaterialUtils.DrawDrawDistanceOverride(drawDrawDistanceOverrideModeProp, drawDrawDistanceOverrideProp);
         }
 
         public virtual void DrawSurfaceInputs(Material material)
