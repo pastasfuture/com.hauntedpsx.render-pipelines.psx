@@ -3,7 +3,6 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Macros.hlsl"
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 
 // Warning: These definitions must stay in sync with PrecisionVolume.DrawDistanceFalloffMode enum.
 #define PSX_DRAW_DISTANCE_FALLOFF_MODE_PLANAR (0)
@@ -180,4 +179,9 @@ float _FramebufferDither;
 
 TEXTURE2D(_AlphaClippingDitherTexture);
 float4 _AlphaClippingDitherSize;
+
+// Note: #include order is important here.
+// unity_* globals and UNITY_MATRIX definitions must be made before UnityInstancing.hlsl
+// so constant buffer declarations don't fail because of instancing macros.
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 #endif
