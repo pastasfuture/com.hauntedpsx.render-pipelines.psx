@@ -158,7 +158,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
 
 #if defined(_OUTPUT_LDR)
     
-#if !defined(_ALPHAMODULATE_ON)
+#if !defined(_BLENDMODE_TONEMAPPER_OFF)
     // Apply tonemapping and gamma correction.
     // This is a departure from classic PS1 games, but it allows for greater flexibility, giving artists more controls for creating the final look and feel of their game.
     // Otherwise, they would need to spend a lot more time in the texturing phase, getting the textures alone to produce the mood they are aiming for.

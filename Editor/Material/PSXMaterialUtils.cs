@@ -113,6 +113,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _SrcBlend = "_SrcBlend";
             public static readonly string _DstBlend = "_DstBlend";
             public static readonly string _ZWrite = "_ZWrite";
+            public static readonly string _ColorMask = "_ColorMask";
             public static readonly string _AlphaClip = "_AlphaClip";
             public static readonly string _AlphaClippingDitherIsEnabled = "_AlphaClippingDitherIsEnabled";
             public static readonly string _AlphaClippingScaleBiasMinMax = "_AlphaClippingScaleBiasMinMax";
@@ -153,6 +154,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly int _SrcBlend = Shader.PropertyToID(PropertyNames._SrcBlend);
             public static readonly int _DstBlend = Shader.PropertyToID(PropertyNames._DstBlend);
             public static readonly int _ZWrite = Shader.PropertyToID(PropertyNames._ZWrite);
+            public static readonly int _ColorMask = Shader.PropertyToID(PropertyNames._ColorMask);
             public static readonly int _AlphaClip = Shader.PropertyToID(PropertyNames._AlphaClip);
             public static readonly int _AlphaClippingDitherIsEnabled = Shader.PropertyToID(PropertyNames._AlphaClippingDitherIsEnabled);
             public static readonly int _AlphaClippingScaleBiasMinMax = Shader.PropertyToID(PropertyNames._AlphaClippingScaleBiasMinMax);
@@ -208,6 +210,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _ALPHATEST_ON = "_ALPHATEST_ON";
             public static readonly string _ALPHAPREMULTIPLY_ON = "_ALPHAPREMULTIPLY_ON";
             public static readonly string _ALPHAMODULATE_ON = "_ALPHAMODULATE_ON";
+            public static readonly string _BLENDMODE_TONEMAPPER_OFF = "_BLENDMODE_TONEMAPPER_OFF";
             public static readonly string _REFLECTION_ON = "_REFLECTION_ON";
             public static readonly string _FOG_ON = "_FOG_ON";
             public static readonly string _DOUBLE_SIDED_ON = "_DOUBLE_SIDED_ON";
@@ -620,7 +623,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 material.SetInt(PropertyIDs._SrcBlend, (int)UnityEngine.Rendering.BlendMode.One);
                 material.SetInt(PropertyIDs._DstBlend, (int)UnityEngine.Rendering.BlendMode.Zero);
                 material.SetInt(PropertyIDs._ZWrite, 1);
+                material.SetInt(PropertyIDs._ColorMask, (int)UnityEngine.Rendering.ColorWriteMask.All);
                 material.DisableKeyword(Keywords._ALPHAPREMULTIPLY_ON);
+                material.DisableKeyword(Keywords._BLENDMODE_TONEMAPPER_OFF);
                 // material.SetShaderPassEnabled("ShadowCaster", true);
             }
             else // SurfaceType == SurfaceType.Transparent
@@ -634,33 +639,43 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                         material.SetInt(PropertyIDs._BlendOp, (int)UnityEngine.Rendering.BlendOp.Add);
                         material.SetInt(PropertyIDs._SrcBlend, (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
                         material.SetInt(PropertyIDs._DstBlend, (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                        material.SetInt(PropertyIDs._ColorMask, (int)UnityEngine.Rendering.ColorWriteMask.All);
                         material.DisableKeyword(Keywords._ALPHAPREMULTIPLY_ON);
+                        material.DisableKeyword(Keywords._BLENDMODE_TONEMAPPER_OFF);
                         break;
                     case PSXMaterialUtils.BlendMode.AlphaPremultiply:
                         material.SetInt(PropertyIDs._BlendOp, (int)UnityEngine.Rendering.BlendOp.Add);
                         material.SetInt(PropertyIDs._SrcBlend, (int)UnityEngine.Rendering.BlendMode.One);
                         material.SetInt(PropertyIDs._DstBlend, (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                        material.SetInt(PropertyIDs._ColorMask, (int)UnityEngine.Rendering.ColorWriteMask.All);
                         material.EnableKeyword(Keywords._ALPHAPREMULTIPLY_ON);
+                        material.DisableKeyword(Keywords._BLENDMODE_TONEMAPPER_OFF);
                         break;
                     case PSXMaterialUtils.BlendMode.Additive:
                         material.SetInt(PropertyIDs._BlendOp, (int)UnityEngine.Rendering.BlendOp.Add);
                         material.SetInt(PropertyIDs._SrcBlend, (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
                         material.SetInt(PropertyIDs._DstBlend, (int)UnityEngine.Rendering.BlendMode.One);
+                        material.SetInt(PropertyIDs._ColorMask, (int)UnityEngine.Rendering.ColorWriteMask.All);
                         material.DisableKeyword(Keywords._ALPHAPREMULTIPLY_ON);
+                        material.DisableKeyword(Keywords._BLENDMODE_TONEMAPPER_OFF);
                         break;
                     case PSXMaterialUtils.BlendMode.Multiply:
                         material.SetInt(PropertyIDs._BlendOp, (int)UnityEngine.Rendering.BlendOp.Add);
                         material.SetInt(PropertyIDs._SrcBlend, (int)UnityEngine.Rendering.BlendMode.DstColor);
                         material.SetInt(PropertyIDs._DstBlend, (int)UnityEngine.Rendering.BlendMode.Zero);
+                        material.SetInt(PropertyIDs._ColorMask, (int)(UnityEngine.Rendering.ColorWriteMask.Red | UnityEngine.Rendering.ColorWriteMask.Green | UnityEngine.Rendering.ColorWriteMask.Blue));
                         material.DisableKeyword(Keywords._ALPHAPREMULTIPLY_ON);
                         material.EnableKeyword(Keywords._ALPHAMODULATE_ON);
+                        material.EnableKeyword(Keywords._BLENDMODE_TONEMAPPER_OFF);
                         break;
                     case PSXMaterialUtils.BlendMode.Subtractive:
                         material.SetInt(PropertyIDs._BlendOp, (int)UnityEngine.Rendering.BlendOp.ReverseSubtract);
                         material.SetInt(PropertyIDs._SrcBlend, (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
                         material.SetInt(PropertyIDs._DstBlend, (int)UnityEngine.Rendering.BlendMode.One);
+                        material.SetInt(PropertyIDs._ColorMask, (int)(UnityEngine.Rendering.ColorWriteMask.Red | UnityEngine.Rendering.ColorWriteMask.Green | UnityEngine.Rendering.ColorWriteMask.Blue));
                         material.DisableKeyword(Keywords._ALPHAPREMULTIPLY_ON);
                         material.DisableKeyword(Keywords._ALPHAMODULATE_ON);
+                        material.EnableKeyword(Keywords._BLENDMODE_TONEMAPPER_OFF);
                         break;
                     default:
                         Debug.Assert(false, "Error: Encountered unsupported blendmode: " + blendMode);

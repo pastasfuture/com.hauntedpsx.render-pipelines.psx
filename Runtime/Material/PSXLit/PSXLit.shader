@@ -36,6 +36,7 @@
         [HideInInspector] _DstBlend("__dst", Float) = 0.0
         [HideInInspector] _ZWrite("__zw", Float) = 1.0
         [HideInInspector] _Cull("__cull", Float) = 2.0
+        [HideInInspector] _ColorMask("__colorMask", Float) = 15.0 // UnityEngine.Rendering.ColorWriteMask.All
         [HideInInspector] _Reflection("__reflection", Float) = 0.0
         [HideInInspector] _DoubleSidedNormalMode("__doubleSidedNormalMode", Float) = 0.0
     }
@@ -53,6 +54,7 @@
             Blend[_SrcBlend][_DstBlend]
             ZWrite[_ZWrite]
             Cull[_Cull]
+            ColorMask[_ColorMask]
 
             HLSLPROGRAM
             // Required to compile gles 2.0 with standard srp library
@@ -77,6 +79,7 @@
             #pragma shader_feature _REFLECTION_ON
             #pragma shader_feature _FOG_ON
             #pragma shader_feature _DOUBLE_SIDED_ON
+            #pragma shader_feature _BLENDMODE_TONEMAPPER_OFF
 
             // -------------------------------------
             // Unity defined keywords
