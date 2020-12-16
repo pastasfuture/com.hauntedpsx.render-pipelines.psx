@@ -100,18 +100,18 @@ Shader "Hidden/HauntedPS1/CRT"
         return s;
     }
 
-    float3 CompositeSignalAndNoise(TEXTURE2D(noiseTextureSampler), float2 posNoiseSignal, float2 posNoiseCRT, float2 off, float3 c)
+    float4 CompositeSignalAndNoise(TEXTURE2D(noiseTextureSampler), float2 posNoiseSignal, float2 posNoiseCRT, float2 off, float4 c)
     {
     #if 0
         float3 steps = float3(64.0, 32.0, 32.0);
-        float3 cyuv = floor(FCCYIQFromSRGB(c) * steps + 0.5) / steps;
+        float3 cyuv = floor(FCCYIQFromSRGB(c.rgb) * steps + 0.5) / steps;
     #else
-        float3 cyuv = FCCYIQFromSRGB(c);
+        float3 cyuv = FCCYIQFromSRGB(c.rgb);
     #endif
         float3 noiseSignalYUV = FetchNoise(posNoiseSignal, noiseTextureSampler);
         float3 noiseCRTYUV = FetchNoise(posNoiseCRT, noiseTextureSampler);
 
-        return saturate(SRGBFromFCCYIQ(cyuv + noiseSignalYUV + noiseCRTYUV));
+        return float4(saturate(SRGBFromFCCYIQ((noiseSignalYUV + noiseCRTYUV) * c.a + cyuv)), c.a);
     }
 
     float4 FetchFrameBuffer(float2 uv)
@@ -140,14 +140,14 @@ Shader "Hidden/HauntedPS1/CRT"
 
     // Nearest emulated sample given floating point position and texel offset.
     // Also zero's off screen.
-    float3 Fetch(float2 pos, float2 off, TEXTURE2D(noiseTextureSampler), float4 noiseTextureSize)
+    float4 Fetch(float2 pos, float2 off, TEXTURE2D(noiseTextureSampler), float4 noiseTextureSize)
     {
         float2 posNoiseSignal = floor(pos * res + off) * noiseTextureSize.zw;
         float2 posNoiseCRT = floor(pos * _ScreenSize.xy + off * res * _ScreenSize.zw) * noiseTextureSize.zw;
         pos = (floor(pos * res + off) + 0.5) / res;
-        if (min(pos.x, pos.y) < 0.0 || max(pos.x, pos.y) > 1.0) { return float3(0.0, 0.0, 0.0); }
-        float3 value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, FetchFrameBuffer(pos).rgb);
-        value = SRGBToLinear(value);
+        if (min(pos.x, pos.y) < 0.0 || max(pos.x, pos.y) > 1.0) { return float4(0.0, 0.0, 0.0, 0.0f); }
+        float4 value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, FetchFrameBuffer(pos));
+        value.rgb = SRGBToLinear(value.rgb);
         return value;
     }
 
@@ -178,11 +178,11 @@ Shader "Hidden/HauntedPS1/CRT"
     }
 
     // 3-tap Gaussian filter along horz line.
-    float3 Horz3(float2 pos,float off)
+    float4 Horz3(float2 pos,float off)
     {
-        float3 b=Fetch(pos,float2(-1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float3 c=Fetch(pos,float2( 0.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float3 d=Fetch(pos,float2( 1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 b=Fetch(pos,float2(-1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 c=Fetch(pos,float2( 0.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 d=Fetch(pos,float2( 1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
         float dst=Dist(pos).x;
 
         // Use gaussian as windowing function for lanczos filter.
@@ -197,13 +197,13 @@ Shader "Hidden/HauntedPS1/CRT"
     }
 
     // 5-tap Gaussian filter along horz line.
-    float3 Horz5(float2 pos,float off)
+    float4 Horz5(float2 pos,float off)
     {
-        float3 a=Fetch(pos,float2(-2.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float3 b=Fetch(pos,float2(-1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float3 c=Fetch(pos,float2( 0.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float3 d=Fetch(pos,float2( 1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float3 e=Fetch(pos,float2( 2.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 a=Fetch(pos,float2(-2.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 b=Fetch(pos,float2(-1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 c=Fetch(pos,float2( 0.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 d=Fetch(pos,float2( 1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 e=Fetch(pos,float2( 2.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
         float dst=Dist(pos).x;
 
         // Use gaussian as windowing function for lanczos filter.
@@ -220,15 +220,15 @@ Shader "Hidden/HauntedPS1/CRT"
     }
 
     // 7-tap Gaussian filter along horz line.
-    float3 Horz7(float2 pos,float off)
+    float4 Horz7(float2 pos,float off)
     {
-        float3 a=Fetch(pos,float2(-3.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float3 b=Fetch(pos,float2(-2.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float3 c=Fetch(pos,float2(-1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float3 d=Fetch(pos,float2( 0.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float3 e=Fetch(pos,float2( 1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float3 f=Fetch(pos,float2( 2.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float3 g=Fetch(pos,float2( 3.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 a=Fetch(pos,float2(-3.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 b=Fetch(pos,float2(-2.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 c=Fetch(pos,float2(-1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 d=Fetch(pos,float2( 0.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 e=Fetch(pos,float2( 1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 f=Fetch(pos,float2( 2.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
+        float4 g=Fetch(pos,float2( 3.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
         float dst=Dist(pos).x;
 
         // Convert distance to weight.
@@ -263,7 +263,7 @@ Shader "Hidden/HauntedPS1/CRT"
     }
 
     // Allow nearest three lines to effect pixel.
-    float3 Tri(float2 pos)
+    float4 Tri(float2 pos)
     {
         float2 positionPixelsMax = pos * res + float2(5.0, 1.0);
         float2 positionPixelsMin = pos * res - float2(5.0, 1.0);
@@ -274,9 +274,9 @@ Shader "Hidden/HauntedPS1/CRT"
             return 0.0;
         }
 
-        float3 a=Horz3(pos,-1.0);
-        float3 b=Horz5(pos, 0.0);
-        float3 c=Horz3(pos, 1.0);
+        float4 a=Horz3(pos,-1.0);
+        float4 b=Horz5(pos, 0.0);
+        float4 c=Horz3(pos, 1.0);
         float wa=Scan(pos,-1.0);
         float wb=Scan(pos, 0.0);
         float wc=Scan(pos, 1.0);
@@ -284,7 +284,7 @@ Shader "Hidden/HauntedPS1/CRT"
     }
 
     // Small bloom.
-    float3 Bloom(float2 pos)
+    float4 Bloom(float2 pos)
     {
         float2 positionPixelsMax = pos * res + float2(7.0, 2.0);
         float2 positionPixelsMin = pos * res - float2(7.0, 2.0);
@@ -295,17 +295,17 @@ Shader "Hidden/HauntedPS1/CRT"
             return 0.0;
         }
 
-        float3 a=Horz5(pos,-2.0);
-        float3 b=Horz7(pos,-1.0);
-        float3 c=Horz7(pos, 0.0);
-        float3 d=Horz7(pos, 1.0);
-        float3 e=Horz5(pos, 2.0);
+        float4 a=Horz5(pos,-2.0);
+        float4 b=Horz7(pos,-1.0);
+        float4 c=Horz7(pos, 0.0);
+        float4 d=Horz7(pos, 1.0);
+        float4 e=Horz5(pos, 2.0);
         float wa=BloomScan(pos,-2.0);
         float wb=BloomScan(pos,-1.0);
         float wc=BloomScan(pos, 0.0);
         float wd=BloomScan(pos, 1.0);
         float we=BloomScan(pos, 2.0);
-        return a*wa+b*wb+c*wc+d*wd+e*we;
+        return (a*wa+b*wb+c*wc+d*wd+e*we) / (wa + wb + wc + wd + we);
     }
 
     // Distortion of scanlines, and end of screen alpha.
@@ -418,19 +418,20 @@ Shader "Hidden/HauntedPS1/CRT"
         float distanceFromCenterSquaredNDC = dot(crtNDC, crtNDC);
         float vignette = EvaluatePBRVignette(distanceFromCenterSquaredNDC, _CRTVignetteSquared);
 
-        crt.rgb = CRTMask(positionScreenSS * _CRTGrateMaskScale.y) * Tri(crtUV);
+        crt = float4(CRTMask(positionScreenSS * _CRTGrateMaskScale.y), 1.0f) * Tri(crtUV);
 
         #if 1
         // Energy conserving normalized bloom.
-        crt.rgb = lerp(crt.rgb, Bloom(crtUV), _CRTBloom);    
+        crt = lerp(crt, Bloom(crtUV), _CRTBloom);    
         #else
         // Additive bloom.
-        crt.rgb += Bloom(crtUV) * _CRTBloom;   
+        crt += Bloom(crtUV) * _CRTBloom;
+        crt.a = saturate(crt.a);   
         #endif
 
         crt.rgb *= vignette;
 
-        return float4(crt.rgb, 1.0);
+        return float4(crt.rgb, crt.a);
     }
 
     struct Attributes
@@ -518,7 +519,7 @@ Shader "Hidden/HauntedPS1/CRT"
         outColor.rgb = saturate(outColor.rgb);
         outColor.rgb = LinearToSRGB(outColor.rgb);
 
-        return float4(outColor.rgb, 1.0);
+        return float4(outColor.rgb, outColor.a);
     }
 
     ENDHLSL
