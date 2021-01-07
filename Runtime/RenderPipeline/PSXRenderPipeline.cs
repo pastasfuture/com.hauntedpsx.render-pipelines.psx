@@ -1170,6 +1170,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetGlobalVector(PSXShaderIDs._CRTBarrelDistortion, new Vector2(volumeSettings.barrelDistortionX.value * 0.125f, volumeSettings.barrelDistortionY.value * 0.125f));
             
                 cmd.SetGlobalFloat(PSXShaderIDs._CRTVignetteSquared, volumeSettings.vignette.value * volumeSettings.vignette.value);
+
+                cmd.SetGlobalFloat(PSXShaderIDs._CRTFadePercent, volumeSettings.subtractionFade.value * volumeSettings.subtractionFade.value);
             }
         }
 

@@ -26,6 +26,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         SerializedDataParameter m_BarrelDistortionX;
         SerializedDataParameter m_BarrelDistortionY;
         SerializedDataParameter m_Vignette;
+        SerializedDataParameter m_SubtractionFade;
 
         public override void OnEnable()
         {
@@ -46,6 +47,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             m_BarrelDistortionX = Unpack(o.Find(x => x.barrelDistortionX));
             m_BarrelDistortionY = Unpack(o.Find(x => x.barrelDistortionY));
             m_Vignette = Unpack(o.Find(x => x.vignette));
+            m_SubtractionFade = Unpack(o.Find(x => x.subtractionFade));
         }
 
         public override void OnInspectorGUI()
@@ -66,6 +68,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PropertyField(m_BarrelDistortionX, EditorGUIUtility.TrTextContent("Barrel Distortion X", "Controls the intensity of the simulated CRT barrel distortion (fish bowl effect) horizontally."));
             PropertyField(m_BarrelDistortionY, EditorGUIUtility.TrTextContent("Barrel Distortion Y", "Controls the intensity of the simulated CRT barrel distortion (fish bowl effect) vertically."));    
             PropertyField(m_Vignette, EditorGUIUtility.TrTextContent("Vignette", "Controls the amount of image darkening that occurs at the side of the CRT screen."));
+            PropertyField(m_SubtractionFade, EditorGUIUtility.TrTextContent("Subtraction Fade", "Controls current amount of fade being applied"));
         }
     }
 }

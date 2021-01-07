@@ -39,6 +39,7 @@ Shader "Hidden/HauntedPS1/CRT"
     TEXTURE2D(_WhiteNoiseTexture);
     TEXTURE2D(_BlueNoiseTexture);
     TEXTURE2D(_CRTGrateMaskTexture);
+	float _CRTFadePercent;
 
     // Emulated input resolution.
 #if 1
@@ -430,6 +431,9 @@ Shader "Hidden/HauntedPS1/CRT"
         #endif
 
         crt.rgb *= vignette;
+
+		// Subtraction Fade
+		crt.rgb = crt.rgb - _CRTFadePercent;
 
         return float4(crt.rgb, crt.a);
     }

@@ -127,6 +127,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _CRTGrateMaskIntensityMinMax = Shader.PropertyToID("_CRTGrateMaskIntensityMinMax");
         public static readonly int _CRTBarrelDistortion = Shader.PropertyToID("_CRTBarrelDistortion");
         public static readonly int _CRTVignetteSquared = Shader.PropertyToID("_CRTVignetteSquared");
+        public static readonly int _CRTFadePercent = Shader.PropertyToID("_CRTFadePercent");
         public static readonly int _CRTIsTelevisionOverlayEnabled = Shader.PropertyToID("_CRTIsTelevisionOverlayEnabled");
         public static readonly int _PrecisionGeometry = Shader.PropertyToID("_PrecisionGeometry");
         public static readonly int _PrecisionColor = Shader.PropertyToID("_PrecisionColor");

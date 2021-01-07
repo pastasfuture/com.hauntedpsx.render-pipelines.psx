@@ -41,6 +41,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public ClampedFloatParameter barrelDistortionX = new ClampedFloatParameter(8.0f / 64.0f, 0.0f, 1.0f);
         public ClampedFloatParameter barrelDistortionY = new ClampedFloatParameter(8.0f / 24.0f, 0.0f, 1.0f);
         public ClampedFloatParameter vignette = new ClampedFloatParameter(0.5f, 0.0f, 1.0f);
+        public ClampedFloatParameter subtractionFade = new ClampedFloatParameter(0.0f, 0.0f, 1.0f);
 
         static CathodeRayTubeVolume s_Default = null;
         public static CathodeRayTubeVolume @default
