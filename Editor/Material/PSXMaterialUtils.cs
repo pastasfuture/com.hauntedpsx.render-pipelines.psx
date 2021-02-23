@@ -89,6 +89,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             Multiply
         }
 
+        public enum PrecisionGeometryOverrideMode
+        {
+            None = 0,
+            Disabled,
+            Override,
+            Add,
+            Multiply
+        }
+
         public enum UVAnimationMode
         {
             None = 0,
@@ -125,7 +134,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _AlphaClippingDitherIsEnabled = "_AlphaClippingDitherIsEnabled";
             public static readonly string _AlphaClippingScaleBiasMinMax = "_AlphaClippingScaleBiasMinMax";
             public static readonly string _AffineTextureWarpingWeight = "_AffineTextureWarpingWeight";
-            public static readonly string _PrecisionGeometryWeight = "_PrecisionGeometryWeight";
+            public static readonly string _PrecisionGeometryWeightDeprecated = "_PrecisionGeometryWeight";
+            public static readonly string _PrecisionGeometryOverrideMode = "_PrecisionGeometryOverrideMode";
+            public static readonly string _PrecisionGeometryOverrideParameters = "_PrecisionGeometryOverrideParameters";
             public static readonly string _FogWeight = "_FogWeight";
             public static readonly string _DrawDistanceOverrideMode = "_DrawDistanceOverrideMode";
             public static readonly string _DrawDistanceOverride = "_DrawDistanceOverride";
@@ -169,10 +180,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly int _AlphaClippingDitherIsEnabled = Shader.PropertyToID(PropertyNames._AlphaClippingDitherIsEnabled);
             public static readonly int _AlphaClippingScaleBiasMinMax = Shader.PropertyToID(PropertyNames._AlphaClippingScaleBiasMinMax);
             public static readonly int _AffineTextureWarpingWeight = Shader.PropertyToID(PropertyNames._AffineTextureWarpingWeight);
-            public static readonly int _PrecisionGeometryWeight = Shader.PropertyToID(PropertyNames._PrecisionGeometryWeight);
+            public static readonly int _PrecisionGeometryWeightDeprecated = Shader.PropertyToID(PropertyNames._PrecisionGeometryWeightDeprecated);
             public static readonly int _FogWeight = Shader.PropertyToID(PropertyNames._FogWeight);
             public static readonly int _DrawDistanceOverrideMode = Shader.PropertyToID(PropertyNames._DrawDistanceOverrideMode);
             public static readonly int _DrawDistanceOverride = Shader.PropertyToID(PropertyNames._DrawDistanceOverride);
+            public static readonly int _PrecisionGeometryOverrideMode = Shader.PropertyToID(PropertyNames._PrecisionGeometryOverrideMode);
+            public static readonly int _PrecisionGeometryOverrideParameters = Shader.PropertyToID(PropertyNames._PrecisionGeometryOverrideParameters);
             public static readonly int _UVAnimationMode = Shader.PropertyToID(PropertyNames._UVAnimationMode);
             public static readonly int _UVAnimationParameters = Shader.PropertyToID(PropertyNames._UVAnimationParameters);
             public static readonly int _UVAnimationParametersFrameLimit = Shader.PropertyToID(PropertyNames._UVAnimationParametersFrameLimit);
@@ -289,8 +302,13 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly GUIContent affineTextureWarpingWeight = new GUIContent("Affine Texture Warping Weight",
                 "Allows you to decrease the amount of affine texture warping on your material. A value of 1.0 results in no change, and simply uses the Affine Texture Warping parameter from the Volume System. A value of 0.0 results in no affine texture warping. A value of 0.5 results in 50% of the affine texture warping from the Volume System.");
 
-            public static readonly GUIContent precisionGeometryWeight = new GUIContent("Precision Geometry Weight",
+            public static readonly GUIContent precisionGeometryWeightDeprecated = new GUIContent("Precision Geometry Weight (deprecated)",
                 "Allows you to decrease the amount of vertex snapping on your material. A value of 1.0 results in no change, and simply uses the PrecisionVolume.Geometry parameter from the Volume System. A value of 0.0 results in no vertex snapping. A value of 0.5 results in 50% blend between vertex snapping from the Volume System, and no vertex snapping.");
+
+            public static readonly GUIContent precisionGeometryOverrideMode = new GUIContent("Precision Geometry Override Mode",
+                "Allows you to override the precision geometry parameter that is specified on your Precision Volume. Useful glitch effects, or for completely disabling vertex snapping on a specific material.");
+
+            public static readonly GUIContent precisionGeometryOverride = new GUIContent("Precision Geometry Override");
 
             public static readonly GUIContent fogWeight = new GUIContent("Fog Weight",
                 "Specifies how much of the global Fog Volume is applied to this surface. In general this should be left at 1.0. Set to 0.0 to fully disable fog (and which avoids cost of evaluating fog). This parameter is particularly useful for tuning the look of skybox geometry.");
@@ -1125,16 +1143,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             }
         }
 
-        public static void DrawPrecisionGeometryWeight(MaterialProperty precisionGeometryWeightProp)
-        {
-            EditorGUI.BeginChangeCheck();
-            var precisionGeometryWeight = EditorGUILayout.Slider(Styles.precisionGeometryWeight, precisionGeometryWeightProp.floatValue, 0.0f, 1.0f);
-            if (EditorGUI.EndChangeCheck())
-            {
-                precisionGeometryWeightProp.floatValue = precisionGeometryWeight;
-            }
-        }
-
         public static void DrawFogWeight(MaterialProperty fogWeightProp)
         {
             EditorGUI.BeginChangeCheck();
@@ -1161,6 +1169,71 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 if (EditorGUI.EndChangeCheck())
                 {
                     drawDistanceOverrideProp.vectorValue = new Vector2(drawDistanceOverride, drawDistanceOverride * drawDistanceOverride);
+                }
+            }
+        }
+
+        public static void DrawPrecisionGeometryOverride(MaterialProperty precisionGeometryOverrideModeProp, MaterialProperty precisionGeometryOverrideParametersProp, MaterialProperty precisionGeometryWeightDeprecatedProp)
+        {
+            bool needsMigration = (precisionGeometryWeightDeprecatedProp.floatValue <= 0.999f);
+            if (needsMigration)
+            {
+                // There isn't a perfect migration availible between our old weight parameterization, and our override parameterization.
+                // The best we can do is detect if the weight was set to zero, and simply disable precision geometry.
+                if (precisionGeometryWeightDeprecatedProp.floatValue < 1e-5f)
+                {
+                    precisionGeometryOverrideModeProp.floatValue = (float)(int)PrecisionGeometryOverrideMode.Disabled;
+                    precisionGeometryOverrideParametersProp.vectorValue = new Vector2(0.0f, 0.0f);
+                    precisionGeometryWeightDeprecatedProp.floatValue = 0.0f;
+                }
+                else
+                {
+                    precisionGeometryOverrideModeProp.floatValue = (float)(int)PrecisionGeometryOverrideMode.None;
+                    precisionGeometryOverrideParametersProp.vectorValue = new Vector2(0.0f, 0.0f);
+                    precisionGeometryWeightDeprecatedProp.floatValue = 0.0f;
+                }
+            }
+
+            EditorGUI.BeginChangeCheck();
+            bool modeChanged = false;
+            var precisionGeometryOverrideMode = (PrecisionGeometryOverrideMode)EditorGUILayout.EnumPopup(Styles.precisionGeometryOverrideMode, (PrecisionGeometryOverrideMode)(int)precisionGeometryOverrideModeProp.floatValue);
+            if (EditorGUI.EndChangeCheck())
+            {
+                modeChanged = true;
+                precisionGeometryOverrideModeProp.floatValue = (float)(int)precisionGeometryOverrideMode;
+            }
+
+            if (precisionGeometryOverrideMode != PrecisionGeometryOverrideMode.None && precisionGeometryOverrideMode != PrecisionGeometryOverrideMode.Disabled)
+            {
+                EditorGUI.BeginChangeCheck();
+                var precisionGeometryOverride = EditorGUILayout.FloatField(Styles.precisionGeometryOverride, precisionGeometryOverrideParametersProp.vectorValue.z);
+                if (EditorGUI.EndChangeCheck() || modeChanged)
+                {
+                    switch (precisionGeometryOverrideMode)
+                    {
+                        case PrecisionGeometryOverrideMode.Override:
+                        {
+                            // Fast path: precompute the scale and scale inverse transformation cpu side since we will be fully overriding.
+                            precisionGeometryOverride = Mathf.Clamp01(precisionGeometryOverride);
+                            Vector2 precisionGeometryScaleAndScaleInverse = PSXRenderPipeline.ComputePrecisionGeometryParameters(precisionGeometryOverride);
+                            precisionGeometryOverrideParametersProp.vectorValue = new Vector3(precisionGeometryScaleAndScaleInverse.x, precisionGeometryScaleAndScaleInverse.y, precisionGeometryOverride);
+                            break;
+                        }
+                        case PrecisionGeometryOverrideMode.Multiply:
+                        {
+                            precisionGeometryOverride = Mathf.Max(1e-5f, precisionGeometryOverride);
+
+                            // Scale and Scale Inverse transformation will happen in shader. Just need the raw precisionGeometryOverride value.
+                            precisionGeometryOverrideParametersProp.vectorValue = new Vector3(1.0f, 1.0f, precisionGeometryOverride);
+                            break;
+                        }
+                        default:
+                        {
+                            // Scale and Scale Inverse transformation will happen in shader. Just need the raw precisionGeometryOverride value.
+                            precisionGeometryOverrideParametersProp.vectorValue = new Vector3(1.0f, 1.0f, precisionGeometryOverride);
+                            break;
+                        }
+                    }
                 }
             }
         }

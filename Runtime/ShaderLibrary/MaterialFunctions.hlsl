@@ -8,7 +8,17 @@
 // In practice, these functions will only ever be invoked within that context, and not having to thread so many uniforms through
 // improves code readability inside the *Pass.hlsl files.
 
-float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, float4 positionCS, float precisionGeometryWeight, int drawDistanceOverrideMode, float2 drawDistanceOverride)
+// Warning: Needs to stay in sync with PSXRenderPipeline::ComputePrecisionGeometryParameters().
+float2 ComputePrecisionGeometryParameters(float precisionGeometryNormalized)
+{
+    float precisionGeometryExponent = lerp(6.0f, 0.0f, precisionGeometryNormalized);
+    float precisionGeometryScaleInverse = pow(2.0f, max(0.0f, precisionGeometryExponent)); // max() is to silence warnings / precision issues.
+    float precisionGeometryScale = 1.0f / precisionGeometryScaleInverse;
+
+    return float2(precisionGeometryScale, precisionGeometryScaleInverse);
+}
+
+float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, float4 positionCS, int precisionGeometryOverrideMode, float3 precisionGeometryOverrideParameters, int drawDistanceOverrideMode, float2 drawDistanceOverride)
 {
     if (_IsPSXQualityEnabled)
     {
@@ -35,25 +45,62 @@ float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, 
 
         positionCS = EvaluateDrawDistanceIsVisible(positionWS, _WorldSpaceCameraPos, positionVS, _DrawDistanceFalloffMode, drawDistance.x, drawDistance.y) ? positionCS : 0.0f;
 
-        // Snap vertices to pixel centers. PSX does not support sub-pixel vertex accuracy.
-        float w = positionCS.w;
-        positionCS.xy *= rcp(w); // Apply divide by W to temporarily homogenize coordinates.
+        float precisionGeometryScale = _PrecisionGeometry.x;
+        float precisionGeometryScaleInverse = _PrecisionGeometry.y;
+        float precisionGeometryNormalized = _PrecisionGeometry.z; // Raw slider value, needed for handling override modes.
+        bool precisionGeometryEnabled = _PrecisionGeometry.w;
+        if (precisionGeometryOverrideMode == PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_NONE)
+        {
+            // Nothing to do.
+        }
+        else if (precisionGeometryOverrideMode == PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_DISABLED)
+        {
+            precisionGeometryEnabled = false;
+        }
+        else if (precisionGeometryOverrideMode == PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_OVERRIDE)
+        {
+            precisionGeometryEnabled = true;
+            precisionGeometryScale = precisionGeometryOverrideParameters.x;
+            precisionGeometryScaleInverse = precisionGeometryOverrideParameters.y;
+        }
+        else if (precisionGeometryOverrideMode == PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_ADD)
+        {
+            float precisionGeometryOverrideOffset = precisionGeometryOverrideParameters.z;
+            float2 scaleAndScaleInverse = ComputePrecisionGeometryParameters(saturate(precisionGeometryNormalized + precisionGeometryOverrideOffset));
+            precisionGeometryScale = scaleAndScaleInverse.x;
+            precisionGeometryScaleInverse = scaleAndScaleInverse.y;
+        }
+        else if (precisionGeometryOverrideMode == PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_MULTIPLY)
+        {
+            float precisionGeometryOverrideScale = precisionGeometryOverrideParameters.z;
+            float2 scaleAndScaleInverse = ComputePrecisionGeometryParameters(saturate(precisionGeometryNormalized * precisionGeometryOverrideScale));
+            precisionGeometryScale = scaleAndScaleInverse.x;
+            precisionGeometryScaleInverse = scaleAndScaleInverse.y;
+        }
 
-        float4 screenSizePrecisionGeometry = _ScreenSizeRasterization * _PrecisionGeometry.xxyy;
-        float2 positionSS = floor((positionCS.xy * 0.5f + 0.5f) * screenSizePrecisionGeometry.xy + 0.5f);
+        if (precisionGeometryEnabled)
+        {
+            // Snap vertices to pixel centers. PSX does not support sub-pixel vertex accuracy.
+            float w = positionCS.w;
+            positionCS.xy *= rcp(w); // Apply divide by W to temporarily homogenize coordinates.
 
-        // Material can locally decrease vertex snapping contribution with _PrecisionGeometryWeight.
-        positionCS.xy = lerp(positionCS.xy, (positionSS * screenSizePrecisionGeometry.zw) * 2.0f - 1.0f, precisionGeometryWeight);
-        positionCS.xy *= w; // Unapply divide by W, as the hardware will automatically perform this transform between the vertex and fragment shaders.
+            float4 screenSizePrecisionGeometry = _ScreenSizeRasterization * float4(precisionGeometryScale, precisionGeometryScale, precisionGeometryScaleInverse, precisionGeometryScaleInverse);
+            float2 positionSS = floor((positionCS.xy * 0.5f + 0.5f) * screenSizePrecisionGeometry.xy + 0.5f);
+
+            // Material can locally decrease vertex snapping contribution with _PrecisionGeometryWeight.
+            positionCS.xy = (positionSS * screenSizePrecisionGeometry.zw) * 2.0f - 1.0f;
+            positionCS.xy *= w; // Unapply divide by W, as the hardware will automatically perform this transform between the vertex and fragment shaders.
+        }
+        
     }
     return positionCS;
 }
 
-float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, float4 positionCS, float precisionGeometryWeight)
+float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, float4 positionCS, int precisionGeometryMode, float3 precisionGeometryParameters)
 {
     int drawDistanceOverrideMode = PSX_DRAW_DISTANCE_OVERRIDE_MODE_NONE;
     float2 drawDistanceOverrideUnused = float2(0.0f, 0.0f);
-    return ApplyPrecisionGeometryToPositionCS(positionWS, positionVS, positionCS, precisionGeometryWeight, drawDistanceOverrideMode, drawDistanceOverrideUnused);
+    return ApplyPrecisionGeometryToPositionCS(positionWS, positionVS, positionCS, precisionGeometryMode, precisionGeometryParameters, drawDistanceOverrideMode, drawDistanceOverrideUnused);
 }
 
 float3 ApplyAffineTextureWarpingToUVW(float2 uv, float positionCSW, float affineTextureWarpingWeight)

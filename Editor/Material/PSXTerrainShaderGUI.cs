@@ -46,7 +46,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialProperty affineTextureWarpingWeightProp { get; set; }
 
-        protected MaterialProperty precisionGeometryWeightProp { get; set; }
+        protected MaterialProperty precisionGeometryWeightDeprecatedProp { get; set; }
+
+        protected MaterialProperty precisionGeometryOverrideModeProp { get; set; }
+
+        protected MaterialProperty precisionGeometryOverrideParametersProp { get; set; }
 
         protected MaterialProperty fogWeightProp { get; set; }
 
@@ -100,7 +104,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             // alphaClipProp = FindProperty(PropertyNames._AlphaClip, properties);
             // alphaClippingDitherIsEnabledProp = FindProperty(PropertyNames._AlphaClippingDitherIsEnabled, properties);
             affineTextureWarpingWeightProp = FindProperty(PropertyNames._AffineTextureWarpingWeight, properties);
-            precisionGeometryWeightProp = FindProperty(PropertyNames._PrecisionGeometryWeight, properties);
+            precisionGeometryWeightDeprecatedProp = FindProperty(PropertyNames._PrecisionGeometryWeightDeprecated, properties);
+            precisionGeometryOverrideModeProp = FindProperty(PropertyNames._PrecisionGeometryOverrideMode, properties);
+            precisionGeometryOverrideParametersProp = FindProperty(PropertyNames._PrecisionGeometryOverrideParameters, properties);
             fogWeightProp = FindProperty(PropertyNames._FogWeight, properties);
             // mainTexProp = FindProperty(PropertyNames._MainTex, properties, false);
             // mainColorProp = FindProperty(PropertyNames._MainColor, properties, false);
@@ -216,7 +222,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             // PSXMaterialUtils.DrawAlphaClippingSettings(material, alphaClipProp, alphaClippingDitherIsEnabledProp);
 
             PSXMaterialUtils.DrawAffineTextureWarpingWeight(affineTextureWarpingWeightProp);
-            PSXMaterialUtils.DrawPrecisionGeometryWeight(precisionGeometryWeightProp);
+            PSXMaterialUtils.DrawPrecisionGeometryOverride(precisionGeometryOverrideModeProp, precisionGeometryOverrideParametersProp, precisionGeometryWeightDeprecatedProp);
             PSXMaterialUtils.DrawFogWeight(fogWeightProp);
         }
 

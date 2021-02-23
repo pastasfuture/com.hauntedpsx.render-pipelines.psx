@@ -11,6 +11,8 @@
         _AlphaClippingScaleBiasMinMax("_AlphaClippingScaleBiasMinMax", Vector) = (1.0, 0.0, 0.0, 1.0)
         _AffineTextureWarpingWeight("_AffineTextureWarpingWeight", Float) = 1.0
         _PrecisionGeometryWeight("_PrecisionGeometryWeight", Float) = 1.0
+        _PrecisionGeometryOverrideMode("_PrecisionGeometryOverrideMode", Float) = 0.0
+        _PrecisionGeometryOverrideParameters("_PrecisionGeometryOverrideParameters", Vector) = (0, 0, 0, 0)
         _FogWeight("_FogWeight", Float) = 1.0
         _DrawDistanceOverrideMode("_DrawDistanceOverrideMode", Int) = 0
         _DrawDistanceOverride("_DrawDistanceOverride", Vector) = (100, 10000, 0, 0)

@@ -528,6 +528,18 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             return lightingIsEnabled;
         }
 
+        // Needs to be accessible to PSXMaterialUtils for PrecisionGeometryOverrideMode.Override calculations.
+        public static Vector2 ComputePrecisionGeometryParameters(float precisionGeometryNormalized)
+        {
+            // Warning: This function needs to stay in sync with MaterialFunctions.hlsl::ApplyPrecisionGeometryToPositionCS().
+            // The these exponents will be dynamically calculated in the shader if a material chooses to override the global precision geometry value.
+            float precisionGeometryExponent = Mathf.Lerp(6.0f, 0.0f, precisionGeometryNormalized);
+            float precisionGeometryScaleInverse = Mathf.Pow(2.0f, precisionGeometryExponent);
+            float precisionGeometryScale = 1.0f / precisionGeometryScaleInverse;
+
+            return new Vector2(precisionGeometryScale, precisionGeometryScaleInverse);
+        }
+
         static void PushPrecisionParameters(Camera camera, CommandBuffer cmd, PSXRenderPipelineAsset asset)
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushPrecisionParameters))
@@ -535,12 +547,20 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 var volumeSettings = VolumeManager.instance.stack.GetComponent<PrecisionVolume>();
                 if (!volumeSettings) volumeSettings = PrecisionVolume.@default;
 
-                float precisionGeometryExponent = Mathf.Lerp(6.0f, 0.0f, volumeSettings.geometry.value);
-                float precisionGeometryScaleInverse = Mathf.Pow(2.0f, precisionGeometryExponent);
-                float precisionGeometryScale = 1.0f / precisionGeometryScaleInverse;
+                bool precisionGeometryEnabled = volumeSettings.geometryEnabled.value;
+                if (precisionGeometryEnabled)
+                {
+                    Vector2 precisionGeometryScaleAndScaleInverse = ComputePrecisionGeometryParameters(volumeSettings.geometry.value);
 
-                cmd.SetGlobalVector(PSXShaderIDs._PrecisionGeometry, new Vector3(precisionGeometryScale, precisionGeometryScaleInverse));
-
+                    // Note: The raw volumeSettings.geometry [0, 1] slider value is needed in the shader for per-material override modes, since the blending needs to happen on the raw parameter.
+                    // The fast path transformed scale and scaleInverse terms are still used when no per-material override is used.
+                    cmd.SetGlobalVector(PSXShaderIDs._PrecisionGeometry, new Vector4(precisionGeometryScaleAndScaleInverse.x, precisionGeometryScaleAndScaleInverse.y, volumeSettings.geometry.value, precisionGeometryEnabled ? 1.0f : 0.0f));
+                }
+                else
+                {
+                    cmd.SetGlobalVector(PSXShaderIDs._PrecisionGeometry, Vector4.zero);
+                }
+                
                 int precisionColorIndex = Mathf.FloorToInt(volumeSettings.color.value * 7.0f + 0.5f);
                 float precisionChromaBit = volumeSettings.chroma.value;
                 Vector3 precisionColor = Vector3.zero; // Silence the compiler warnings.

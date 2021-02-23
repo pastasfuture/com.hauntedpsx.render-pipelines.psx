@@ -98,11 +98,12 @@ GrassVaryings WavingGrassVert(GrassAttributes v)
     // and therefore have no way of controlling the _PrecisionGeometryWeight as in other surfaces.
     // for now we simply hardcode this at full strength, which should be a reasonable default.
     // TODO: Figure out the best way to expose these to the user.
-    const float precisionGeometryWeight = 1.0f;
+    const int precisionGeometryOverrideMode = PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_NONE;
+    const float3 precisionGeometryOverrideParameters = 0.0f;
     const float affineTextureWarpingWeight = 1.0f;
     const float fogWeight = 1.0f;
 
-    o.vertex = ApplyPrecisionGeometryToPositionCS(vertexInput.positionWS, vertexInput.positionVS, o.vertex, precisionGeometryWeight);
+    o.vertex = ApplyPrecisionGeometryToPositionCS(vertexInput.positionWS, vertexInput.positionVS, o.vertex, precisionGeometryOverrideMode, precisionGeometryOverrideParameters);
     o.uvw = ApplyAffineTextureWarpingToUVW(v.uv, vertexInput.positionCS.w, affineTextureWarpingWeight);
     o.lighting = EvaluateLightingPerVertex(vertexInput.positionWS, o.normalWS, vertexColor, o.lightmapUV, o.uvw.z);
     o.fog = EvaluateFogPerVertex(vertexInput.positionWS, vertexInput.positionVS, o.uvw.z, fogWeight);
@@ -137,11 +138,12 @@ GrassVaryings WavingGrassBillboardVert(GrassAttributes v)
     // and therefore have no way of controlling the _PrecisionGeometryWeight as in other surfaces.
     // for now we simply hardcode this at full strength, which should be a reasonable default.
     // TODO: Figure out the best way to expose these to the user.
-    const float precisionGeometryWeight = 1.0f;
+    const int precisionGeometryOverrideMode = PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_NONE;
+    const float3 precisionGeometryOverrideParameters = 0.0f;
     const float affineTextureWarpingWeight = 1.0f;
     const float fogWeight = 1.0f;
 
-    o.vertex = ApplyPrecisionGeometryToPositionCS(vertexInput.positionWS, vertexInput.positionVS, o.vertex, precisionGeometryWeight);
+    o.vertex = ApplyPrecisionGeometryToPositionCS(vertexInput.positionWS, vertexInput.positionVS, o.vertex, precisionGeometryOverrideMode, precisionGeometryOverrideParameters);
     o.uvw = ApplyAffineTextureWarpingToUVW(v.uv, vertexInput.positionCS.w, affineTextureWarpingWeight);
     // o.lighting = EvaluateLightingPerVertex(vertexInput.positionWS, o.normalWS, vertexColor, o.lightmapUV, o.uvw.z);
     o.fog = EvaluateFogPerVertex(vertexInput.positionWS, vertexInput.positionVS, o.uvw.z, fogWeight);

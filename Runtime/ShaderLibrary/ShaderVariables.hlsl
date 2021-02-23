@@ -31,6 +31,13 @@
 #define PSX_UV_ANIMATION_MODE_PAN_LINEAR (1)
 #define PSX_UV_ANIMATION_MODE_PAN_SIN (2)
 
+// Warning: These definitions must stay in sync with PrecisionGeometryOverrideMode enum.
+#define PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_NONE (0)
+#define PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_DISABLED (1)
+#define PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_OVERRIDE (2)
+#define PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_ADD (3)
+#define PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_MULTIPLY (4)
+
 // Globals:
 // Unity Standard:
 //
@@ -43,7 +50,7 @@ float4 _ProjectionParams;
 int _IsPSXQualityEnabled;
 int _DrawDistanceFalloffMode;
 float2 _DrawDistance;
-float2 _PrecisionGeometry;
+float4 _PrecisionGeometry;
 float3 _PrecisionColor;
 float3 _PrecisionColorInverse;
 float2 _PrecisionAlphaAndInverse;

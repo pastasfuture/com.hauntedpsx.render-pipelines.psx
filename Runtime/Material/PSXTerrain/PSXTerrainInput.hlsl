@@ -47,8 +47,9 @@ half4 _BaseColor;
 // half _Cutoff;
 
 float _AffineTextureWarpingWeight;
-float _PrecisionGeometryWeight;
 float _FogWeight;
+int _PrecisionGeometryOverrideMode;
+float3 _PrecisionGeometryOverrideParameters;
 CBUFFER_END
 
 #if defined(METAPASS)

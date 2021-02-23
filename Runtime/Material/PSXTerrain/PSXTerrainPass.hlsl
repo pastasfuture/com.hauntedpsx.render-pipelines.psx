@@ -269,7 +269,7 @@ Varyings TerrainLitPassVert(Attributes v)
     o.normalWS = TransformObjectToWorldNormal(v.normalOS);
 
     // PSX Standard Material Transforms:
-    o.vertex = ApplyPrecisionGeometryToPositionCS(vertexPositionInputs.positionWS, vertexPositionInputs.positionVS, vertexPositionInputs.positionCS, _PrecisionGeometryWeight);
+    o.vertex = ApplyPrecisionGeometryToPositionCS(vertexPositionInputs.positionWS, vertexPositionInputs.positionVS, vertexPositionInputs.positionCS, _PrecisionGeometryOverrideMode, _PrecisionGeometryOverrideParameters);
     o.uvw = ApplyAffineTextureWarpingToUVW(v.uv, o.vertex.w, _AffineTextureWarpingWeight);
 
     o.positionVS = vertexPositionInputs.positionVS;
@@ -421,7 +421,7 @@ VaryingsDepthOnly TerrainLitPassVertDepthOnly(AttributesDepthOnly v)
     // o.vertex.y *= 0.9f;
 
     // PSX Standard Material Transforms:
-    o.vertex = ApplyPrecisionGeometryToPositionCS(vertexPositionInputs.positionWS, vertexPositionInputs.positionVS, vertexPositionInputs.positionCS, _PrecisionGeometryWeight);
+    o.vertex = ApplyPrecisionGeometryToPositionCS(vertexPositionInputs.positionWS, vertexPositionInputs.positionVS, vertexPositionInputs.positionCS, _PrecisionGeometryOverrideMode, _PrecisionGeometryOverrideParameters);
     o.uvw = ApplyAffineTextureWarpingToUVW(v.uv, o.vertex.w, _AffineTextureWarpingWeight);
 
     return o;

@@ -22,6 +22,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 : base(value, overrideState) {}
         }
 
+        public BoolParameter geometryEnabled = new BoolParameter(true);
         public ClampedFloatParameter geometry = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
         public ClampedFloatParameter color = new ClampedFloatParameter(4.0f / 7.0f, 0.0f, 1.0f);
         public ClampedFloatParameter chroma = new ClampedFloatParameter(1.0f / 3.0f, 0.0f, 1.0f);

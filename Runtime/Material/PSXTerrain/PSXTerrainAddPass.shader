@@ -24,6 +24,8 @@ Shader "Hidden/PSX/PSXTerrain (Add Pass)"
         // PSX Standard Material Parameters:
         _AffineTextureWarpingWeight("_AffineTextureWarpingWeight", Float) = 1.0
         _PrecisionGeometryWeight("_PrecisionGeometryWeight", Float) = 1.0
+        _PrecisionGeometryOverrideMode("_PrecisionGeometryOverrideMode", Float) = 0.0
+        _PrecisionGeometryOverrideParameters("_PrecisionGeometryOverrideParameters", Vector) = (0, 0, 0, 0)
         _FogWeight("_FogWeight", Float) = 1.0
 
         // C# side material state tracking.
