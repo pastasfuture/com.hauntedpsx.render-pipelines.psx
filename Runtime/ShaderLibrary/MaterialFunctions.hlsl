@@ -403,4 +403,41 @@ float4 SampleTextureWithFilterMode(TEXTURE2D_PARAM(tex, samp), float2 uv, float4
 #endif
 }
 
+
+float2 ApplyUVAnimation(float2 uv, int uvAnimationMode, float2 uvAnimationParametersFrameLimit, float4 uvAnimationParameters)
+{
+    float2 uvAnimated = uv;
+    float timeSeconds = _Time.y;
+
+    if (uvAnimationMode == PSX_UV_ANIMATION_MODE_NONE)
+    {
+        // Do nothing.
+    }
+    else
+    {
+        bool frameLimitEnabled = uvAnimationParametersFrameLimit.x > 0.5f;
+        float frameLimit = uvAnimationParametersFrameLimit.y;
+        timeSeconds = frameLimitEnabled
+            ? (floor(timeSeconds * frameLimit) / frameLimit)
+            : timeSeconds;
+
+        if (uvAnimationMode == PSX_UV_ANIMATION_MODE_PAN_LINEAR)
+        {
+            uvAnimated = uvAnimationParameters.xy * timeSeconds + uv; 
+        }
+        else if (uvAnimationMode == PSX_UV_ANIMATION_MODE_PAN_SIN)
+        {
+            float2 frequency = uvAnimationParameters.xy;
+            float2 scale = uvAnimationParameters.zw;
+            uvAnimated = float2(
+                sin(timeSeconds * frequency.x),
+                sin(timeSeconds * frequency.y)
+            ) * scale + uv;
+        }
+    }
+    
+
+    return uvAnimated;
+}
+
 #endif

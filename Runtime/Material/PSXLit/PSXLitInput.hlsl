@@ -28,6 +28,9 @@ SAMPLER(sampler_ReflectionTexture);
 float4 _ReflectionColor;
 int _ReflectionBlendMode;
 float4 _DoubleSidedConstants;
+int _UVAnimationMode;
+float2 _UVAnimationParametersFrameLimit;
+float4 _UVAnimationParameters;
 
 #if defined(SCENESELECTIONPASS)
 // Following two variables are feeded by the C++ Editor for Scene selection

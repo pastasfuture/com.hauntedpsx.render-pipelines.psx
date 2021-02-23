@@ -47,6 +47,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialProperty drawDrawDistanceOverrideProp { get; set; }
 
+        protected MaterialProperty uvAnimationModeProp { get; set; }
+
+        protected MaterialProperty uvAnimationParametersProp { get; set; }
+
+        protected MaterialProperty uvAnimationParametersFrameLimitProp { get; set; }
+
         // Common Surface Input properties
 
         protected MaterialProperty mainTexProp { get; set; }
@@ -106,6 +112,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             fogWeightProp = FindProperty(PropertyNames._FogWeight, properties);
             drawDrawDistanceOverrideModeProp = FindProperty(PropertyNames._DrawDistanceOverrideMode, properties);
             drawDrawDistanceOverrideProp = FindProperty(PropertyNames._DrawDistanceOverride, properties);
+            uvAnimationModeProp = FindProperty(PropertyNames._UVAnimationMode, properties);
+            uvAnimationParametersProp = FindProperty(PropertyNames._UVAnimationParameters, properties);
+            uvAnimationParametersFrameLimitProp = FindProperty(PropertyNames._UVAnimationParametersFrameLimit, properties);
             mainTexProp = FindProperty(PropertyNames._MainTex, properties, false);
             mainColorProp = FindProperty(PropertyNames._MainColor, properties, false);
             emissionTextureProp = FindProperty(PropertyNames._EmissionTexture, properties, false);
@@ -210,7 +219,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public virtual void DrawSurfaceInputs(Material material)
         {
-            PSXMaterialUtils.DrawMainProperties(material, materialEditor, mainTexProp, mainColorProp);
+            PSXMaterialUtils.DrawMainProperties(material, materialEditor, mainTexProp, mainColorProp, uvAnimationModeProp, uvAnimationParametersFrameLimitProp, uvAnimationParametersProp);
         }
 
         public virtual void DrawAdvancedOptions(Material material)

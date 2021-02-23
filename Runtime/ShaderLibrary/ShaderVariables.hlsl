@@ -26,6 +26,11 @@
 #define PSX_DRAW_DISTANCE_OVERRIDE_MODE_ADD (3)
 #define PSX_DRAW_DISTANCE_OVERRIDE_MODE_MULTIPLY (4)
 
+// Warning: These definitions must stay in sync with UVAnimationMode enum.
+#define PSX_UV_ANIMATION_MODE_NONE (0)
+#define PSX_UV_ANIMATION_MODE_PAN_LINEAR (1)
+#define PSX_UV_ANIMATION_MODE_PAN_SIN (2)
+
 // Globals:
 // Unity Standard:
 //

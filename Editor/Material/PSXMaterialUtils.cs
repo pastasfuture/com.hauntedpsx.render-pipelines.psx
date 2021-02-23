@@ -89,6 +89,13 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             Multiply
         }
 
+        public enum UVAnimationMode
+        {
+            None = 0,
+            PanLinear,
+            PanSin
+        }
+
         public static class Tags
         {
             public static readonly string RenderType = "RenderType";
@@ -122,6 +129,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _FogWeight = "_FogWeight";
             public static readonly string _DrawDistanceOverrideMode = "_DrawDistanceOverrideMode";
             public static readonly string _DrawDistanceOverride = "_DrawDistanceOverride";
+            public static readonly string _UVAnimationMode = "_UVAnimationMode";
+            public static readonly string _UVAnimationParameters = "_UVAnimationParameters";
+            public static readonly string _UVAnimationParametersFrameLimit = "_UVAnimationParametersFrameLimit";
             public static readonly string _Cutoff = "_Cutoff";
             public static readonly string _ReceiveShadows = "_ReceiveShadows";
             public static readonly string _MainTex = "_MainTex";
@@ -163,6 +173,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly int _FogWeight = Shader.PropertyToID(PropertyNames._FogWeight);
             public static readonly int _DrawDistanceOverrideMode = Shader.PropertyToID(PropertyNames._DrawDistanceOverrideMode);
             public static readonly int _DrawDistanceOverride = Shader.PropertyToID(PropertyNames._DrawDistanceOverride);
+            public static readonly int _UVAnimationMode = Shader.PropertyToID(PropertyNames._UVAnimationMode);
+            public static readonly int _UVAnimationParameters = Shader.PropertyToID(PropertyNames._UVAnimationParameters);
+            public static readonly int _UVAnimationParametersFrameLimit = Shader.PropertyToID(PropertyNames._UVAnimationParametersFrameLimit);
             public static readonly int _Cutoff = Shader.PropertyToID(PropertyNames._Cutoff);
             public static readonly int _ReceiveShadows = Shader.PropertyToID(PropertyNames._ReceiveShadows);
             public static readonly int _MainTex = Shader.PropertyToID(PropertyNames._MainTex);
@@ -287,6 +300,24 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent drawDistanceOverride = new GUIContent("Draw Distance",
                 "Controls the max distance (in meters) that triangles will render.");
+
+            public static readonly GUIContent uvAnimationMode = new GUIContent("UV Animation Mode",
+                "Allows you to apply simple procedural animation to your surfaces uvs.\nPan Linear: Useful for simple water scrolling animations, for example, a waterfall.\nPan Sin: Applies a Sin(x) scrolling animation. Useful for rocking back and forth animations.");
+
+            public static readonly GUIContent uvAnimationFrameLimitEnabled = new GUIContent("UV Animation Frame Limit",
+                "Specifies whether or not to apply a frame limit to the uv animations.\nUseful for simulated lower frequency animation updates, i.e: retro 15 FPS animations.");
+
+            public static readonly GUIContent uvAnimationFrameLimit = new GUIContent("UV Animation Frames Per Second",
+                "Controls the frames per second that the uv animation is updated at.\nThis is a purely visual control, it does not affect performance.");
+            
+            public static readonly GUIContent uvAnimationPanLinearVelocity = new GUIContent("UV Animation Scroll Velocity",
+                "Controls the distance per second (in uv space) that the uvs will pan.");
+
+            public static readonly GUIContent uvAnimationPanSinFrequency = new GUIContent("UV Animation Oscillation Frequency",
+                "Controls the frequency that the uvs will oscillate back and forth.");
+
+            public static readonly GUIContent uvAnimationPanSinScale = new GUIContent("UV Animation Scale",
+                "Controls the maximum distance (in uv space) that the uvs will pan (at the oscillation peak).");
 
             public static readonly GUIContent mainTex = new GUIContent("Main Tex",
                 "Specifies the base Material and/or Color of the surface. If you’ve selected Transparent or Alpha Clipping under Surface Options, your Material uses the Texture’s alpha channel or color.");
@@ -788,7 +819,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             materialEditor.EnableInstancingField();
         }
 
-        public static void DrawMainProperties(Material material, MaterialEditor materialEditor, MaterialProperty mainTexProp, MaterialProperty mainColorProp)
+        public static void DrawMainProperties(Material material, MaterialEditor materialEditor, MaterialProperty mainTexProp, MaterialProperty mainColorProp, MaterialProperty uvAnimationModeProp, MaterialProperty uvAnimationParametersFrameLimitProp, MaterialProperty uvAnimationParametersProp)
         {
             if (mainTexProp != null && mainColorProp != null) // Draw the mainTex, most shader will have at least a mainTex
             {
@@ -801,6 +832,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                     var mainTexTiling = mainTexProp.textureScaleAndOffset;
                     material.SetTextureScale(PropertyIDs._MainTex, new Vector2(mainTexTiling.x, mainTexTiling.y));
                     material.SetTextureOffset(PropertyIDs._MainTex, new Vector2(mainTexTiling.z, mainTexTiling.w));
+
+                    DrawUVAnimationMode(uvAnimationModeProp, uvAnimationParametersFrameLimitProp, uvAnimationParametersProp);
                 }
 
                 DrawTextureFilterModeErrorMessagesForTexture(material, materialEditor, mainTexProp.textureValue, PropertyNames._MainTex);
@@ -1128,6 +1161,100 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 if (EditorGUI.EndChangeCheck())
                 {
                     drawDistanceOverrideProp.vectorValue = new Vector2(drawDistanceOverride, drawDistanceOverride * drawDistanceOverride);
+                }
+            }
+        }
+
+        public static void DrawUVAnimationMode(MaterialProperty uvAnimationModeProp, MaterialProperty uvAnimationParametersFrameLimitProp, MaterialProperty uvAnimationParametersProp)
+        {
+            bool modeChanged = false;
+            EditorGUI.BeginChangeCheck();
+            var uvAnimationMode = (UVAnimationMode)EditorGUILayout.EnumPopup(Styles.uvAnimationMode, (UVAnimationMode)(int)uvAnimationModeProp.floatValue);
+            if (EditorGUI.EndChangeCheck())
+            {
+                uvAnimationModeProp.floatValue = (float)(int)uvAnimationMode;
+                modeChanged = true;
+            }
+
+            Vector4 uvAnimationParameters = uvAnimationParametersProp.vectorValue;
+            bool needsUpdate = modeChanged;
+            switch (uvAnimationMode)
+            {
+                case UVAnimationMode.None: break;
+                case UVAnimationMode.PanLinear:
+                {
+                    Vector2 panLinearVelocity = modeChanged ? new Vector2(1.0f, 1.0f) : new Vector2(uvAnimationParameters.x, uvAnimationParameters.y);
+
+                    EditorGUI.BeginChangeCheck();
+                    panLinearVelocity = EditorGUILayout.Vector2Field(Styles.uvAnimationPanLinearVelocity, panLinearVelocity);
+                    if (EditorGUI.EndChangeCheck() || modeChanged)
+                    {
+                        needsUpdate = true;
+                        uvAnimationParameters = new Vector4(panLinearVelocity.x, panLinearVelocity.y, 0.0f, 0.0f);
+                    }
+                    break;
+                }
+                case UVAnimationMode.PanSin:
+                {
+                    Vector2 panSinFrequency = modeChanged ? new Vector2(1.0f, 1.0f) : new Vector2(uvAnimationParameters.x, uvAnimationParameters.y);
+                    EditorGUI.BeginChangeCheck();
+                    panSinFrequency = EditorGUILayout.Vector2Field(Styles.uvAnimationPanSinFrequency, panSinFrequency);
+                    if (EditorGUI.EndChangeCheck() || modeChanged)
+                    {
+                        needsUpdate = true;
+                        uvAnimationParameters = new Vector4(panSinFrequency.x, panSinFrequency.y, 0.0f, 0.0f);
+                    }
+
+                    Vector2 panSinScale = modeChanged ? new Vector2(1.0f, 1.0f) : new Vector2(uvAnimationParameters.z, uvAnimationParameters.w);
+                    EditorGUI.BeginChangeCheck();
+                    panSinScale = EditorGUILayout.Vector2Field(Styles.uvAnimationPanSinScale, panSinScale);
+                    if (EditorGUI.EndChangeCheck() || modeChanged)
+                    {
+                        needsUpdate = true;
+                        uvAnimationParameters = new Vector4(uvAnimationParameters.x, uvAnimationParameters.y, panSinScale.x, panSinScale.y);
+                    }
+                    break;
+                }
+                default: break;
+            }
+
+            if (needsUpdate)
+            {
+                uvAnimationParametersProp.vectorValue = uvAnimationParameters;
+            }
+
+            if (uvAnimationMode != UVAnimationMode.None)
+            {
+                bool frameLimitNeedsUpdate = false;
+                bool frameLimitAssignDefault = false;
+                EditorGUI.BeginChangeCheck();
+                bool frameLimitEnabled = EditorGUILayout.Toggle(Styles.uvAnimationFrameLimitEnabled, uvAnimationParametersFrameLimitProp.vectorValue.x > 0.5f);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    frameLimitNeedsUpdate = true;
+                    if (frameLimitEnabled)
+                    {
+                        // Frame limit was just toggled on. Assign the default frame limit value.
+                        frameLimitAssignDefault = true;
+                    }
+                }
+
+                int frameLimit = 60;
+                if (frameLimitEnabled)
+                {
+                    EditorGUI.BeginChangeCheck();
+                    frameLimit = frameLimitAssignDefault ? 60 : (int)uvAnimationParametersFrameLimitProp.vectorValue.y;
+                    frameLimit = EditorGUILayout.DelayedIntField(Styles.uvAnimationFrameLimit, frameLimit);
+                    if (EditorGUI.EndChangeCheck() || frameLimitAssignDefault)
+                    {
+                        frameLimitNeedsUpdate = true;
+                        frameLimit = Mathf.Clamp(frameLimit, 1, 60);
+                    }
+                }
+                
+                if (frameLimitNeedsUpdate)
+                {
+                    uvAnimationParametersFrameLimitProp.vectorValue = new Vector2(frameLimitEnabled ? 1.0f : 0.0f, (float)frameLimit);
                 }
             }
         }

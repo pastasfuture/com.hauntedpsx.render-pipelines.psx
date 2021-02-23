@@ -706,8 +706,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.ClearRenderTarget(clearDepth: true, clearColor: false, backgroundColor: clearColorUnused);
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSizeRasterization, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
-                cmd.SetGlobalVector(PSXShaderIDs._Time, new Vector4(Time.timeSinceLevelLoad / 20.0f, Time.timeSinceLevelLoad, Time.timeSinceLevelLoad * 2.0f, Time.timeSinceLevelLoad * 3.0f));
                 cmd.SetGlobalVector(PSXShaderIDs._WorldSpaceCameraPos, camera.transform.position);
+                
+                float time = GetAnimatedMaterialsTime(camera);
+                cmd.SetGlobalVector(PSXShaderIDs._Time, new Vector4(time / 20.0f, time, time * 2.0f, time * 3.0f));
             
                 Texture2D alphaClippingDitherTex = GetAlphaClippingDitherTexFromAssetAndFrame(asset, (uint)Time.frameCount);
                 cmd.SetGlobalTexture(PSXShaderIDs._AlphaClippingDitherTexture, alphaClippingDitherTex);
@@ -760,8 +762,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetGlobalTexture(PSXShaderIDs._BlueNoiseTexture, blueNoiseTexture);
                 cmd.SetGlobalVector(PSXShaderIDs._BlueNoiseSize, new Vector4(blueNoiseTexture.width, blueNoiseTexture.height, 1.0f / (float)blueNoiseTexture.width, 1.0f / (float)blueNoiseTexture.height));
                 
-
-                cmd.SetGlobalVector(PSXShaderIDs._Time, new Vector4(Time.timeSinceLevelLoad / 20.0f, Time.timeSinceLevelLoad, Time.timeSinceLevelLoad * 2.0f, Time.timeSinceLevelLoad * 3.0f));
+                float time = GetAnimatedMaterialsTime(camera);
+                cmd.SetGlobalVector(PSXShaderIDs._Time, new Vector4(time / 20.0f, time, time * 2.0f, time * 3.0f));
             }
         }
 
@@ -1468,6 +1470,26 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
             // Transpose for HLSL.
             return Matrix4x4.Transpose(worldToViewMatrix.transpose * viewSpaceRasterTransform);
+        }
+
+        static float GetAnimatedMaterialsTime(Camera camera)
+        {
+            float time = 0.0f;
+            bool animateMaterials = CoreUtils.AreAnimatedMaterialsEnabled(camera);
+            if (animateMaterials)
+            {
+#if UNITY_EDITOR
+                time = Application.isPlaying ? Time.timeSinceLevelLoad : Time.realtimeSinceStartup;
+#else
+            time = Time.timeSinceLevelLoad;
+#endif
+            }
+            else
+            {
+                time = 0;
+            }
+
+            return time;
         }
     }
 }

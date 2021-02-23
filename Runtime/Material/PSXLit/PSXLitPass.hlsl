@@ -42,8 +42,10 @@ Varyings LitPassVertex(Attributes v)
     float4 positionCS = TransformWorldToHClip(positionWS);
     o.vertex = positionCS;
 
+    float2 uv = ApplyUVAnimation(v.uv, _UVAnimationMode, _UVAnimationParametersFrameLimit, _UVAnimationParameters);
+
     o.vertex = ApplyPrecisionGeometryToPositionCS(positionWS, positionVS, o.vertex, _PrecisionGeometryWeight, _DrawDistanceOverrideMode, _DrawDistanceOverride);
-    o.uvw = ApplyAffineTextureWarpingToUVW(v.uv, positionCS.w, _AffineTextureWarpingWeight);
+    o.uvw = ApplyAffineTextureWarpingToUVW(uv, positionCS.w, _AffineTextureWarpingWeight);
     o.color = EvaluateColorPerVertex(v.color, o.uvw.z);
     o.positionVS = positionVS; // TODO: Apply affine warping?
     o.positionWS = positionWS; // TODO: Apply affine warping?

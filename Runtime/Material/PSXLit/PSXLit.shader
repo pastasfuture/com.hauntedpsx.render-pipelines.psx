@@ -19,6 +19,9 @@
         _ReflectionColor("_ReflectionColor", Color) = (1,1,1,1)
         _ReflectionBlendMode("_ReflectionBlendMode", Int) = 0
         [HideInInspector] _DoubleSidedConstants("_DoubleSidedConstants", Vector) = (1, 1, 1, 0)
+        _UVAnimationMode("_UVAnimationMode", Float) = 0.0
+        _UVAnimationParametersFrameLimit("_UVAnimationParametersFrameLimit", Vector) = (0, 60, 0, 0)
+        _UVAnimationParameters("_UVAnimationParameters", Vector) = (1, 1, 0, 0)
 
         // C# side material state tracking.
         [HideInInspector] _TextureFilterMode("__textureFilterMode", Float) = 0.0
