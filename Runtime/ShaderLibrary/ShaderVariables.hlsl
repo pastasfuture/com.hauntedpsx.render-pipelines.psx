@@ -38,6 +38,13 @@
 #define PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_ADD (3)
 #define PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_MULTIPLY (4)
 
+// Warning: These definitions must stay in sync with PrecisionColorOverrideMode enum.
+#define PSX_PRECISION_COLOR_OVERRIDE_MODE_NONE (0)
+#define PSX_PRECISION_COLOR_OVERRIDE_MODE_DISABLED (1)
+#define PSX_PRECISION_COLOR_OVERRIDE_MODE_OVERRIDE (2)
+#define PSX_PRECISION_COLOR_OVERRIDE_MODE_ADD (3)
+#define PSX_PRECISION_COLOR_OVERRIDE_MODE_MULTIPLY (4)
+
 // Globals:
 // Unity Standard:
 //
@@ -51,8 +58,8 @@ int _IsPSXQualityEnabled;
 int _DrawDistanceFalloffMode;
 float2 _DrawDistance;
 float4 _PrecisionGeometry;
-float3 _PrecisionColor;
-float3 _PrecisionColorInverse;
+float4 _PrecisionColor; // [scaleR, scaleG, scaleB, precisionColorIndexNormalized]
+float4 _PrecisionColorInverse; // [1 / scaleR, 1 / scaleG, 1 / scaleB, precisionChromaBit]
 float2 _PrecisionAlphaAndInverse;
 float _AffineTextureWarping;
 int _FogFalloffMode;

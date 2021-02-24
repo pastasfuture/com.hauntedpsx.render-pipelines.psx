@@ -577,8 +577,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     default: Debug.Assert(false); break;
                 }
 
-                cmd.SetGlobalVector(PSXShaderIDs._PrecisionColor, precisionColor);
-                cmd.SetGlobalVector(PSXShaderIDs._PrecisionColorInverse, new Vector3(1.0f / precisionColor.x, 1.0f / precisionColor.y, 1.0f / precisionColor.z));
+                cmd.SetGlobalVector(PSXShaderIDs._PrecisionColor, new Vector4(precisionColor.x, precisionColor.y, precisionColor.z, (float)precisionColorIndex / 7.0f)); // .w term needed for per-material override of precision color.
+                cmd.SetGlobalVector(PSXShaderIDs._PrecisionColorInverse, new Vector4(1.0f / precisionColor.x, 1.0f / precisionColor.y, 1.0f / precisionColor.z, precisionChromaBit)); // .w term needed for per-material override of precision color.
 
                 int precisionAlphaIndex = Mathf.FloorToInt(volumeSettings.alpha.value * 7.0f + 0.5f);
                 float precisionAlpha = 0.0f; // Silence the compiler warnings.

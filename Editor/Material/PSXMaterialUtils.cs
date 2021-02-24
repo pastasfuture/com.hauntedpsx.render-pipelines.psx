@@ -98,6 +98,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             Multiply
         }
 
+        public enum PrecisionColorOverrideMode
+        {
+            None = 0,
+            Disabled,
+            Override,
+            Add,
+            Multiply
+        }
+
         public enum UVAnimationMode
         {
             None = 0,
@@ -137,6 +146,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _PrecisionGeometryWeightDeprecated = "_PrecisionGeometryWeight";
             public static readonly string _PrecisionGeometryOverrideMode = "_PrecisionGeometryOverrideMode";
             public static readonly string _PrecisionGeometryOverrideParameters = "_PrecisionGeometryOverrideParameters";
+            public static readonly string _PrecisionColorOverrideMode = "_PrecisionColorOverrideMode";
+            public static readonly string _PrecisionColorOverrideParameters = "_PrecisionColorOverrideParameters";
             public static readonly string _FogWeight = "_FogWeight";
             public static readonly string _DrawDistanceOverrideMode = "_DrawDistanceOverrideMode";
             public static readonly string _DrawDistanceOverride = "_DrawDistanceOverride";
@@ -186,6 +197,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly int _DrawDistanceOverride = Shader.PropertyToID(PropertyNames._DrawDistanceOverride);
             public static readonly int _PrecisionGeometryOverrideMode = Shader.PropertyToID(PropertyNames._PrecisionGeometryOverrideMode);
             public static readonly int _PrecisionGeometryOverrideParameters = Shader.PropertyToID(PropertyNames._PrecisionGeometryOverrideParameters);
+            public static readonly int _PrecisionColorOverrideMode = Shader.PropertyToID(PropertyNames._PrecisionColorOverrideMode);
+            public static readonly int _PrecisionColorOverrideParameters = Shader.PropertyToID(PropertyNames._PrecisionColorOverrideParameters);
             public static readonly int _UVAnimationMode = Shader.PropertyToID(PropertyNames._UVAnimationMode);
             public static readonly int _UVAnimationParameters = Shader.PropertyToID(PropertyNames._UVAnimationParameters);
             public static readonly int _UVAnimationParametersFrameLimit = Shader.PropertyToID(PropertyNames._UVAnimationParametersFrameLimit);
@@ -309,6 +322,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 "Allows you to override the precision geometry parameter that is specified on your Precision Volume. Useful glitch effects, or for completely disabling vertex snapping on a specific material.");
 
             public static readonly GUIContent precisionGeometryOverride = new GUIContent("Precision Geometry Override");
+
+            public static readonly GUIContent precisionColorOverrideMode = new GUIContent("Precision Color Override Mode",
+                "Allows you to override the precision color parameter that is specified on your Precision Volume.\nUseful for stylistic effects such as crushing the bit-depth of specific materials.\nCan also be used to reduce / remove banding + dither on specific materials.");
+
+            public static readonly GUIContent precisionColorOverride = new GUIContent("Precision Color Override");
 
             public static readonly GUIContent fogWeight = new GUIContent("Fog Weight",
                 "Specifies how much of the global Fog Volume is applied to this surface. In general this should be left at 1.0. Set to 0.0 to fully disable fog (and which avoids cost of evaluating fog). This parameter is particularly useful for tuning the look of skybox geometry.");
@@ -1231,6 +1249,72 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                         {
                             // Scale and Scale Inverse transformation will happen in shader. Just need the raw precisionGeometryOverride value.
                             precisionGeometryOverrideParametersProp.vectorValue = new Vector3(1.0f, 1.0f, precisionGeometryOverride);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        public static void DrawPrecisionColorOverride(MaterialProperty precisionColorOverrideModeProp, MaterialProperty precisionColorOverrideParametersProp)
+        {
+            EditorGUI.BeginChangeCheck();
+            bool modeChanged = false;
+            var precisionColorOverrideMode = (PrecisionColorOverrideMode)EditorGUILayout.EnumPopup(Styles.precisionColorOverrideMode, (PrecisionColorOverrideMode)(int)precisionColorOverrideModeProp.floatValue);
+            if (EditorGUI.EndChangeCheck())
+            {
+                modeChanged = true;
+                precisionColorOverrideModeProp.floatValue = (float)(int)precisionColorOverrideMode;
+
+                if (precisionColorOverrideMode == PrecisionColorOverrideMode.Disabled)
+                {
+                    precisionColorOverrideParametersProp.vectorValue = new Vector3(255.0f, 1.0f / 255.0f, 1.0f);
+                }
+            }
+
+            if (precisionColorOverrideMode != PrecisionColorOverrideMode.None && precisionColorOverrideMode != PrecisionColorOverrideMode.Disabled)
+            {
+                EditorGUI.BeginChangeCheck();
+                var precisionColorOverride = EditorGUILayout.FloatField(Styles.precisionColorOverride, precisionColorOverrideParametersProp.vectorValue.z);
+                if (EditorGUI.EndChangeCheck() || modeChanged)
+                {
+                    switch (precisionColorOverrideMode)
+                    {
+                        case PrecisionColorOverrideMode.Override:
+                        {
+                            precisionColorOverride = modeChanged ? 1.0f : precisionColorOverride; // Assign default.
+
+                            // Fast path: precompute the scale and scale inverse transformation cpu side since we will be fully overriding.
+                            precisionColorOverride = Mathf.Clamp01(precisionColorOverride);
+                            precisionColorOverride = Mathf.Floor(precisionColorOverride * 7.0f + 0.5f) / 7.0f;
+                            float precisionColorScale = Mathf.Pow(2.0f, precisionColorOverride * 7.0f + 1.0f) - 1.0f;
+                            float precisionColorScaleInverse = 1.0f / precisionColorScale;
+                            precisionColorOverrideParametersProp.vectorValue = new Vector3(precisionColorScale, precisionColorScaleInverse, precisionColorOverride);
+                            break;
+                        }
+                        case PrecisionColorOverrideMode.Multiply:
+                        {
+                            precisionColorOverride = modeChanged ? 1.0f : precisionColorOverride; // Assign default.
+
+                            precisionColorOverride = Mathf.Max(1e-5f, precisionColorOverride);
+
+                            // Scale and Scale Inverse transformation will happen in shader. Just need the raw precisionGeometryOverride value.
+                            precisionColorOverrideParametersProp.vectorValue = new Vector3(255.0f, 1.0f / 255.0f, precisionColorOverride);
+                            break;
+                        }
+                        case PrecisionColorOverrideMode.Add:
+                        {
+                            precisionColorOverride = modeChanged ? 0.0f : Mathf.Clamp(precisionColorOverride, -1.0f, 1.0f); // Assign default.
+
+
+                            // Scale and Scale Inverse transformation will happen in shader. Just need the raw precisionGeometryOverride value.
+                            precisionColorOverrideParametersProp.vectorValue = new Vector3(255.0f, 1.0f / 255.0f, precisionColorOverride);
+                            break;
+                        }
+                        default:
+                        {
+                            // Scale and Scale Inverse transformation will happen in shader. Just need the raw precisionGeometryOverride value.
+                            precisionColorOverrideParametersProp.vectorValue = new Vector3(255.0f, 1.0f / 255.0f, precisionColorOverride);
                             break;
                         }
                     }

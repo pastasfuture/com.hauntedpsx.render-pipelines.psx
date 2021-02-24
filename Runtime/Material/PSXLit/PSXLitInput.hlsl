@@ -20,6 +20,8 @@ float _AffineTextureWarpingWeight;
 float _FogWeight;
 int _PrecisionGeometryOverrideMode;
 float3 _PrecisionGeometryOverrideParameters;
+int _PrecisionColorOverrideMode;
+float3 _PrecisionColorOverrideParameters;
 int _DrawDistanceOverrideMode;
 float2 _DrawDistanceOverride;
 TEXTURECUBE(_ReflectionCubemap);

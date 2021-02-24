@@ -44,6 +44,12 @@ Varyings LitPassVertex(Attributes v)
 
     float2 uv = ApplyUVAnimation(v.uv, _UVAnimationMode, _UVAnimationParametersFrameLimit, _UVAnimationParameters);
 
+    float3 precisionColor;
+    float3 precisionColorInverse;
+    float precisionColorIndexNormalized = _PrecisionColor.w;
+    float precisionChromaBit = _PrecisionColorInverse.w;
+    ApplyPrecisionColorOverride(precisionColor, precisionColorInverse, _PrecisionColor.rgb, _PrecisionColorInverse.rgb, precisionColorIndexNormalized, precisionChromaBit, _PrecisionColorOverrideMode, _PrecisionColorOverrideParameters);
+
     o.vertex = ApplyPrecisionGeometryToPositionCS(positionWS, positionVS, o.vertex, _PrecisionGeometryOverrideMode, _PrecisionGeometryOverrideParameters, _DrawDistanceOverrideMode, _DrawDistanceOverride);
     o.uvw = ApplyAffineTextureWarpingToUVW(uv, positionCS.w, _AffineTextureWarpingWeight);
     o.color = EvaluateColorPerVertex(v.color, o.uvw.z);
@@ -53,7 +59,7 @@ Varyings LitPassVertex(Attributes v)
     o.normalWS = TransformObjectToWorldNormal(v.normal);
     o.normalWS = EvaluateNormalDoubleSidedPerVertex(o.normalWS, o.positionWS, _WorldSpaceCameraPos);
     o.lighting = EvaluateLightingPerVertex(positionWS, o.normalWS, v.color, o.lightmapUV, o.uvw.z);
-    o.fog = EvaluateFogPerVertex(positionWS, positionVS, o.uvw.z, _FogWeight);
+    o.fog = EvaluateFogPerVertex(positionWS, positionVS, o.uvw.z, _FogWeight, precisionColor, precisionColorInverse);
 
     return o;
 }
@@ -104,7 +110,14 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
         return color;
     }
 
-    color = ApplyPrecisionColorToColorSRGB(color);
+    // Rather than paying the cost of interpolating our 6 floats for precision color per vertex, we simply recompute them per pixel here.
+    float3 precisionColor;
+    float3 precisionColorInverse;
+    float precisionColorIndexNormalized = _PrecisionColor.w;
+    float precisionChromaBit = _PrecisionColorInverse.w;
+    ApplyPrecisionColorOverride(precisionColor, precisionColorInverse, _PrecisionColor.rgb, _PrecisionColorInverse.rgb, precisionColorIndexNormalized, precisionChromaBit, _PrecisionColorOverrideMode, _PrecisionColorOverrideParameters);
+
+    color = ApplyPrecisionColorToColorSRGB(color, precisionColor, precisionColorInverse);
     color.rgb = SRGBToLinear(color.rgb);
     color = ApplyAlphaBlendTransformToColor(color);
 
@@ -114,7 +127,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
 #if defined(_EMISSION)
     // Convert to sRGB 5:6:5 color space, then from sRGB to Linear.
     float3 emission = _EmissionColor.rgb * SampleTextureWithFilterMode(TEXTURE2D_ARGS(_EmissionTexture, sampler_EmissionTexture), uvColor, texelSizeLod, lod).rgb;
-    emission = ApplyPrecisionColorToColorSRGB(float4(emission, 0.0f)).rgb;
+    emission = ApplyPrecisionColorToColorSRGB(float4(emission, 0.0f), precisionColor, precisionColorInverse).rgb;
     emission = SRGBToLinear(emission);
     emission = ApplyAlphaBlendTransformToEmission(emission, color.a);
 
@@ -123,7 +136,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
 
 #if defined(_REFLECTION_ON)
     float3 reflection = _ReflectionColor.rgb * SAMPLE_TEXTURE2D(_ReflectionTexture, sampler_ReflectionTexture, uvColor).rgb;
-    reflection = ApplyPrecisionColorToColorSRGB(float4(reflection, 0.0f)).rgb;
+    reflection = ApplyPrecisionColorToColorSRGB(float4(reflection, 0.0f), precisionColor, precisionColorInverse).rgb;
     reflection = SRGBToLinear(reflection);
     reflection = ApplyAlphaBlendTransformToEmission(reflection, color.a);
 
@@ -131,7 +144,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
     float3 R = reflect(V, normalWS);
     float4 reflectionCubemap = SAMPLE_TEXTURECUBE(_ReflectionCubemap, sampler_ReflectionCubemap, R);
     reflectionCubemap.rgb *= reflectionCubemap.a;
-    reflectionCubemap.rgb = ApplyPrecisionColorToColorSRGB(float4(reflectionCubemap.rgb, 0.0f)).rgb;
+    reflectionCubemap.rgb = ApplyPrecisionColorToColorSRGB(float4(reflectionCubemap.rgb, 0.0f), precisionColor, precisionColorInverse).rgb;
     // TODO: Convert reflectionCubemap from SRGB to linear space, but only if an LDR texture was supplied...
     // reflectionCubemap = SRGBToLinear(reflectionCubemap);
     reflection *= reflectionCubemap.rgb;
@@ -154,7 +167,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
 
 #endif
 
-    float4 fog = EvaluateFogPerPixel(i.positionWS, i.positionVS, positionSS, i.fog, interpolatorNormalization, _FogWeight);
+    float4 fog = EvaluateFogPerPixel(i.positionWS, i.positionVS, positionSS, i.fog, interpolatorNormalization, _FogWeight, precisionColor, precisionColorInverse);
     fog.a = ApplyAlphaBlendTransformToFog(fog.a, color.a);
     color = ApplyFogToColor(fog, color);
 
@@ -174,7 +187,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
 
     // Convert the final color value to 5:6:5 color space (default) - this will actually be whatever color space the user specified in the Precision Volume Override.
     // This emulates a the limited bit-depth frame buffer.
-    color.rgb = ComputeFramebufferDiscretization(color.rgb, positionSS);
+    color.rgb = ComputeFramebufferDiscretization(color.rgb, positionSS, precisionColor, precisionColorInverse);
 #endif
 
     return (half4)color;

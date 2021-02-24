@@ -224,7 +224,7 @@ float3 NoiseDitherRemapTriangularDistribution(float3 v)
     );
 }
 
-float3 ComputeFramebufferDiscretization(float3 color, float2 positionSS, float ditherWeight)
+float3 ComputeFramebufferDiscretization(float3 color, float2 positionSS, float ditherWeight, float3 precisionColor, float3 precisionColorInverse)
 {
     float framebufferDither = 0.5f;
     float framebufferDitherWeight = _FramebufferDither * ditherWeight;
@@ -235,12 +235,12 @@ float3 ComputeFramebufferDiscretization(float3 color, float2 positionSS, float d
         framebufferDither = NoiseDitherRemapTriangularDistribution(framebufferDither);
         framebufferDither = lerp(0.5f, framebufferDither, framebufferDitherWeight);
     }
-    return floor(color.xyz * _PrecisionColor.rgb + framebufferDither) * _PrecisionColorInverse.rgb;
+    return floor(color.xyz * precisionColor + framebufferDither) * precisionColorInverse;
 }
 
-float3 ComputeFramebufferDiscretization(float3 color, float2 positionSS)
+float3 ComputeFramebufferDiscretization(float3 color, float2 positionSS, float3 precisionColor, float3 precisionColorInverse)
 {
-    return ComputeFramebufferDiscretization(color, positionSS, 1.0f);
+    return ComputeFramebufferDiscretization(color, positionSS, 1.0f, precisionColor, precisionColorInverse);
 }
 
 

@@ -106,7 +106,7 @@ GrassVaryings WavingGrassVert(GrassAttributes v)
     o.vertex = ApplyPrecisionGeometryToPositionCS(vertexInput.positionWS, vertexInput.positionVS, o.vertex, precisionGeometryOverrideMode, precisionGeometryOverrideParameters);
     o.uvw = ApplyAffineTextureWarpingToUVW(v.uv, vertexInput.positionCS.w, affineTextureWarpingWeight);
     o.lighting = EvaluateLightingPerVertex(vertexInput.positionWS, o.normalWS, vertexColor, o.lightmapUV, o.uvw.z);
-    o.fog = EvaluateFogPerVertex(vertexInput.positionWS, vertexInput.positionVS, o.uvw.z, fogWeight);
+    o.fog = EvaluateFogPerVertex(vertexInput.positionWS, vertexInput.positionVS, o.uvw.z, fogWeight, _PrecisionColor.rgb, _PrecisionColorInverse.rgb);
 
     return o;
 }
@@ -146,7 +146,7 @@ GrassVaryings WavingGrassBillboardVert(GrassAttributes v)
     o.vertex = ApplyPrecisionGeometryToPositionCS(vertexInput.positionWS, vertexInput.positionVS, o.vertex, precisionGeometryOverrideMode, precisionGeometryOverrideParameters);
     o.uvw = ApplyAffineTextureWarpingToUVW(v.uv, vertexInput.positionCS.w, affineTextureWarpingWeight);
     // o.lighting = EvaluateLightingPerVertex(vertexInput.positionWS, o.normalWS, vertexColor, o.lightmapUV, o.uvw.z);
-    o.fog = EvaluateFogPerVertex(vertexInput.positionWS, vertexInput.positionVS, o.uvw.z, fogWeight);
+    o.fog = EvaluateFogPerVertex(vertexInput.positionWS, vertexInput.positionVS, o.uvw.z, fogWeight, _PrecisionColor.rgb, _PrecisionColorInverse.rgb);
 
     return o;
 }
@@ -193,7 +193,7 @@ half4 LitPassFragmentGrass(GrassVaryings i) : SV_Target
         return color;
     }
 
-    color = ApplyPrecisionColorToColorSRGB(color);
+    color = ApplyPrecisionColorToColorSRGB(color, _PrecisionColor.rgb, _PrecisionColorInverse.rgb);
     color.rgb = SRGBToLinear(color.rgb);
     color.rgb *= i.color.rgb;
 
@@ -205,7 +205,7 @@ half4 LitPassFragmentGrass(GrassVaryings i) : SV_Target
     // for now we simply hardcode this at full strength, which should be a reasonable default.
     // TODO: Figure out the best way to expose these to the user.
     const float fogWeight = 1.0f;
-    float4 fog = EvaluateFogPerPixel(i.positionWS, i.positionVS, positionSS, i.fog, interpolatorNormalization, fogWeight);
+    float4 fog = EvaluateFogPerPixel(i.positionWS, i.positionVS, positionSS, i.fog, interpolatorNormalization, fogWeight, _PrecisionColor.rgb, _PrecisionColorInverse.rgb);
 
     color = ApplyFogToColor(fog, color);
 
@@ -225,7 +225,7 @@ half4 LitPassFragmentGrass(GrassVaryings i) : SV_Target
 
     // Convert the final color value to 5:6:5 color space (default) - this will actually be whatever color space the user specified in the Precision Volume Override.
     // This emulates a the limited bit-depth frame buffer.
-    color.rgb = ComputeFramebufferDiscretization(color.rgb, positionSS);
+    color.rgb = ComputeFramebufferDiscretization(color.rgb, positionSS, _PrecisionColor.rgb, _PrecisionColorInverse.rgb);
 #endif
 
     return color;

@@ -52,6 +52,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialProperty precisionGeometryOverrideParametersProp { get; set; }
 
+        protected MaterialProperty precisionColorOverrideModeProp { get; set; }
+
+        protected MaterialProperty precisionColorOverrideParametersProp { get; set; }
+
         protected MaterialProperty fogWeightProp { get; set; }
 
         // // Common Surface Input properties
@@ -107,6 +111,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             precisionGeometryWeightDeprecatedProp = FindProperty(PropertyNames._PrecisionGeometryWeightDeprecated, properties);
             precisionGeometryOverrideModeProp = FindProperty(PropertyNames._PrecisionGeometryOverrideMode, properties);
             precisionGeometryOverrideParametersProp = FindProperty(PropertyNames._PrecisionGeometryOverrideParameters, properties);
+            precisionColorOverrideModeProp = FindProperty(PropertyNames._PrecisionColorOverrideMode, properties);
+            precisionColorOverrideParametersProp = FindProperty(PropertyNames._PrecisionColorOverrideParameters, properties);
             fogWeightProp = FindProperty(PropertyNames._FogWeight, properties);
             // mainTexProp = FindProperty(PropertyNames._MainTex, properties, false);
             // mainColorProp = FindProperty(PropertyNames._MainColor, properties, false);
@@ -222,8 +228,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             // PSXMaterialUtils.DrawAlphaClippingSettings(material, alphaClipProp, alphaClippingDitherIsEnabledProp);
 
             PSXMaterialUtils.DrawAffineTextureWarpingWeight(affineTextureWarpingWeightProp);
-            PSXMaterialUtils.DrawPrecisionGeometryOverride(precisionGeometryOverrideModeProp, precisionGeometryOverrideParametersProp, precisionGeometryWeightDeprecatedProp);
             PSXMaterialUtils.DrawFogWeight(fogWeightProp);
+            PSXMaterialUtils.DrawPrecisionGeometryOverride(precisionGeometryOverrideModeProp, precisionGeometryOverrideParametersProp, precisionGeometryWeightDeprecatedProp);
+            PSXMaterialUtils.DrawPrecisionColorOverride(precisionColorOverrideModeProp, precisionColorOverrideParametersProp);
         }
 
         bool ITerrainLayerCustomUI.OnTerrainLayerGUI(TerrainLayer terrainLayer, Terrain terrain)

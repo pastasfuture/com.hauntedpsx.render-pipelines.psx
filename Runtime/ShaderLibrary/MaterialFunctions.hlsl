@@ -18,6 +18,51 @@ float2 ComputePrecisionGeometryParameters(float precisionGeometryNormalized)
     return float2(precisionGeometryScale, precisionGeometryScaleInverse);
 }
 
+void ApplyPrecisionColorOverride(out float3 precisionColorOut, out float3 precisionColorInverseOut, float3 precisionColorIn, float3 precisionColorInverseIn, float precisionColorIndexNormalized, float precisionChromaBit, int precisionColorOverrideMode, float3 precisionColorOverrideParameters)
+{
+    precisionColorOut = precisionColorIn;
+    precisionColorInverseOut = precisionColorInverseIn;
+    
+    if (!_IsPSXQualityEnabled)
+    {
+        // Nothing to do.
+    }
+    else if (precisionColorOverrideMode == PSX_PRECISION_COLOR_OVERRIDE_MODE_NONE)
+    {
+        // Nothing to do.
+    }
+    else if (precisionColorOverrideMode == PSX_PRECISION_COLOR_OVERRIDE_MODE_DISABLED)
+    {
+        precisionColorOut = precisionColorOverrideParameters.x;
+        precisionColorInverseOut = precisionColorOverrideParameters.y;
+    }
+    else if (precisionColorOverrideMode == PSX_PRECISION_COLOR_OVERRIDE_MODE_OVERRIDE)
+    {
+        precisionColorOut = precisionColorOverrideParameters.x;
+        precisionColorInverseOut = precisionColorOverrideParameters.y;
+    }
+    else if (precisionColorOverrideMode == PSX_PRECISION_COLOR_OVERRIDE_MODE_ADD)
+    {
+        float precisionColorIndexNormalizedOverride = saturate(precisionColorIndexNormalized + precisionColorOverrideParameters.z);
+        float precisionColorIndex = floor(precisionColorIndexNormalizedOverride * 7.0f + 0.5f);
+        float precisionColorScale = exp2(precisionColorIndex + 1.0f) - 1.0f;
+        float precisionColorScaleInverse = 1.0f / precisionColorScale;
+
+        precisionColorOut = precisionColorScale;
+        precisionColorInverseOut = precisionColorScaleInverse;
+    }
+    else if (precisionColorOverrideMode == PSX_PRECISION_COLOR_OVERRIDE_MODE_MULTIPLY)
+    {
+        float precisionColorIndexNormalizedOverride = saturate(precisionColorIndexNormalized * precisionColorOverrideParameters.z);
+        float precisionColorIndex = floor(precisionColorIndexNormalizedOverride * 7.0f + 0.5f);
+        float precisionColorScale = exp2(precisionColorIndex + 1.0f) - 1.0f;
+        float precisionColorScaleInverse = 1.0f / precisionColorScale;
+
+        precisionColorOut = precisionColorScale;
+        precisionColorInverseOut = precisionColorScaleInverse;
+    }
+}
+
 float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, float4 positionCS, int precisionGeometryOverrideMode, float3 precisionGeometryOverrideParameters, int drawDistanceOverrideMode, float2 drawDistanceOverride)
 {
     if (_IsPSXQualityEnabled)
@@ -267,7 +312,7 @@ float4 ApplyLightingToColor(float3 lighting, float4 color)
     return color;
 }
 
-float4 EvaluateFogPerVertex(float3 positionWS, float3 positionVS, float affineWarpingScale, float fogWeight)
+float4 EvaluateFogPerVertex(float3 positionWS, float3 positionVS, float affineWarpingScale, float fogWeight, float3 precisionColor, float3 precisionColorInverse)
 {
     float4 fog = 0.0f;
 
@@ -279,7 +324,7 @@ float4 EvaluateFogPerVertex(float3 positionWS, float3 positionVS, float affineWa
 
         // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
         // For now just do it here to make this code easier to refactor as we figure out the architecture.
-        float3 fogColor = floor(_FogColor.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
+        float3 fogColor = floor(_FogColor.rgb * precisionColor + 0.5f) * precisionColorInverse;
         fogColor = SRGBToLinear(fogColor);
         fogColor *= fogAlpha;
 
@@ -288,7 +333,7 @@ float4 EvaluateFogPerVertex(float3 positionWS, float3 positionVS, float affineWa
             float fogAlphaLayer1 = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
             fogAlphaLayer1 *= _FogColorLayer1.a;
 
-            float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
+            float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * precisionColor + 0.5f) * precisionColorInverse;
             fogColorLayer1 = SRGBToLinear(fogColorLayer1);
             fogColorLayer1 *= fogAlphaLayer1;
 
@@ -327,10 +372,10 @@ float ApplyPrecisionAlphaToAlpha(float alpha)
     return floor(alpha * _PrecisionAlphaAndInverse.x + 0.5f) * _PrecisionAlphaAndInverse.y;
 }
 
-float4 ApplyPrecisionColorToColorSRGB(float4 color)
+float4 ApplyPrecisionColorToColorSRGB(float4 color, float3 precisionColor, float3 precisionColorInverse)
 {
     // Convert to RGB 5:6:5 color space (default) - this will actually be whatever color space the user specified in the Precision Volume Override.
-    color.rgb = floor(color.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
+    color.rgb = floor(color.rgb * precisionColor + 0.5f) * precisionColorInverse;
     color.a = ApplyPrecisionAlphaToAlpha(color.a);
 
     return color;
@@ -365,7 +410,7 @@ float ApplyAlphaBlendTransformToFog(float fogAlpha, float colorAlpha)
     return fogAlpha;
 }
 
-float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 positionSS, float4 vertexFog, float affineWarpingScaleInverse, float fogWeight)
+float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 positionSS, float4 vertexFog, float affineWarpingScaleInverse, float fogWeight, float3 precisionColor, float3 precisionColorInverse)
 {
     float3 fogColor = 0.0f;
     float fogAlpha = 0.0f;
@@ -380,7 +425,7 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
     
     // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
     // For now just do it here to make this code easier to refactor as we figure out the architecture.
-    fogColor = floor(_FogColor.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
+    fogColor = floor(_FogColor.rgb * precisionColor + 0.5f) * precisionColorInverse;
     fogColor = SRGBToLinear(fogColor);
 
     if (_FogIsAdditionalLayerEnabled)
@@ -388,7 +433,7 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
         float fogAlphaLayer1 = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
         fogAlphaLayer1 *= _FogColorLayer1.a;
 
-        float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * _PrecisionColor.rgb + 0.5f) * _PrecisionColorInverse.rgb;
+        float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * precisionColor.rgb + 0.5f) * precisionColorInverse;
         fogColorLayer1 = SRGBToLinear(fogColorLayer1);
         fogColorLayer1 *= fogAlphaLayer1;
 

@@ -87,8 +87,14 @@ Shader "Hidden/PSX/PSXTerrain (Basemap Gen)"
                 half4 color = 0.0h;
                 float2 splatUV = (uvMainAndLM.xy * (_Control_TexelSize.zw - 1.0f) + 0.5f) * _Control_TexelSize.xy;
                 splatControl = SAMPLE_TEXTURE2D(_Control, sampler_Control, splatUV);
+
+                float3 precisionColor;
+                float3 precisionColorInverse;
+                float precisionColorIndexNormalized = _PrecisionColor.w;
+                float precisionChromaBit = _PrecisionColorInverse.w;
+                ApplyPrecisionColorOverride(precisionColor, precisionColorInverse, _PrecisionColor.rgb, _PrecisionColorInverse.rgb, precisionColorIndexNormalized, precisionChromaBit, _PrecisionColorOverrideMode, _PrecisionColorOverrideParameters);
                           
-                SplatmapMix(uvMainAndLM, uvSplat01, uvSplat23, splatControl, weight, color);
+                SplatmapMix(uvMainAndLM, uvSplat01, uvSplat23, precisionColor, precisionColorInverse, splatControl, weight, color);
                 
                 return half4(color.rgb, 1.0f);
             }

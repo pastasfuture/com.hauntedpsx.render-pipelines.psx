@@ -108,6 +108,8 @@ void SplatmapMix(
     float4 uvMainAndLM,
     float4 uvSplat01,
     float4 uvSplat23,
+    float3 precisionColor,
+    float3 precisionColorInverse,
 #if defined(_TEXTURE_FILTER_MODE_ENABLED)
     float4 splat0TexelSizeLod,
     float splat0LOD,
@@ -164,16 +166,16 @@ void SplatmapMix(
 
     if (_IsPSXQualityEnabled)
     {
-        diffAlbedo[0] = ApplyPrecisionColorToColorSRGB(diffAlbedo[0]);
+        diffAlbedo[0] = ApplyPrecisionColorToColorSRGB(diffAlbedo[0], precisionColor, precisionColorInverse);
         diffAlbedo[0].rgb = SRGBToLinear(diffAlbedo[0].rgb);
 
-        diffAlbedo[1] = ApplyPrecisionColorToColorSRGB(diffAlbedo[1]);
+        diffAlbedo[1] = ApplyPrecisionColorToColorSRGB(diffAlbedo[1], precisionColor, precisionColorInverse);
         diffAlbedo[1].rgb = SRGBToLinear(diffAlbedo[1].rgb);
 
-        diffAlbedo[2] = ApplyPrecisionColorToColorSRGB(diffAlbedo[2]);
+        diffAlbedo[2] = ApplyPrecisionColorToColorSRGB(diffAlbedo[2], precisionColor, precisionColorInverse);
         diffAlbedo[2].rgb = SRGBToLinear(diffAlbedo[2].rgb);
 
-        diffAlbedo[3] = ApplyPrecisionColorToColorSRGB(diffAlbedo[3]);
+        diffAlbedo[3] = ApplyPrecisionColorToColorSRGB(diffAlbedo[3], precisionColor, precisionColorInverse);
         diffAlbedo[3].rgb = SRGBToLinear(diffAlbedo[3].rgb);
     }
 
@@ -272,13 +274,19 @@ Varyings TerrainLitPassVert(Attributes v)
     o.vertex = ApplyPrecisionGeometryToPositionCS(vertexPositionInputs.positionWS, vertexPositionInputs.positionVS, vertexPositionInputs.positionCS, _PrecisionGeometryOverrideMode, _PrecisionGeometryOverrideParameters);
     o.uvw = ApplyAffineTextureWarpingToUVW(v.uv, o.vertex.w, _AffineTextureWarpingWeight);
 
+    float3 precisionColor;
+    float3 precisionColorInverse;
+    float precisionColorIndexNormalized = _PrecisionColor.w;
+    float precisionChromaBit = _PrecisionColorInverse.w;
+    ApplyPrecisionColorOverride(precisionColor, precisionColorInverse, _PrecisionColor.rgb, _PrecisionColorInverse.rgb, precisionColorIndexNormalized, precisionChromaBit, _PrecisionColorOverrideMode, _PrecisionColorOverrideParameters);
+
     o.positionVS = vertexPositionInputs.positionVS;
     o.positionWS = vertexPositionInputs.positionWS;
 
     float4 vertexColor = 0.0f; // Terrain does not support vertex color based lighting.
     float2 lightmapUV = v.uv * unity_LightmapST.xy + unity_LightmapST.zw;
     o.lighting = EvaluateLightingPerVertex(vertexPositionInputs.positionWS, o.normalWS, vertexColor, lightmapUV, o.uvw.z);
-    o.fog = EvaluateFogPerVertex(vertexPositionInputs.positionWS, vertexPositionInputs.positionVS, o.uvw.z, _FogWeight);
+    o.fog = EvaluateFogPerVertex(vertexPositionInputs.positionWS, vertexPositionInputs.positionVS, o.uvw.z, _FogWeight, precisionColor, precisionColorInverse);
 
     return o;
 }
@@ -330,6 +338,13 @@ half4 TerrainLitPassFrag(Varyings i) : SV_TARGET
     ClipHoles(uvMainAndLM.xy);
 #endif
 
+    // Rather than paying the cost of interpolating our 6 floats for precision color per vertex, we simply recompute them per pixel here.
+    float3 precisionColor;
+    float3 precisionColorInverse;
+    float precisionColorIndexNormalized = _PrecisionColor.w;
+    float precisionChromaBit = _PrecisionColorInverse.w;
+    ApplyPrecisionColorOverride(precisionColor, precisionColorInverse, _PrecisionColor.rgb, _PrecisionColorInverse.rgb, precisionColorIndexNormalized, precisionChromaBit, _PrecisionColorOverrideMode, _PrecisionColorOverrideParameters);
+
 #ifdef TERRAIN_SPLAT_BASEPASS
 #if defined(_TEXTURE_FILTER_MODE_ENABLED)
     float4 color = SampleTextureWithFilterMode(TEXTURE2D_ARGS(_MainTex, sampler_MainTex), uvMainAndLM.xy, mainTexLOD, mainTexTexelSizeLod);
@@ -354,6 +369,8 @@ half4 TerrainLitPassFrag(Varyings i) : SV_TARGET
     SplatmapMix(
         uvMainAndLM,
         uvSplat01, uvSplat23,
+        precisionColor,
+        precisionColorInverse,
     #if defined(_TEXTURE_FILTER_MODE_ENABLED)
         splat0TexelSizeLod,
         splat0LOD,
@@ -380,7 +397,7 @@ half4 TerrainLitPassFrag(Varyings i) : SV_TARGET
     float3 lighting = EvaluateLightingPerPixel(i.positionWS, normalWS, i.lighting, uvMainAndLM.zw, interpolatorNormalization);
     color = ApplyLightingToColor(lighting, color);
 
-    float4 fog = EvaluateFogPerPixel(i.positionWS, i.positionVS, positionSS, i.fog, interpolatorNormalization, _FogWeight);
+    float4 fog = EvaluateFogPerPixel(i.positionWS, i.positionVS, positionSS, i.fog, interpolatorNormalization, _FogWeight, precisionColor, precisionColorInverse);
     color = ApplyFogToColorSplatmap(color, fog);
 
 #ifndef _OUTPUT_HDR
@@ -398,7 +415,7 @@ half4 TerrainLitPassFrag(Varyings i) : SV_TARGET
 
     // Convert the final color value to 5:6:5 color space (default) - this will actually be whatever color space the user specified in the Precision Volume Override.
     // This emulates a the limited bit-depth frame buffer.
-    color.rgb = ComputeFramebufferDiscretization(color.rgb, positionSS);
+    color.rgb = ComputeFramebufferDiscretization(color.rgb, positionSS, precisionColor, precisionColorInverse);
 #endif
 
     return half4(color.rgb, 1.0h);
@@ -509,8 +526,15 @@ VaryingsMeta TerrainVertexMeta(AttributesMeta i)
 
 half4 TerrainFragmentMeta(VaryingsMeta i) : SV_Target
 {
+    // Rather than paying the cost of interpolating our 6 floats for precision color per vertex, we simply recompute them per pixel here.
+    float3 precisionColor;
+    float3 precisionColorInverse;
+    float precisionColorIndexNormalized = _PrecisionColor.w;
+    float precisionChromaBit = _PrecisionColorInverse.w;
+    ApplyPrecisionColorOverride(precisionColor, precisionColorInverse, _PrecisionColor.rgb, _PrecisionColorInverse.rgb, precisionColorIndexNormalized, precisionChromaBit, _PrecisionColorOverrideMode, _PrecisionColorOverrideParameters);
+
     half3 color = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv).rgb;
-    color.rgb = ApplyPrecisionColorToColorSRGB(half4(color, 0.0h)).rgb;
+    color.rgb = ApplyPrecisionColorToColorSRGB(half4(color, 0.0h), precisionColor, precisionColorInverse).rgb;
     color.rgb = SRGBToLinear(color.rgb);
 
     const half3 emission = 0.0h;
