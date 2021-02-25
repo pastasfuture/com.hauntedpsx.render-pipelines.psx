@@ -74,7 +74,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             DisposeLighting();
         }
 
-        void PushCameraParameters(Camera camera, CommandBuffer cmd, out int rasterizationWidth, out int rasterizationHeight, bool isPSXQualityEnabled)
+        void PushCameraParameters(Camera camera, CommandBuffer cmd, out int rasterizationWidth, out int rasterizationHeight, out Vector4 cameraAspectModeUVScaleBias, bool isPSXQualityEnabled)
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushCameraParameters))
             {
@@ -100,18 +100,21 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 camera.ResetAspect();
                 rasterizationWidth = camera.pixelWidth;
                 rasterizationHeight = camera.pixelHeight;
-
+                cameraAspectModeUVScaleBias = new Vector4(1.0f, 1.0f, 0.0f, 0.0f);
                 if (isPSXQualityEnabled)
                 {
-                    rasterizationWidth = volumeSettings.targetRasterizationResolutionWidth.value;
-                    rasterizationHeight = volumeSettings.targetRasterizationResolutionHeight.value;
+                    rasterizationWidth = Mathf.Min(rasterizationWidth, volumeSettings.targetRasterizationResolutionWidth.value);
+                    rasterizationHeight = Mathf.Min(rasterizationHeight, volumeSettings.targetRasterizationResolutionHeight.value);
                     
                     // Only render locked aspect ratio in main game view.
                     // Force scene view to render with free aspect ratio so that users edit area is not cropped.
                     // This also works around an issue with the aspect ratio discrepancy between locked mode, and
                     // the built in unity gizmos that are rendered outside of the context of this render loop.
-                    if (volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.Free
-                        || !IsMainGameView(camera))
+                    if (!IsMainGameView(camera)
+                        || (volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.FreeStretch)
+                        || (volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.FreeFitPixelPerfect)
+                        || (volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.FreeCropPixelPerfect)
+                        || (volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.FreeBleedPixelPerfect))
                     {
                         // Rather than explicitly hardcoding PSX framebuffer resolution, and enforcing 1.333 aspect ratio
                         // we allow arbitrary aspect ratios and match requested PSX framebuffer pixel density. (targetRasterizationResolutionWidth and targetRasterizationResolutionHeight).
@@ -129,8 +132,49 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                         }
                     }
 
+                    if (volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.FreeBleedPixelPerfect)
+                    {
+                        // With Free Bleed Pixel Perfect, rasterization width and height are just targets.
+                        // The actual width and height are adjusted to get as close as possible to the target, while still remaining pixel perfect, and avoiding black bars.
+                        // This results in a change of aspect ratio unless the screen resolution is a perfect multiple of the rasterization resolution target.
+                        rasterizationWidth = camera.pixelWidth / Mathf.CeilToInt((float)camera.pixelWidth / (float)rasterizationWidth);
+                        rasterizationHeight = camera.pixelHeight / Mathf.CeilToInt((float)camera.pixelHeight / (float)rasterizationHeight);
+                    }
+
+                    // Compute uniform for handling the potential rasterization render target aspect ratio vs CRT shader render target aspect ratio discrepancy.
+                    // This occurs due to rounding error, or due to locked rasterization aspect ratio (i.e: to simulate CRT 1.33).
+                    if ((volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.FreeFitPixelPerfect)
+                        || (volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.LockedFitPixelPerfect))
+                    {
+                        float ratioX = (float)rasterizationWidth / (float)camera.pixelWidth;
+                        float ratioY = (float)rasterizationHeight / (float)camera.pixelHeight;
+                        float ratioXYMax = Mathf.Max(ratioX, ratioY);
+                        float uvScaleFitX = 1.0f / (ratioX * Mathf.Floor(1.0f / ratioXYMax));
+                        float uvScaleFitY = 1.0f / (ratioY * Mathf.Floor(1.0f / ratioXYMax));
+                        cameraAspectModeUVScaleBias = new Vector4(uvScaleFitX, uvScaleFitY, 0.5f - (0.5f * uvScaleFitX), 0.5f - (0.5f * uvScaleFitY));
+                    }
+                    else if (volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.FreeCropPixelPerfect)
+                    {
+                        float ratioX = (float)rasterizationWidth / (float)camera.pixelWidth;
+                        float ratioY = (float)rasterizationHeight / (float)camera.pixelHeight;
+                        float ratioXYMin = Mathf.Min(ratioX, ratioY);
+                        float uvScaleCropX = 1.0f / (ratioX * Mathf.Ceil(1.0f / ratioXYMin));
+                        float uvScaleCropY = 1.0f / (ratioY * Mathf.Ceil(1.0f / ratioXYMin));
+                        cameraAspectModeUVScaleBias = new Vector4(uvScaleCropX, uvScaleCropY, 0.5f - (0.5f * uvScaleCropX), 0.5f - (0.5f * uvScaleCropY));
+                    }
+                    else
+                    {
+                        Debug.Assert((volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.FreeStretch)
+                            || (volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.FreeBleedPixelPerfect));
+
+                        // No work to be done.
+                        // In the case of Free Stretch: just perform naive upscale, and accept the artifacts.
+                        // In the case of Free Bleed Pixel Perfect: No work to be done, we already ensured rasterization resolution is an even divisor of screen resolution.
+                        cameraAspectModeUVScaleBias = new Vector4(1.0f, 1.0f, 0.0f, 0.0f);
+                    }
+
                     // Force the camera into the aspect ratio described by the targetRasterizationResolution parameters.
-                    // While this can be approximately be equal to the fullscreen aspect ratio (in CameraAspectMode.Free),
+                    // While this can be approximately be equal to the fullscreen aspect ratio (in CameraAspectMode.FreeX modes),
                     // subtle change can occur from pixel rounding error.
                     camera.aspect = (float)rasterizationWidth / (float)rasterizationHeight;
                 }
@@ -168,7 +212,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 isPSXQualityEnabled &= CoreUtils.ArePostProcessesEnabled(camera);
 
                 var cmd = CommandBufferPool.Get(PSXStringConstants.s_CommandBufferRenderForwardStr);
-                PushCameraParameters(camera, cmd, out int rasterizationWidth, out int rasterizationHeight, isPSXQualityEnabled);
+                PushCameraParameters(camera, cmd, out int rasterizationWidth, out int rasterizationHeight, out Vector4 cameraAspectModeUVScaleBias, isPSXQualityEnabled);
 
                 // Disable shadow casters completely as we currently do not support dynamic light sources.
                 cullingParameters.cullingOptions &= ~CullingOptions.ShadowCasters;
@@ -275,7 +319,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd = CommandBufferPool.Get(PSXStringConstants.s_CommandBufferRenderPostProcessStr);
                 cmd.SetRenderTarget(camera.targetTexture);
                 {
-                    PushGlobalPostProcessingParameters(camera, cmd, m_Asset, rasterizationRT, rasterizationWidth, rasterizationHeight);
+                    PushGlobalPostProcessingParameters(camera, cmd, m_Asset, rasterizationRT, rasterizationWidth, rasterizationHeight, cameraAspectModeUVScaleBias);
                     PushCompressionParameters(camera, cmd, m_Asset, rasterizationRT, compressionCSKernels);
                     PushCathodeRayTubeParameters(camera, cmd, crtMaterial);
                     PSXRenderPipeline.DrawFullScreenQuad(cmd, crtMaterial);
@@ -757,7 +801,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             }  
         }
 
-        static void PushGlobalPostProcessingParameters(Camera camera, CommandBuffer cmd, PSXRenderPipelineAsset asset, RenderTexture rasterizationRT, int rasterizationWidth, int rasterizationHeight)
+        static void PushGlobalPostProcessingParameters(Camera camera, CommandBuffer cmd, PSXRenderPipelineAsset asset, RenderTexture rasterizationRT, int rasterizationWidth, int rasterizationHeight, Vector4 cameraAspectModeUVScaleBias)
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushGlobalPostProcessingParameters))
             {
@@ -770,6 +814,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 }
 
                 cmd.SetGlobalInt(PSXShaderIDs._FlipY, flipY ? 1 : 0);
+                cmd.SetGlobalVector(PSXShaderIDs._CameraAspectModeUVScaleBias, cameraAspectModeUVScaleBias);
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / (float)camera.pixelWidth, 1.0f / (float)camera.pixelHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSizeRasterization, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalTexture(PSXShaderIDs._FrameBufferTexture, rasterizationRT);

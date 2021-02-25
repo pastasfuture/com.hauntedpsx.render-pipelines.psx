@@ -20,6 +20,7 @@ Shader "Hidden/HauntedPS1/CRT"
     #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/ShaderVariables.hlsl"
     #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/ShaderFunctions.hlsl"
 
+    float4 _CameraAspectModeUVScaleBias;
     int _FlipY;
     float4 _BlueNoiseSize;
     float4 _WhiteNoiseSize;
@@ -452,29 +453,15 @@ Shader "Hidden/HauntedPS1/CRT"
     {
         Varyings output;
         output.positionCS = input.vertex;
-        
 
-        // Handle potential rasterization render target aspect ratio vs CRT shader render target aspect ratio discrepancy.
-        // This occurs due to rounding error, or due to locked rasterization aspect ratio (i.e: to simulate CRT 1.33).
-        // TODO: This scale bias term could be computed CPU side. That said, this calculation is only run on four vertices.
-        // Probably not worth adding an additional uniform to deal with this.
-        float2 ratioXY = _ScreenSizeRasterization.xy * _ScreenSize.zw;
-        float2 ratioXYMax = max(ratioXY.x, ratioXY.y);
-        float2 uvScale = ratioXYMax / ratioXY;
-        float2 uvBias = 0.5 - (0.5 * uvScale);
         output.uvScreen = input.uv;
-        output.uvFramebuffer = input.uv * uvScale + uvBias;
+        output.uvFramebuffer = input.uv * _CameraAspectModeUVScaleBias.xy + _CameraAspectModeUVScaleBias.zw;
 
         return output;
     }
 
     bool ShouldFlipY()
     {
-        // #if UNITY_UV_STARTS_AT_TOP
-        //     return (_ProjectionParams.x > 0);
-        // #else
-        //     return (_ProjectionParams.x < 0);
-        // #endif
         #if UNITY_UV_STARTS_AT_TOP
             return (_FlipY == 1) ? true : false;
         #else

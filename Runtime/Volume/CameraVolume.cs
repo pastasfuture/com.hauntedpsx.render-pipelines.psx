@@ -10,8 +10,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         [Serializable]
         public enum CameraAspectMode
         {
-            Free = 0,
-            Locked
+            FreeStretch = 0,
+            FreeFitPixelPerfect,
+            FreeCropPixelPerfect,
+            FreeBleedPixelPerfect,
+            LockedFitPixelPerfect
         };
 
         [Serializable]
@@ -23,7 +26,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
         public BoolParameter isFrameLimitEnabled = new BoolParameter(false);
         public MinIntParameter frameLimit = new MinIntParameter(24, 1);
-        public CameraAspectModeParameter aspectMode = new CameraAspectModeParameter(CameraAspectMode.Free); 
+        public CameraAspectModeParameter aspectMode = new CameraAspectModeParameter(CameraAspectMode.FreeBleedPixelPerfect); 
         public ClampedIntParameter targetRasterizationResolutionWidth = new ClampedIntParameter(256, 1, 4096);
         public ClampedIntParameter targetRasterizationResolutionHeight = new ClampedIntParameter(224, 1, 4096);
         public BoolParameter isDepthBufferEnabled = new BoolParameter(true);
