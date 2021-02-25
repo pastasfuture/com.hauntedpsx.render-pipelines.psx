@@ -249,6 +249,9 @@ VertexPositionInputs GetVertexPositionInputs(float3 positionOS)
     VertexPositionInputs input;
     input.positionWS = TransformObjectToWorld(positionOS);
     input.positionVS = TransformWorldToView(input.positionWS);
+
+    ApplyGeometryPushbackToPosition(input.positionWS, input.positionVS, _GeometryPushbackParameters);
+
     input.positionCS = TransformWorldToHClip(input.positionWS);
 
     float4 ndc = input.positionCS * 0.5f;

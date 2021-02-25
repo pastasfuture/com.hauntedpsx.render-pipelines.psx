@@ -57,6 +57,7 @@ float4 _ProjectionParams;
 int _IsPSXQualityEnabled;
 int _DrawDistanceFalloffMode;
 float2 _DrawDistance;
+float4 _GeometryPushbackParameters;
 float4 _PrecisionGeometry;
 float4 _PrecisionColor; // [scaleR, scaleG, scaleB, precisionColorIndexNormalized]
 float4 _PrecisionColorInverse; // [1 / scaleR, 1 / scaleG, 1 / scaleB, precisionChromaBit]
