@@ -129,6 +129,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _CRTBarrelDistortion = Shader.PropertyToID("_CRTBarrelDistortion");
         public static readonly int _CRTVignetteSquared = Shader.PropertyToID("_CRTVignetteSquared");
         public static readonly int _CRTIsTelevisionOverlayEnabled = Shader.PropertyToID("_CRTIsTelevisionOverlayEnabled");
+        public static readonly int _GeometryPushbackParameters = Shader.PropertyToID("_GeometryPushbackParameters");
         public static readonly int _PrecisionGeometry = Shader.PropertyToID("_PrecisionGeometry");
         public static readonly int _PrecisionColor = Shader.PropertyToID("_PrecisionColor");
         public static readonly int _PrecisionColorInverse = Shader.PropertyToID("_PrecisionColorInverse");

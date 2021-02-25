@@ -63,6 +63,24 @@ void ApplyPrecisionColorOverride(out float3 precisionColorOut, out float3 precis
     }
 }
 
+void ApplyGeometryPushbackToPosition(inout float3 positionWS, inout float3 positionVS, bool geometryPushbackEnabled, float geometryPushbackDistanceMin, float geometryPushbackDistanceMax)
+{
+    if (geometryPushbackEnabled)
+    {
+        positionVS.z = (-positionVS.z < geometryPushbackDistanceMin || -positionVS.z > geometryPushbackDistanceMax) ? positionVS.z : -geometryPushbackDistanceMax;
+        positionWS = TransformViewToWorld(positionVS);
+    }
+}
+
+void ApplyGeometryPushbackToPosition(inout float3 positionWS, inout float3 positionVS, float4 geometryPushbackParameters)
+{
+    bool geometryPushbackEnabled = geometryPushbackParameters.x > 0.5f;
+    float geometryPushbackDistanceMin = geometryPushbackParameters.y;
+    float geometryPushbackDistanceMax = geometryPushbackParameters.z;
+
+    ApplyGeometryPushbackToPosition(positionWS, positionVS, geometryPushbackEnabled, geometryPushbackDistanceMin, geometryPushbackDistanceMax);
+}
+
 float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, float4 positionCS, int precisionGeometryOverrideMode, float3 precisionGeometryOverrideParameters, int drawDistanceOverrideMode, float2 drawDistanceOverride)
 {
     if (_IsPSXQualityEnabled)

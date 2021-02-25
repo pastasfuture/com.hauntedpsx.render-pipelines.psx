@@ -591,6 +591,13 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 var volumeSettings = VolumeManager.instance.stack.GetComponent<PrecisionVolume>();
                 if (!volumeSettings) volumeSettings = PrecisionVolume.@default;
 
+                cmd.SetGlobalVector(PSXShaderIDs._GeometryPushbackParameters, new Vector4(
+                    volumeSettings.geometryPushbackEnabled.value ? 1.0f : 0.0f,
+                    volumeSettings.geometryPushbackMinMax.value.x,
+                    volumeSettings.geometryPushbackMinMax.value.y,
+                    0.0f
+                ));
+
                 bool precisionGeometryEnabled = volumeSettings.geometryEnabled.value;
                 if (precisionGeometryEnabled)
                 {

@@ -12,6 +12,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
     {
         SerializedDataParameter m_GeometryEnabled;
         SerializedDataParameter m_Geometry;
+        SerializedDataParameter m_GeometryPushbackEnabled;
+        SerializedDataParameter m_GeometryPushbackMinMax;
         SerializedDataParameter m_Color;
         SerializedDataParameter m_Chroma;
         SerializedDataParameter m_Alpha;
@@ -25,6 +27,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             var o = new PropertyFetcher<PrecisionVolume>(serializedObject);
             m_GeometryEnabled = Unpack(o.Find(x => x.geometryEnabled));
             m_Geometry = Unpack(o.Find(x => x.geometry));
+            m_GeometryPushbackEnabled = Unpack(o.Find(x => x.geometryPushbackEnabled));
+            m_GeometryPushbackMinMax = Unpack(o.Find(x => x.geometryPushbackMinMax));
             m_Color = Unpack(o.Find(x => x.color));
             m_Chroma = Unpack(o.Find(x => x.chroma));
             m_Alpha = Unpack(o.Find(x => x.alpha));
@@ -40,6 +44,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             if (m_GeometryEnabled.value.boolValue)
             {
                 PropertyField(m_Geometry, EditorGUIUtility.TrTextContent("Geometry", "Controls the vertex precision. Lower values creates more vertex jitter + snapping."));
+            }
+            PropertyField(m_GeometryPushbackEnabled, EditorGUIUtility.TrTextContent("Geometry Pushback Enabled", "Controls whether or not geometry close to the camera is artificially pushed back. This emulates a PSX-era technique used to reduce affine texture warping artifacts. Can be useful for glitch effects."));
+            if (m_GeometryPushbackEnabled.value.boolValue)
+            {
+                PropertyField(m_GeometryPushbackMinMax, EditorGUIUtility.TrTextContent("Geometry Pushback Min / Max", "Controls the distance range from the camera that geometry is artifically pushed back. The Min value specifies the distance geometry will start to be pushed back. The Max value specifies the distance geometry will be pushed back to."));
             }
             PropertyField(m_Color, EditorGUIUtility.TrTextContent("Color", "Controls the color precision. Lower values creates more color banding along gradients."));
             PropertyField(m_Chroma, EditorGUIUtility.TrTextContent("Chroma", "Controls the amount of chroma shift that is visible within color precision banding steps. A value of 1.0 adds precision in the green channel, useful for simulating a 5:6:5 style color space. This also means grayscale values will always have a chroma tint, creating a grungier look. A value of 0.0 gives you consistent precision across R, G and B channels, grayscale values with no chroma tint."));

@@ -18,6 +18,7 @@ float _AlphaClippingDitherIsEnabled;
 float4 _AlphaClippingScaleBiasMinMax;
 float _AffineTextureWarpingWeight;
 float _FogWeight;
+float4 _GeometryPushbackParameters;
 int _PrecisionGeometryOverrideMode;
 float3 _PrecisionGeometryOverrideParameters;
 int _PrecisionColorOverrideMode;

@@ -5,6 +5,16 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/SpaceTransforms.hlsl"
 
+float4x4 GetViewToWorldMatrix()
+{
+    return UNITY_MATRIX_I_V;
+}
+
+float3 TransformViewToWorld(float3 positionVS)
+{
+    return mul(GetViewToWorldMatrix(), float4(positionVS, 1.0)).xyz;
+}
+
 float TonemapperGenericScalar(float x)
 {
     return saturate(

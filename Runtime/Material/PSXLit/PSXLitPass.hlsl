@@ -39,6 +39,8 @@ Varyings LitPassVertex(Attributes v)
 
     float3 positionWS = TransformObjectToWorld(v.vertex.xyz);
     float3 positionVS = TransformWorldToView(positionWS);
+    ApplyGeometryPushbackToPosition(positionWS, positionVS, _GeometryPushbackParameters);
+
     float4 positionCS = TransformWorldToHClip(positionWS);
     o.vertex = positionCS;
 
