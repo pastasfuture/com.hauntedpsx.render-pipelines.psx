@@ -1,7 +1,7 @@
 # com.hauntedpsx.render-pipelines.psx
 A scriptable render pipeline for emulating Playstation-1-style graphics on contemporary hardware.
 
-Built for, and verified in Unity version 2019.3 and 2020.1.
+Built for, and verified in Unity version 2019.3, 2019.4 LTS, 2020.1, and 2020.2.
 
 # Installation Guide
 https://github.com/pastasfuture/com.hauntedpsx.render-pipelines.psx/wiki/Installation-Guide
