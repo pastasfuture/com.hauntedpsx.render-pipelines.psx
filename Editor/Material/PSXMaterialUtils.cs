@@ -124,6 +124,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public static class PropertyNames
         {
+            public static readonly string _DissolveCameraOccluderMaterialEnabled = "_DissolveCameraOccluderMaterialEnabled";
             public static readonly string _TextureFilterMode = "_TextureFilterMode";
             public static readonly string _VertexColorMode = "_VertexColorMode";
             public static readonly string _RenderQueueCategory = "_RenderQueueCategory";
@@ -172,6 +173,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public static class PropertyIDs
         {
+            public static readonly int _DissolveCameraOccluderMaterialEnabled = Shader.PropertyToID(PropertyNames._DissolveCameraOccluderMaterialEnabled);
             public static readonly int _TextureFilterMode = Shader.PropertyToID(PropertyNames._TextureFilterMode);
             public static readonly int _VertexColorMode = Shader.PropertyToID(PropertyNames._VertexColorMode);
             public static readonly int _RenderQueueCategory = Shader.PropertyToID(PropertyNames._RenderQueueCategory);
@@ -232,7 +234,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public static class Keywords
         {
-
+            public static readonly string _DISSOLVE_CAMERA_OCCLUDER_MATERIAL_ENABLED = "_DISSOLVE_CAMERA_OCCLUDER_MATERIAL_ENABLED";
             public static readonly string _TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS = "_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS";
             public static readonly string _TEXTURE_FILTER_MODE_POINT = "_TEXTURE_FILTER_MODE_POINT";
             public static readonly string _TEXTURE_FILTER_MODE_POINT_MIPMAPS = "_TEXTURE_FILTER_MODE_POINT_MIPMAPS";
@@ -266,6 +268,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent AdvancedLabel = new GUIContent("Advanced",
                 "These settings affect behind-the-scenes rendering and underlying calculations.");
+
+            public static readonly GUIContent DissolveCameraOccluder = new GUIContent("Dissolve Camera Occluder Enabled",
+                "Controls whether or not the material is dissolved if it enters the dissolve camera occluder volume fade region.");
 
             public static readonly GUIContent TextureFilterMode = new GUIContent("Texture Filter Mode",
                 "Controls how MainTex and EmissionTex are filtered.\nTextureFilterMode.TextureImportSettings is the standard unity behavior. Textures will be filtered using the texture's import settings.\nTextureFilterMode.Point will force PSX era nearest neighbor point sampling, regardless of texture import settings.\nTextureFilterMode.PointMipmaps is the same as TextureFilterMode.Point but supports supports point sampled lods via the texture's mipmap chain.\nTextureFilterMode.N64 will force N64 era 3-point barycentric texture filtering.\nTextureFilterMode.N64MipMaps is the same as TextureFilterMode.N64 but supports N64 sampled lods via the texture's mipmap chain.");
@@ -413,6 +418,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             // Clear all keywords for fresh start
             ClearMaterialKeywords(material);
 
+            SetupDissolveCameraOccluderEnabled(material);
             SetupMaterialTextureFilterMode(material);
             SetupMaterialLightingMode(material);
             SetupMaterialShadingEvaluationMode(material);
@@ -477,6 +483,22 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                     Debug.Assert(false);
                     break;
             }   
+        }
+
+        public static void SetupDissolveCameraOccluderEnabled(Material material)
+        {
+            if (material == null) { throw new ArgumentNullException("material"); }
+
+            bool dissolveCameraOccluderMaterialEnabled = material.GetFloat(PropertyIDs._DissolveCameraOccluderMaterialEnabled) > 0.5f;
+
+            if (dissolveCameraOccluderMaterialEnabled)
+            {
+                material.EnableKeyword(Keywords._DISSOLVE_CAMERA_OCCLUDER_MATERIAL_ENABLED);
+            }
+            else
+            {
+                material.DisableKeyword(Keywords._DISSOLVE_CAMERA_OCCLUDER_MATERIAL_ENABLED);
+            }
         }
 
         public static void SetupMaterialTextureFilterMode(Material material)
@@ -973,6 +995,14 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public static void DrawTileOffset(MaterialEditor materialEditor, MaterialProperty textureProp)
         {
             materialEditor.TextureScaleOffsetProperty(textureProp);
+        }
+
+        public static void DrawDissolveCameraOccluder(MaterialEditor materialEditor, MaterialProperty dissolveCameraOccluderMaterialEnabledProp)
+        {
+            EditorGUI.BeginChangeCheck();
+            bool dissolveCameraOccluderMaterialEnabled = EditorGUILayout.Toggle(Styles.DissolveCameraOccluder, dissolveCameraOccluderMaterialEnabledProp.floatValue == 1);
+            if (EditorGUI.EndChangeCheck())
+                dissolveCameraOccluderMaterialEnabledProp.floatValue = dissolveCameraOccluderMaterialEnabled ? 1 : 0;
         }
 
         public static void DrawRenderQueueCategory(MaterialEditor materialEditor, MaterialProperty renderQueueCategoryProp)

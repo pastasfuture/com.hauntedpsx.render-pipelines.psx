@@ -82,6 +82,7 @@ Shader "Hidden/PSX/PSXTerrain (Add Pass)"
             // -------------------------------------
             // Global Keywords (set by render pipeline)
             #pragma multi_compile _OUTPUT_LDR _OUTPUT_HDR
+            #pragma multi_compile _ _DISSOLVE_CAMERA_OCCLUDER_VOLUME_ENABLED
 
             // -------------------------------------
             // Material Keywords

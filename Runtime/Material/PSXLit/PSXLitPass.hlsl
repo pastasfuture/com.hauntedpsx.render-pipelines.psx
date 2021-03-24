@@ -74,6 +74,26 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
     // We need to post multiply all interpolated vertex values by the interpolated positionCS.w (stored in uvw.z) component to "normalize" the interpolated values.
     float interpolatorNormalization = 1.0f / i.uvw.z;
 
+#if defined(_DISSOLVE_CAMERA_OCCLUDER_VOLUME_ENABLED) && defined(_DISSOLVE_CAMERA_OCCLUDER_MATERIAL_ENABLED)
+    float aspect = _ScreenSize.y / _ScreenSize.x;
+    float2 positionNDCXY = positionSS * _ScreenSize.zw * 2.0f - 1.0f;
+    positionNDCXY.y *= aspect;
+    
+
+
+    float3 modelPositionWS = TransformObjectToWorld(float3(0.0f, 0.0f, 0.0f));
+    float3 modelPositionVS = TransformWorldToView(modelPositionWS);
+    float distanceToCamera = abs(modelPositionVS.z); // abs(i.positionVS.z)
+
+    float dissolveCameraOccluderDistanceFadeAlpha = saturate(distanceToCamera * _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.x + _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.y);
+    float dissolveCameraOccluderRadialFadeAlpha = saturate(length(positionNDCXY) * _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.z + _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.w);
+    float dissolveCameraOccluderFadeAlpha = max(dissolveCameraOccluderDistanceFadeAlpha, dissolveCameraOccluderRadialFadeAlpha);
+    float dissolveCameraOccluderDither;
+    float dissolveCameraOccluderAlpha;
+    ComputeAndFetchAlphaClippingParameters(dissolveCameraOccluderDither, dissolveCameraOccluderAlpha, dissolveCameraOccluderFadeAlpha, positionSS, 1.0f, _DissolveCameraOccluderFadeAlphaScaleBias.xyyy);
+    clip((dissolveCameraOccluderAlpha > dissolveCameraOccluderDither) ? 1.0f : -1.0f);
+#endif
+
     float3 normalWS = normalize(i.normalWS);
     normalWS = EvaluateNormalDoubleSidedPerPixel(normalWS, cullFace);
 

@@ -11,6 +11,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
     {
         protected MaterialEditor materialEditor { get; set; }
 
+        protected MaterialProperty dissolveCameraOccluderMaterialEnabledProp { get; set; }
+
         protected MaterialProperty textureFilterModeProp { get; set; }
 
         protected MaterialProperty vertexColorModeProp { get; set; }
@@ -102,6 +104,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public virtual void FindProperties(MaterialProperty[] properties)
         {
+            dissolveCameraOccluderMaterialEnabledProp = FindProperty(PropertyNames._DissolveCameraOccluderMaterialEnabled, properties);
             textureFilterModeProp = FindProperty(PropertyNames._TextureFilterMode, properties);
             vertexColorModeProp = FindProperty(PropertyNames._VertexColorMode, properties);
             renderQueueCategoryProp = FindProperty(PropertyNames._RenderQueueCategory, properties);
@@ -222,7 +225,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PSXMaterialUtils.DrawSurfaceTypeAndBlendMode(material, materialEditor, surfaceTypeProp, blendModeProp);
             PSXMaterialUtils.DrawCullingSettings(material, materialEditor, cullingProp, doubleSidedNormalModeProp, doubleSidedConstantsProp);
             PSXMaterialUtils.DrawAlphaClippingSettings(material, alphaClipProp, alphaClippingDitherIsEnabledProp, alphaClippingScaleBiasMinMaxProp);
-
+            PSXMaterialUtils.DrawDissolveCameraOccluder(materialEditor, dissolveCameraOccluderMaterialEnabledProp);
+            
             PSXMaterialUtils.DrawAffineTextureWarpingWeight(affineTextureWarpingWeightProp);
             PSXMaterialUtils.DrawFogWeight(fogWeightProp);
             PSXMaterialUtils.DrawPrecisionGeometryOverride(precisionGeometryOverrideModeProp, precisionGeometryOverrideParametersProp, precisionGeometryWeightDeprecatedProp);

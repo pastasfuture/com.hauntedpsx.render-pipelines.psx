@@ -28,6 +28,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_PushPrecisionParametersStr = "Push Precision Parameters";
         public static readonly string s_PushFogParametersStr = "Push Fog Parameters";
         public static readonly string s_PushCompressionParametersStr = "Push Compression Parameters";
+        public static readonly string s_PushDissolveCameraOccluderParametersStr = "Push Dissolve Camera Occluder Parameters";
         public static readonly string s_PushCathodeRayTubeParametersStr = "Push Cathode Ray Tube Parameters";
 
         public static ProfilingSampler s_PushCameraParameters = new ProfilingSampler(s_PushCameraParametersStr);
@@ -43,6 +44,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static ProfilingSampler s_PushPrecisionParameters = new ProfilingSampler(s_PushPrecisionParametersStr);
         public static ProfilingSampler s_PushFogParameters = new ProfilingSampler(s_PushFogParametersStr);
         public static ProfilingSampler s_PushCompressionParameters = new ProfilingSampler(s_PushCompressionParametersStr);
+        public static ProfilingSampler s_PushDissolveCameraOccluderParameters = new ProfilingSampler(s_PushDissolveCameraOccluderParametersStr);
         public static ProfilingSampler s_PushCathodeRayTubeParameters = new ProfilingSampler(s_PushCathodeRayTubeParametersStr);
     }
 
@@ -76,6 +78,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_TEXTURE_FILTER_MODE_POINT_MIPMAPS = "_TEXTURE_FILTER_MODE_POINT_MIPMAPS";
         public static readonly string s_TEXTURE_FILTER_MODE_N64 = "_TEXTURE_FILTER_MODE_N64";
         public static readonly string s_TEXTURE_FILTER_MODE_N64_MIPMAPS = "_TEXTURE_FILTER_MODE_N64_MIPMAPS";
+        public static readonly string s_DISSOLVE_CAMERA_OCCLUDER_VOLUME_ENABLED = "_DISSOLVE_CAMERA_OCCLUDER_VOLUME_ENABLED";
     }
 
     internal static class PSXComputeKernels
@@ -197,5 +200,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _SkyTiledLayersSkyRotationLayer1 = Shader.PropertyToID("_SkyTiledLayersSkyRotationLayer1");
         public static readonly int _SkyTiledLayersSkyScrollScaleLayer1 = Shader.PropertyToID("_SkyTiledLayersSkyScrollScaleLayer1");
         public static readonly int _SkyTiledLayersSkyScrollRotationLayer1 = Shader.PropertyToID("_SkyTiledLayersSkyScrollRotationLayer1");
+        public static readonly int _DissolveCameraOccluderFadeAlphaScaleBias = Shader.PropertyToID("_DissolveCameraOccluderFadeAlphaScaleBias");
+        public static readonly int _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias = Shader.PropertyToID("_DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias");
     }
 }

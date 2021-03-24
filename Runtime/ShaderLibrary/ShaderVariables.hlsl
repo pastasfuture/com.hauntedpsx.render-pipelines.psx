@@ -83,6 +83,10 @@ float _BakedLightingMultiplier;
 float _VertexColorLightingMultiplier;
 float _DynamicLightingMultiplier;
 
+// Dissolve Camera Occluders
+float2 _DissolveCameraOccluderFadeAlphaScaleBias;
+float4 _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias;
+
 // Post Processing
 int _TonemapperIsEnabled;
 float _TonemapperContrast;

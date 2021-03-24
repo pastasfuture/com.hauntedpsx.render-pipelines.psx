@@ -46,6 +46,7 @@
         [HideInInspector] _ColorMask("__colorMask", Float) = 15.0 // UnityEngine.Rendering.ColorWriteMask.All
         [HideInInspector] _Reflection("__reflection", Float) = 0.0
         [HideInInspector] _DoubleSidedNormalMode("__doubleSidedNormalMode", Float) = 0.0
+        [HideInInspector] _DissolveCameraOccluderMaterialEnabled("__dissolveCameraOccluderMaterialEnabled", Float) = 0.0
     }
     SubShader
     {
@@ -72,9 +73,11 @@
             // -------------------------------------
             // Global Keywords (set by render pipeline)
             #pragma multi_compile _OUTPUT_LDR _OUTPUT_HDR
+            #pragma multi_compile _ _DISSOLVE_CAMERA_OCCLUDER_VOLUME_ENABLED
 
             // -------------------------------------
             // Material Keywords
+            #pragma shader_feature _DISSOLVE_CAMERA_OCCLUDER_MATERIAL_ENABLED
             #pragma shader_feature _TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS _TEXTURE_FILTER_MODE_POINT _TEXTURE_FILTER_MODE_POINT_MIPMAPS _TEXTURE_FILTER_MODE_N64 _TEXTURE_FILTER_MODE_N64_MIPMAPS
             #pragma shader_feature _ _VERTEX_COLOR_MODE_COLOR _VERTEX_COLOR_MODE_LIGHTING _VERTEX_COLOR_MODE_COLOR_BACKGROUND
             #pragma shader_feature _LIGHTING_BAKED_ON

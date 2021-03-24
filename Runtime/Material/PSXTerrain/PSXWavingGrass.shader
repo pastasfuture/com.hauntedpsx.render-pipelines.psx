@@ -30,6 +30,7 @@ Shader "Hidden/TerrainEngine/Details/PSX/WavingDoublePass"
             // -------------------------------------
             // Global Keywords (set by render pipeline)
             #pragma multi_compile _OUTPUT_LDR _OUTPUT_HDR
+            #pragma multi_compile _ _DISSOLVE_CAMERA_OCCLUDER_VOLUME_ENABLED
 
             // -------------------------------------
             // Force Enabled Material Keywords
@@ -80,6 +81,8 @@ Shader "Hidden/TerrainEngine/Details/PSX/WavingDoublePass"
             #pragma prefer_hlslcc gles
             #pragma exclude_renderers d3d11_9x
             #pragma target 2.0
+
+            #pragma multi_compile _ _DISSOLVE_CAMERA_OCCLUDER_VOLUME_ENABLED
 
             #pragma vertex DepthOnlyVertex
             #pragma fragment DepthOnlyFragment

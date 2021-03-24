@@ -24,6 +24,8 @@ Shader "Hidden/TerrainEngine/Details/PSX/Vertexlit"
             #pragma vertex Vert
             #pragma fragment Frag
 
+            #pragma multi_compile _ _DISSOLVE_CAMERA_OCCLUDER_VOLUME_ENABLED
+
             // -------------------------------------
             // Universal Pipeline keywords
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS

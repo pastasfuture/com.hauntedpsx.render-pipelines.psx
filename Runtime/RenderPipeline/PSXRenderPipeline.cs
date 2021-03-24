@@ -284,6 +284,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     PushTonemapperParameters(camera, cmd);
                     PushDynamicLightingParameters(camera, cmd, ref cullingResults);
                     PushSkyParameters(camera, cmd, skyMaterial, m_Asset, rasterizationWidth, rasterizationHeight);
+                    PushDissolveCameraOccluderParameters(camera, cmd);
                     PSXRenderPipeline.DrawFullScreenQuad(cmd, skyMaterial);
                     context.ExecuteCommandBuffer(cmd);
                     cmd.Release();
@@ -1114,6 +1115,44 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 }
 
                 cmd.SetGlobalFloat(PSXShaderIDs._SkyFramebufferDitherWeight, volumeSettings.framebufferDitherWeight.value);
+            }
+        }
+
+        static void PushDissolveCameraOccluderParameters(Camera camera, CommandBuffer cmd)
+        {
+            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushDissolveCameraOccluderParameters))
+            {
+                var volumeSettings = VolumeManager.instance.stack.GetComponent<DissolveCameraOccluderVolume>();
+                if (!volumeSettings) volumeSettings = DissolveCameraOccluderVolume.@default;
+
+                DissolveCameraOccluderVolume.DissolveCameraOccluderMode mode = (DissolveCameraOccluderVolume.DissolveCameraOccluderMode)volumeSettings.mode.value;
+                bool enabled = mode != DissolveCameraOccluderVolume.DissolveCameraOccluderMode.Disabled;
+                CoreUtils.SetKeyword(cmd, PSXShaderKeywords.s_DISSOLVE_CAMERA_OCCLUDER_VOLUME_ENABLED, enabled);
+
+                // (x - distanceMin) / (distanceMax - distanceMin)
+                float distanceScale = 1.0f / Mathf.Max(1e-5f, volumeSettings.distanceMax.value - volumeSettings.distanceMin.value);
+                float distanceBias = -volumeSettings.distanceMin.value / Mathf.Max(1e-5f, volumeSettings.distanceMax.value - volumeSettings.distanceMin.value);
+                
+                float radiusScale = 1.0f / Mathf.Max(1e-5f, volumeSettings.radiusMax.value - volumeSettings.radiusMin.value);
+                float radiusBias = -volumeSettings.radiusMin.value / Mathf.Max(1e-5f, volumeSettings.radiusMax.value - volumeSettings.radiusMin.value);
+
+                if (mode != DissolveCameraOccluderVolume.DissolveCameraOccluderMode.RadialFade)
+                {
+                    radiusScale = 0.0f;
+                    radiusBias = 0.0f;
+                }
+
+                Vector4 dissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias = new Vector4(
+                    distanceScale,
+                    distanceBias,
+                    radiusScale,
+                    radiusBias
+                );
+
+                float fadeAlphaScale = 1.0f - volumeSettings.fadeAlpha.value;
+                float fadeAlphaBias = volumeSettings.fadeAlpha.value;
+                cmd.SetGlobalVector(PSXShaderIDs._DissolveCameraOccluderFadeAlphaScaleBias, new Vector2(fadeAlphaScale, fadeAlphaBias));
+                cmd.SetGlobalVector(PSXShaderIDs._DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias, dissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias);
             }
         }
 

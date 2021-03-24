@@ -65,6 +65,7 @@ Shader "Hidden/PSX/PSXTerrain (Base Pass)"
             // -------------------------------------
             // Global Keywords (set by render pipeline)
             #pragma multi_compile _OUTPUT_LDR _OUTPUT_HDR
+            #pragma multi_compile _ _DISSOLVE_CAMERA_OCCLUDER_VOLUME_ENABLED
 
             // -------------------------------------
             // Material Keywords
@@ -115,6 +116,8 @@ Shader "Hidden/PSX/PSXTerrain (Base Pass)"
             #pragma prefer_hlslcc gles
             #pragma exclude_renderers d3d11_9x
             #pragma target 3.0
+
+            #pragma multi_compile _ _DISSOLVE_CAMERA_OCCLUDER_VOLUME_ENABLED
 
             #pragma vertex TerrainLitPassVertDepthOnly
             #pragma fragment TerrainLitPassFragDepthOnly
