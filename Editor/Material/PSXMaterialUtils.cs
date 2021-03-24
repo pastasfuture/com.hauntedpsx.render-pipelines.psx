@@ -9,6 +9,14 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 {
     public static class PSXMaterialUtils
     {
+        public enum DissolveCameraOccluderMode
+        {
+            Disabled = 0,
+            Object,
+            Vertex,
+            Pixel
+        }
+
         public enum RenderQueueCategory
         {
             Main = 0,
@@ -124,7 +132,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public static class PropertyNames
         {
-            public static readonly string _DissolveCameraOccluderMaterialEnabled = "_DissolveCameraOccluderMaterialEnabled";
+            public static readonly string _DissolveCameraOccluderMaterialMode = "_DissolveCameraOccluderMaterialMode";
             public static readonly string _TextureFilterMode = "_TextureFilterMode";
             public static readonly string _VertexColorMode = "_VertexColorMode";
             public static readonly string _RenderQueueCategory = "_RenderQueueCategory";
@@ -173,7 +181,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         public static class PropertyIDs
         {
-            public static readonly int _DissolveCameraOccluderMaterialEnabled = Shader.PropertyToID(PropertyNames._DissolveCameraOccluderMaterialEnabled);
+            public static readonly int _DissolveCameraOccluderMaterialMode = Shader.PropertyToID(PropertyNames._DissolveCameraOccluderMaterialMode);
             public static readonly int _TextureFilterMode = Shader.PropertyToID(PropertyNames._TextureFilterMode);
             public static readonly int _VertexColorMode = Shader.PropertyToID(PropertyNames._VertexColorMode);
             public static readonly int _RenderQueueCategory = Shader.PropertyToID(PropertyNames._RenderQueueCategory);
@@ -269,7 +277,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly GUIContent AdvancedLabel = new GUIContent("Advanced",
                 "These settings affect behind-the-scenes rendering and underlying calculations.");
 
-            public static readonly GUIContent DissolveCameraOccluder = new GUIContent("Dissolve Camera Occluder Enabled",
+            public static readonly GUIContent DissolveCameraOccluderMode = new GUIContent("Dissolve Camera Occluder Mode",
                 "Controls whether or not the material is dissolved if it enters the dissolve camera occluder volume fade region.");
 
             public static readonly GUIContent TextureFilterMode = new GUIContent("Texture Filter Mode",
@@ -489,7 +497,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         {
             if (material == null) { throw new ArgumentNullException("material"); }
 
-            bool dissolveCameraOccluderMaterialEnabled = material.GetFloat(PropertyIDs._DissolveCameraOccluderMaterialEnabled) > 0.5f;
+            DissolveCameraOccluderMode mode = (DissolveCameraOccluderMode)(int)material.GetFloat(PropertyIDs._DissolveCameraOccluderMaterialMode);
+            bool dissolveCameraOccluderMaterialEnabled = mode != DissolveCameraOccluderMode.Disabled;
 
             if (dissolveCameraOccluderMaterialEnabled)
             {
@@ -997,12 +1006,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             materialEditor.TextureScaleOffsetProperty(textureProp);
         }
 
-        public static void DrawDissolveCameraOccluder(MaterialEditor materialEditor, MaterialProperty dissolveCameraOccluderMaterialEnabledProp)
+        public static void DrawDissolveCameraOccluderMode(MaterialEditor materialEditor, MaterialProperty dissolveCameraOccluderMaterialModeProp)
         {
-            EditorGUI.BeginChangeCheck();
-            bool dissolveCameraOccluderMaterialEnabled = EditorGUILayout.Toggle(Styles.DissolveCameraOccluder, dissolveCameraOccluderMaterialEnabledProp.floatValue == 1);
-            if (EditorGUI.EndChangeCheck())
-                dissolveCameraOccluderMaterialEnabledProp.floatValue = dissolveCameraOccluderMaterialEnabled ? 1 : 0;
+            DoPopup(Styles.DissolveCameraOccluderMode, dissolveCameraOccluderMaterialModeProp, Enum.GetNames(typeof(DissolveCameraOccluderMode)), materialEditor);
         }
 
         public static void DrawRenderQueueCategory(MaterialEditor materialEditor, MaterialProperty renderQueueCategoryProp)

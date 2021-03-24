@@ -4,6 +4,10 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Macros.hlsl"
 
+#define PSX_DISSOLVE_CAMERA_OCCLUDER_MATERIAL_MODE_OBJECT (1)
+#define PSX_DISSOLVE_CAMERA_OCCLUDER_MATERIAL_MODE_VERTEX (2)
+#define PSX_DISSOLVE_CAMERA_OCCLUDER_MATERIAL_MODE_PIXEL (3)
+
 // Warning: These definitions must stay in sync with PrecisionVolume.DrawDistanceFalloffMode enum.
 #define PSX_DRAW_DISTANCE_FALLOFF_MODE_PLANAR (0)
 #define PSX_DRAW_DISTANCE_FALLOFF_MODE_CYLINDRICAL (1)

@@ -30,6 +30,7 @@ struct Varyings
     float4 fog : TEXCOORD5;
     float3 lighting : TEXCOORD6;
     float2 lightmapUV : TEXCOORD7;
+    float dissolveCameraOccluderFadeAlpha : TEXCOORD8;
 };
 
 Varyings LitPassVertex(Attributes v)
@@ -63,6 +64,26 @@ Varyings LitPassVertex(Attributes v)
     o.lighting = EvaluateLightingPerVertex(positionWS, o.normalWS, v.color, o.lightmapUV, o.uvw.z);
     o.fog = EvaluateFogPerVertex(positionWS, positionVS, o.uvw.z, _FogWeight, precisionColor, precisionColorInverse);
 
+#if defined(_DISSOLVE_CAMERA_OCCLUDER_VOLUME_ENABLED) && defined(_DISSOLVE_CAMERA_OCCLUDER_MATERIAL_ENABLED)
+    if (_DissolveCameraOccluderMaterialMode == PSX_DISSOLVE_CAMERA_OCCLUDER_MATERIAL_MODE_VERTEX)
+    {
+        float aspect = _ScreenSize.y / _ScreenSize.x;
+        float2 positionNDCXY = o.vertex.xy / o.vertex.w;
+        positionNDCXY.y *= aspect;
+
+        float distanceToCamera = abs(positionVS.z);
+        float dissolveCameraOccluderDistanceFadeAlpha = saturate(distanceToCamera * _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.x + _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.y);
+        float dissolveCameraOccluderRadialFadeAlpha = saturate(length(positionNDCXY) * _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.z + _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.w);
+        float dissolveCameraOccluderFadeAlpha = max(dissolveCameraOccluderDistanceFadeAlpha, dissolveCameraOccluderRadialFadeAlpha);
+
+        o.dissolveCameraOccluderFadeAlpha = dissolveCameraOccluderFadeAlpha * o.uvw.z;
+    }
+    else
+    {
+        o.dissolveCameraOccluderFadeAlpha = 1.0f;
+    }
+#endif
+
     return o;
 }
 
@@ -79,15 +100,30 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
     float2 positionNDCXY = positionSS * _ScreenSize.zw * 2.0f - 1.0f;
     positionNDCXY.y *= aspect;
     
+    float distanceToCamera = FLT_MAX;
+    if (_DissolveCameraOccluderMaterialMode == PSX_DISSOLVE_CAMERA_OCCLUDER_MATERIAL_MODE_OBJECT)
+    {
+        float3 modelPositionWS = TransformObjectToWorld(float3(0.0f, 0.0f, 0.0f));
+        float3 modelPositionVS = TransformWorldToView(modelPositionWS);
+        distanceToCamera = abs(modelPositionVS.z);
+    }
+    else if (_DissolveCameraOccluderMaterialMode == PSX_DISSOLVE_CAMERA_OCCLUDER_MATERIAL_MODE_PIXEL)
+    {
+        distanceToCamera = abs(i.positionVS.z);
+    }
 
+    float dissolveCameraOccluderFadeAlpha = 1.0f;
+    if (_DissolveCameraOccluderMaterialMode != PSX_DISSOLVE_CAMERA_OCCLUDER_MATERIAL_MODE_VERTEX)
+    {
+        float dissolveCameraOccluderDistanceFadeAlpha = saturate(distanceToCamera * _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.x + _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.y);
+        float dissolveCameraOccluderRadialFadeAlpha = saturate(length(positionNDCXY) * _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.z + _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.w);
+        dissolveCameraOccluderFadeAlpha = max(dissolveCameraOccluderDistanceFadeAlpha, dissolveCameraOccluderRadialFadeAlpha);
+    }
+    else
+    {
+        dissolveCameraOccluderFadeAlpha = saturate(i.dissolveCameraOccluderFadeAlpha * interpolatorNormalization);
+    }
 
-    float3 modelPositionWS = TransformObjectToWorld(float3(0.0f, 0.0f, 0.0f));
-    float3 modelPositionVS = TransformWorldToView(modelPositionWS);
-    float distanceToCamera = abs(modelPositionVS.z); // abs(i.positionVS.z)
-
-    float dissolveCameraOccluderDistanceFadeAlpha = saturate(distanceToCamera * _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.x + _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.y);
-    float dissolveCameraOccluderRadialFadeAlpha = saturate(length(positionNDCXY) * _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.z + _DissolveCameraOccluderDistanceScaleBiasAndRadiusScaleBias.w);
-    float dissolveCameraOccluderFadeAlpha = max(dissolveCameraOccluderDistanceFadeAlpha, dissolveCameraOccluderRadialFadeAlpha);
     float dissolveCameraOccluderDither;
     float dissolveCameraOccluderAlpha;
     ComputeAndFetchAlphaClippingParameters(dissolveCameraOccluderDither, dissolveCameraOccluderAlpha, dissolveCameraOccluderFadeAlpha, positionSS, 1.0f, _DissolveCameraOccluderFadeAlphaScaleBias.xyyy);

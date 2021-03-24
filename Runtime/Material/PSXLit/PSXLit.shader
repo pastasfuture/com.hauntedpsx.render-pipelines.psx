@@ -26,6 +26,7 @@
         _UVAnimationMode("_UVAnimationMode", Float) = 0.0
         _UVAnimationParametersFrameLimit("_UVAnimationParametersFrameLimit", Vector) = (0, 60, 0, 0)
         _UVAnimationParameters("_UVAnimationParameters", Vector) = (1, 1, 0, 0)
+        _DissolveCameraOccluderMaterialMode("_DissolveCameraOccluderMaterialMode", Float) = 0.0
 
         // C# side material state tracking.
         [HideInInspector] _TextureFilterMode("__textureFilterMode", Float) = 0.0
@@ -46,7 +47,6 @@
         [HideInInspector] _ColorMask("__colorMask", Float) = 15.0 // UnityEngine.Rendering.ColorWriteMask.All
         [HideInInspector] _Reflection("__reflection", Float) = 0.0
         [HideInInspector] _DoubleSidedNormalMode("__doubleSidedNormalMode", Float) = 0.0
-        [HideInInspector] _DissolveCameraOccluderMaterialEnabled("__dissolveCameraOccluderMaterialEnabled", Float) = 0.0
     }
     SubShader
     {
