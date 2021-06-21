@@ -30,6 +30,7 @@
 #define PSX_UV_ANIMATION_MODE_NONE (0)
 #define PSX_UV_ANIMATION_MODE_PAN_LINEAR (1)
 #define PSX_UV_ANIMATION_MODE_PAN_SIN (2)
+#define PSX_UV_ANIMATION_MODE_FLIPBOOK (3)
 
 // Warning: These definitions must stay in sync with PrecisionGeometryOverrideMode enum.
 #define PSX_PRECISION_GEOMETRY_OVERRIDE_MODE_NONE (0)

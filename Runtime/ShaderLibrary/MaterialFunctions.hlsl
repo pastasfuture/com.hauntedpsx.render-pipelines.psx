@@ -544,6 +544,22 @@ float2 ApplyUVAnimation(float2 uv, int uvAnimationMode, float2 uvAnimationParame
                 sin(timeSeconds * frequency.y)
             ) * scale + uv;
         }
+        else if (uvAnimationMode == PSX_UV_ANIMATION_MODE_FLIPBOOK)
+        {
+            float Width = uvAnimationParameters.x;
+            float Height = uvAnimationParameters.y;
+            float2 Invert = float2(0, 1);
+            float Tile = 1;
+
+            Tile = floor(timeSeconds * uvAnimationParameters.z);
+
+            Tile = fmod(Tile, Width * Height);
+            float2 tileCount = float2(1.0, 1.0) / float2(Width, Height);
+            float tileY = abs(Invert.y * Height - (floor(Tile * tileCount.x) + Invert.y * 1));
+            float tileX = abs(Invert.x * Width - ((Tile - Width * floor(Tile * tileCount.x)) + Invert.x * 1));
+
+            uvAnimated = (uv + float2(tileX, tileY)) * tileCount;
+        }
     }
     
 
