@@ -44,7 +44,7 @@ Varyings LitPassVertex(Attributes v)
     float4 positionCS = TransformWorldToHClip(positionWS);
     o.vertex = positionCS;
 
-    float2 uv = ApplyUVAnimation(v.uv, _UVAnimationMode, _UVAnimationParametersFrameLimit, _UVAnimationParameters);
+    float2 uv = ApplyUVAnimationVertex(v.uv, _UVAnimationMode, _UVAnimationParametersFrameLimit, _UVAnimationParameters);
 
     float3 precisionColor;
     float3 precisionColorInverse;
@@ -79,10 +79,12 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
 
     float2 uv = i.uvw.xy * interpolatorNormalization;
     float2 uvColor = TRANSFORM_TEX(uv, _MainTex);
-
+    
     float4 texelSizeLod;
     float lod;
     ComputeLODAndTexelSizeMaybeCallDDX(texelSizeLod, lod, uvColor, _MainTex_TexelSize);
+    uvColor = ApplyUVAnimationPixel(lod, uvColor, _UVAnimationMode, _UVAnimationParametersFrameLimit, _UVAnimationParameters);
+
     float4 color = _MainColor * SampleTextureWithFilterMode(TEXTURE2D_ARGS(_MainTex, sampler_MainTex), uvColor, texelSizeLod, lod);
 
 #if defined(_VERTEX_COLOR_MODE_COLOR)

@@ -514,7 +514,7 @@ float4 SampleTextureWithFilterMode(TEXTURE2D_PARAM(tex, samp), float2 uv, float4
 }
 
 
-float2 ApplyUVAnimation(float2 uv, int uvAnimationMode, float2 uvAnimationParametersFrameLimit, float4 uvAnimationParameters)
+float2 ApplyUVAnimationVertex(float2 uv, int uvAnimationMode, float2 uvAnimationParametersFrameLimit, float4 uvAnimationParameters)
 {
     float2 uvAnimated = uv;
     float timeSeconds = _Time.y;
@@ -546,19 +546,80 @@ float2 ApplyUVAnimation(float2 uv, int uvAnimationMode, float2 uvAnimationParame
         }
         else if (uvAnimationMode == PSX_UV_ANIMATION_MODE_FLIPBOOK)
         {
-            float Width = uvAnimationParameters.x;
-            float Height = uvAnimationParameters.y;
-            float2 Invert = float2(0, 1);
-            float Tile = 1;
+            // Do nothing. This will be applied in the fragment shader.
+        }
+    }
+    
 
-            Tile = floor(timeSeconds * uvAnimationParameters.z);
+    return uvAnimated;
+}
 
-            Tile = fmod(Tile, Width * Height);
-            float2 tileCount = float2(1.0, 1.0) / float2(Width, Height);
-            float tileY = abs(Invert.y * Height - (floor(Tile * tileCount.x) + Invert.y * 1));
-            float tileX = abs(Invert.x * Width - ((Tile - Width * floor(Tile * tileCount.x)) + Invert.x * 1));
+float2 ApplyUVAnimationPixel(inout float lod, float2 uv, int uvAnimationMode, float2 uvAnimationParametersFrameLimit, float4 uvAnimationParameters)
+{
+    float2 uvAnimated = uv;
+    float timeSeconds = _Time.y;
 
-            uvAnimated = (uv + float2(tileX, tileY)) * tileCount;
+    if (uvAnimationMode == PSX_UV_ANIMATION_MODE_NONE)
+    {
+        // Do nothing.
+    }
+    else
+    {
+        bool frameLimitEnabled = uvAnimationParametersFrameLimit.x > 0.5f;
+        float frameLimit = uvAnimationParametersFrameLimit.y;
+        timeSeconds = frameLimitEnabled
+            ? (floor(timeSeconds * frameLimit) / frameLimit)
+            : timeSeconds;
+
+        if (uvAnimationMode == PSX_UV_ANIMATION_MODE_PAN_LINEAR)
+        {
+            // Do nothing. This was applied in the vertex shader. 
+        }
+        else if (uvAnimationMode == PSX_UV_ANIMATION_MODE_PAN_SIN)
+        {
+            // Do nothing. This was applied in the vertex shader.
+        }
+        else if (uvAnimationMode == PSX_UV_ANIMATION_MODE_FLIPBOOK)
+        {
+            float width = uvAnimationParameters.x;
+            float height = uvAnimationParameters.y;
+            float tileCount = width * height;
+
+            float tileIndex = floor(timeSeconds * uvAnimationParameters.z);
+
+            // fmod(tileIndex, tileCount) == tileIndex - floor(tileIndex / tileCount) * tileCount
+            tileIndex = fmod(tileIndex, tileCount);
+
+            float tileY = floor(tileIndex / height);
+            float tileX = tileIndex - tileY * width;
+
+            float2 tileScale = 1.0 / float2(width, height);
+            float2 tileUvBase = float2(tileX, tileY) * tileScale;
+
+            // If you'd like to maintain this flip feature, it might be a good idea to store flipY in uvAnimationParameters.w
+            // and implement a material parameter so users can toggle the flip on and off. I'm guessing you'd only need flipY
+            // (I'd be suprised if someone authored their flipbook right to left).
+            bool flipX = false;
+            bool flipY = true;
+
+            // Conditionals like this are very cheap, contrary to what is often reccomended.
+            // It boils down to a single conditional assignment instruction, not a branch.
+            // I prefer to write these types of conditions in explicit conditional assignment form,
+            // rather than using scale, bias arithmetic, which is often harder to read + debug.
+            tileUvBase.x = flipX ? (1.0 - tileUvBase.x) : tileUvBase.x;
+            tileUvBase.y = flipY ? (1.0 - tileUvBase.y) : tileUvBase.y;
+
+            // This compiles down to a fused-multiply-add, which is a single instruction.
+            // Alternatively, I could have written this as:
+            // uvAnimated = (uv + float2(tileX, tileY)) * tileScale;
+            // that would result in two instructions, and it would require the above flip logic to get more complicated
+            // (because presumably we skipped the pre-multiply by tileScale).
+            // All that to say, I prefer this version.
+            uvAnimated = frac(uv) * tileScale + tileUvBase;
+
+            // LOD caculation needs to take into account the scale of the flipbook,
+            // otherwise we will overblur the results.
+            lod = max(0.0, lod - log2(min(width, height)));
         }
     }
     
