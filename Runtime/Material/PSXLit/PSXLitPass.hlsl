@@ -83,7 +83,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
     float4 texelSizeLod;
     float lod;
     ComputeLODAndTexelSizeMaybeCallDDX(texelSizeLod, lod, uvColor, _MainTex_TexelSize);
-    uvColor = ApplyUVAnimationPixel(lod, uvColor, _UVAnimationMode, _UVAnimationParametersFrameLimit, _UVAnimationParameters);
+    uvColor = ApplyUVAnimationPixel(texelSizeLod, lod, uvColor, _UVAnimationMode, _UVAnimationParametersFrameLimit, _UVAnimationParameters);
 
     float4 color = _MainColor * SampleTextureWithFilterMode(TEXTURE2D_ARGS(_MainTex, sampler_MainTex), uvColor, texelSizeLod, lod);
 

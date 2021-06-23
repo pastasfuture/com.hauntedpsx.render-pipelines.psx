@@ -254,6 +254,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _REFLECTION_ON = "_REFLECTION_ON";
             public static readonly string _FOG_ON = "_FOG_ON";
             public static readonly string _DOUBLE_SIDED_ON = "_DOUBLE_SIDED_ON";
+            public static readonly string _LOD_REQUIRES_ADJUSTMENT = "_LOD_REQUIRES_ADJUSTMENT";
         }
 
         public static class Styles
@@ -431,6 +432,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             SetupMaterialReflectionKeyword(material);
             SetupMaterialEmissionKeyword(material);
             SetupDoubleSidedKeyword(material);
+            SetupLodRequiresAdjustmentKeyword(material);
         }
 
         public static void ClearMaterialKeywords(Material material)
@@ -463,6 +465,22 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             else
             {
                 material.DisableKeyword(Keywords._DOUBLE_SIDED_ON);
+            }
+        }
+
+        public static void SetupLodRequiresAdjustmentKeyword(Material material)
+        {
+            if (material == null) { throw new ArgumentNullException("material"); }
+
+            UVAnimationMode uvAnimationMode = (UVAnimationMode)material.GetFloat(PropertyIDs._UVAnimationMode);
+
+            if (uvAnimationMode == UVAnimationMode.Flipbook)
+            {
+                material.EnableKeyword(Keywords._LOD_REQUIRES_ADJUSTMENT);
+            }
+            else
+            {
+                material.DisableKeyword(Keywords._LOD_REQUIRES_ADJUSTMENT);
             }
         }
 

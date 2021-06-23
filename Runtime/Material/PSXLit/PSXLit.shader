@@ -87,6 +87,7 @@
             #pragma shader_feature _FOG_ON
             #pragma shader_feature _DOUBLE_SIDED_ON
             #pragma shader_feature _BLENDMODE_TONEMAPPER_OFF
+            #pragma shader_feature _LOD_REQUIRES_ADJUSTMENT
 
             // -------------------------------------
             // Unity defined keywords

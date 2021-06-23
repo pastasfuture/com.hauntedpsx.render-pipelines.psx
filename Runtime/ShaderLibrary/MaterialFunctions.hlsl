@@ -493,7 +493,7 @@ float4 ApplyFogToColor(float4 fog, float4 color)
 
 void ComputeLODAndTexelSizeMaybeCallDDX(out float4 texelSizeLod, out float lod, float2 uv, float4 texelSize)
 {
-#if defined(_TEXTURE_FILTER_MODE_N64_MIPMAPS) || defined(_TEXTURE_FILTER_MODE_POINT_MIPMAPS)
+#if defined(_TEXTURE_FILTER_MODE_N64_MIPMAPS) || defined(_TEXTURE_FILTER_MODE_POINT_MIPMAPS) || (defined(_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS) && defined(_LOD_REQUIRES_ADJUSTMENT))
     ComputeLODAndTexelSizeFromEvaluateDDXDDY(texelSizeLod, lod, uv, texelSize);
 #else // defined(_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS)
     // No modifications.
@@ -508,6 +508,8 @@ float4 SampleTextureWithFilterMode(TEXTURE2D_PARAM(tex, samp), float2 uv, float4
     return SampleTextureWithFilterModePoint(TEXTURE2D_ARGS(tex, samp), uv, texelSizeLod, lod);
 #elif defined(_TEXTURE_FILTER_MODE_N64) || defined(_TEXTURE_FILTER_MODE_N64_MIPMAPS)
     return SampleTextureWithFilterModeN64(TEXTURE2D_ARGS(tex, samp), uv, texelSizeLod, lod);
+#elif defined(_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS) && defined(_LOD_REQUIRES_ADJUSTMENT)
+    return SAMPLE_TEXTURE2D_LOD(tex, samp, uv, lod);
 #else // defined(_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS)
     return SAMPLE_TEXTURE2D(tex, samp, uv);
 #endif
@@ -554,7 +556,7 @@ float2 ApplyUVAnimationVertex(float2 uv, int uvAnimationMode, float2 uvAnimation
     return uvAnimated;
 }
 
-float2 ApplyUVAnimationPixel(inout float lod, float2 uv, int uvAnimationMode, float2 uvAnimationParametersFrameLimit, float4 uvAnimationParameters)
+float2 ApplyUVAnimationPixel(inout float4 texelSizeLod, inout float lod, float2 uv, int uvAnimationMode, float2 uvAnimationParametersFrameLimit, float4 uvAnimationParameters)
 {
     float2 uvAnimated = uv;
     float timeSeconds = _Time.y;
@@ -619,7 +621,10 @@ float2 ApplyUVAnimationPixel(inout float lod, float2 uv, int uvAnimationMode, fl
 
             // LOD caculation needs to take into account the scale of the flipbook,
             // otherwise we will overblur the results.
-            lod = max(0.0, lod - log2(min(width, height)));
+            float lodCorrected = max(0.0, lod - log2(min(width, height)));
+            texelSizeLod.xy *= exp2(lodCorrected - lod);
+            texelSizeLod.zw *= exp2(lod - lodCorrected);
+            lod = lodCorrected;
         }
     }
     
