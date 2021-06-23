@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------------------------------
+New Material Feature: **UV Animation Mode: Flipbook**
+---------------------------------------------------------------------------------------------------------------------------
+Adds support for animated flipbook textures.
+**UV Animation Flipbook Tiles X**: Specifies the number of horizontal tiles in the flipbook.
+**UV Animation Flipbook Tiles Y**: Specifies the number of vertical tiles in the flipbook.
+**UV Animation Flipbook Frequency**: Specifies the frames per second of the flipbook animation.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Material Feature: **UV Animation Mode**
 ---------------------------------------------------------------------------------------------------------------------------
 Allows you to apply simple procedural animation to your surfaces uvs.
