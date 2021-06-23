@@ -111,7 +111,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         {
             None = 0,
             PanLinear,
-            PanSin
+            PanSin,
+            Flipbook
         }
 
         public static class Tags
@@ -253,6 +254,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _REFLECTION_ON = "_REFLECTION_ON";
             public static readonly string _FOG_ON = "_FOG_ON";
             public static readonly string _DOUBLE_SIDED_ON = "_DOUBLE_SIDED_ON";
+            public static readonly string _LOD_REQUIRES_ADJUSTMENT = "_LOD_REQUIRES_ADJUSTMENT";
         }
 
         public static class Styles
@@ -338,7 +340,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 "Controls the max distance (in meters) that triangles will render.");
 
             public static readonly GUIContent uvAnimationMode = new GUIContent("UV Animation Mode",
-                "Allows you to apply simple procedural animation to your surfaces uvs.\nPan Linear: Useful for simple water scrolling animations, for example, a waterfall.\nPan Sin: Applies a Sin(x) scrolling animation. Useful for rocking back and forth animations.");
+                "Allows you to apply simple procedural animation to your surfaces uvs.\nPan Linear: Useful for simple water scrolling animations, for example, a waterfall.\nPan Sin: Applies a Sin(x) scrolling animation. Useful for rocking back and forth animations.\nFlipbook: Frame by frame animation picked from the atlas texture, usable for textures like water or fire.");
 
             public static readonly GUIContent uvAnimationFrameLimitEnabled = new GUIContent("UV Animation Frame Limit",
                 "Specifies whether or not to apply a frame limit to the uv animations.\nUseful for simulated lower frequency animation updates, i.e: retro 15 FPS animations.");
@@ -354,6 +356,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent uvAnimationPanSinScale = new GUIContent("UV Animation Scale",
                 "Controls the maximum distance (in uv space) that the uvs will pan (at the oscillation peak).");
+
+            public static readonly GUIContent uvAnimationFlipbookFrequency = new GUIContent("UV Animation Flipbook Frequency",
+                "Controls the speed of flipbook frame change.");
+            
+            public static readonly GUIContent uvAnimationFlipbookTilesX = new GUIContent("UV Animation Flipbook Tiles X",
+                "Specifies amount of horizontal tiles of the flipbook.");
+            
+            public static readonly GUIContent uvAnimationFlipbookTilesY = new GUIContent("UV Animation Flipbook Tiles Y",
+                "Specifies amount of vertical tiles of the flipbook.");
 
             public static readonly GUIContent mainTex = new GUIContent("Main Tex",
                 "Specifies the base Material and/or Color of the surface. If you’ve selected Transparent or Alpha Clipping under Surface Options, your Material uses the Texture’s alpha channel or color.");
@@ -421,6 +432,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             SetupMaterialReflectionKeyword(material);
             SetupMaterialEmissionKeyword(material);
             SetupDoubleSidedKeyword(material);
+            SetupLodRequiresAdjustmentKeyword(material);
         }
 
         public static void ClearMaterialKeywords(Material material)
@@ -453,6 +465,22 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             else
             {
                 material.DisableKeyword(Keywords._DOUBLE_SIDED_ON);
+            }
+        }
+
+        public static void SetupLodRequiresAdjustmentKeyword(Material material)
+        {
+            if (material == null) { throw new ArgumentNullException("material"); }
+
+            UVAnimationMode uvAnimationMode = (UVAnimationMode)material.GetFloat(PropertyIDs._UVAnimationMode);
+
+            if (uvAnimationMode == UVAnimationMode.Flipbook)
+            {
+                material.EnableKeyword(Keywords._LOD_REQUIRES_ADJUSTMENT);
+            }
+            else
+            {
+                material.DisableKeyword(Keywords._LOD_REQUIRES_ADJUSTMENT);
             }
         }
 
@@ -1370,6 +1398,26 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                         needsUpdate = true;
                         uvAnimationParameters = new Vector4(uvAnimationParameters.x, uvAnimationParameters.y, panSinScale.x, panSinScale.y);
                     }
+                    break;
+                }
+                case UVAnimationMode.Flipbook:
+                {
+
+                    int flipbookTilesX = modeChanged ? 4 : (int)uvAnimationParameters.x;
+                    int flipbookTilesY = modeChanged ? 4 : (int)uvAnimationParameters.y;
+                    float flipbookFrequency = modeChanged ? 10 : uvAnimationParameters.z;
+                    EditorGUI.BeginChangeCheck();
+
+                    flipbookTilesX = EditorGUILayout.IntField(Styles.uvAnimationFlipbookTilesX, flipbookTilesX);
+                    flipbookTilesY = EditorGUILayout.IntField(Styles.uvAnimationFlipbookTilesY, flipbookTilesY);
+                    flipbookFrequency = EditorGUILayout.FloatField(Styles.uvAnimationFlipbookFrequency, flipbookFrequency);
+
+                    if (EditorGUI.EndChangeCheck() || modeChanged)
+                    {
+                        needsUpdate = true;
+                        uvAnimationParameters = new Vector4((float)flipbookTilesX, (float)flipbookTilesY, flipbookFrequency, 0);
+                    }
+
                     break;
                 }
                 default: break;
