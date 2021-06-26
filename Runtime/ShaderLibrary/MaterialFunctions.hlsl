@@ -187,7 +187,9 @@ float4 EvaluateColorPerVertex(float4 vertexColor, float affineWarpingScale)
 
 #if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND)
     // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
-    color = vertexColor * affineWarpingScale; 
+    color = vertexColor * affineWarpingScale;
+#elif defined(_VERTEX_COLOR_MODE_ALPHA_ONLY)
+    color = float4(1.0, 1.0, 1.0, vertexColor.a) * affineWarpingScale;
 #endif
 
     return color;

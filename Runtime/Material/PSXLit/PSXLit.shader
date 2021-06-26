@@ -76,7 +76,7 @@
             // -------------------------------------
             // Material Keywords
             #pragma shader_feature _TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS _TEXTURE_FILTER_MODE_POINT _TEXTURE_FILTER_MODE_POINT_MIPMAPS _TEXTURE_FILTER_MODE_N64 _TEXTURE_FILTER_MODE_N64_MIPMAPS
-            #pragma shader_feature _ _VERTEX_COLOR_MODE_COLOR _VERTEX_COLOR_MODE_LIGHTING _VERTEX_COLOR_MODE_COLOR_BACKGROUND
+            #pragma shader_feature _ _VERTEX_COLOR_MODE_COLOR _VERTEX_COLOR_MODE_LIGHTING _VERTEX_COLOR_MODE_COLOR_BACKGROUND _VERTEX_COLOR_MODE_ALPHA_ONLY
             #pragma shader_feature _LIGHTING_BAKED_ON
             #pragma shader_feature _LIGHTING_DYNAMIC_ON
             #pragma shader_feature _SHADING_EVALUATION_MODE_PER_VERTEX _SHADING_EVALUATION_MODE_PER_PIXEL
@@ -122,7 +122,7 @@
 
             // -------------------------------------
             // Material Keywords
-            #pragma shader_feature _ _VERTEX_COLOR_MODE_COLOR _VERTEX_COLOR_MODE_LIGHTING _VERTEX_COLOR_MODE_COLOR_BACKGROUND
+            #pragma shader_feature _ _VERTEX_COLOR_MODE_COLOR _VERTEX_COLOR_MODE_LIGHTING _VERTEX_COLOR_MODE_COLOR_BACKGROUND _VERTEX_COLOR_MODE_ALPHA_ONLY
             #pragma shader_feature _EMISSION
             #pragma shader_feature _ALPHATEST_ON
             #pragma shader_feature _ _ALPHAPREMULTIPLY_ON _ALPHAMODULATE_ON
