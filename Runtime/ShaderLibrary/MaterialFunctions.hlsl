@@ -181,18 +181,43 @@ float3 ApplyAffineTextureWarpingToUVW(float2 uv, float positionCSW, float affine
     return uvw;
 }
 
-float4 EvaluateColorPerVertex(float4 vertexColor, float affineWarpingScale)
+float4 EvaluateVertexColorPerVertex(float4 vertexColor, float affineWarpingScale)
 {
     float4 color = 0.0f;
 
-#if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND)
+#if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND) || defined(_VERTEX_COLOR_MODE_ALPHA_ONLY) || defined(_VERTEX_COLOR_MODE_EMISSION) || defined(_VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY)
     // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
     color = vertexColor * affineWarpingScale;
-#elif defined(_VERTEX_COLOR_MODE_ALPHA_ONLY)
-    color = float4(1.0, 1.0, 1.0, vertexColor.a) * affineWarpingScale;
 #endif
 
     return color;
+}
+
+float4 ApplyVertexColorPerPixelColor(float4 color, float4 vertexColor, float affineWarpingScaleInverse)
+{
+    float4 res = color;
+
+#if defined(_VERTEX_COLOR_MODE_COLOR)
+    res *= vertexColor * affineWarpingScaleInverse;
+#elif defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND)
+    res.rgb = lerp(vertexColor.rgb * affineWarpingScaleInverse, res.rgb, res.a);
+    res.a = 1.0f;
+#elif defined(_VERTEX_COLOR_MODE_ALPHA_ONLY) || defined(_VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY)
+    res.a *= vertexColor.a * affineWarpingScaleInverse;
+#endif
+
+    return res;
+}
+
+float3 ApplyVertexColorPerPixelEmission(float3 emission, float4 vertexColor, float affineWarpingScaleInverse)
+{
+    float3 res = emission;
+
+#if defined(_VERTEX_COLOR_MODE_EMISSION) || defined(_VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY)
+    res *= vertexColor * affineWarpingScaleInverse;
+#endif
+
+    return res;
 }
 
 float3 EvaluateNormalDoubleSidedPerVertex(float3 normalFrontFaceWS, float3 positionWS, float3 worldSpaceCameraPos)

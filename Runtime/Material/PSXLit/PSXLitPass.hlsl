@@ -54,7 +54,7 @@ Varyings LitPassVertex(Attributes v)
 
     o.vertex = ApplyPrecisionGeometryToPositionCS(positionWS, positionVS, o.vertex, _PrecisionGeometryOverrideMode, _PrecisionGeometryOverrideParameters, _DrawDistanceOverrideMode, _DrawDistanceOverride);
     o.uvw = ApplyAffineTextureWarpingToUVW(uv, positionCS.w, _AffineTextureWarpingWeight);
-    o.color = EvaluateColorPerVertex(v.color, o.uvw.z);
+    o.color = EvaluateVertexColorPerVertex(v.color, o.uvw.z);
     o.positionVS = positionVS; // TODO: Apply affine warping?
     o.positionWS = positionWS; // TODO: Apply affine warping?
     o.lightmapUV = v.lightmapUV.xy * unity_LightmapST.xy + unity_LightmapST.zw; // TODO: Apply affine warping?
@@ -87,14 +87,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
 
     float4 color = _MainColor * SampleTextureWithFilterMode(TEXTURE2D_ARGS(_MainTex, sampler_MainTex), uvColor, texelSizeLod, lod);
 
-#if defined(_VERTEX_COLOR_MODE_COLOR)
-    color *= i.color * interpolatorNormalization;
-#elif defined(_VERTEX_COLOR_MODE_ALPHA_ONLY)
-    color.a *= i.color.a * interpolatorNormalization;
-#elif defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND)
-    color.rgb = lerp(i.color.rgb * interpolatorNormalization, color.rgb, color.a);
-    color.a = 1.0f;
-#endif
+    color = ApplyVertexColorPerPixelColor(color, i.color, interpolatorNormalization);
 
 #if _ALPHATEST_ON
     // Perform alpha cutoff transparency (i.e: discard pixels in the holes of a chain link fence texture, or in the negative space of a leaf texture).
@@ -135,6 +128,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
     float3 emission = _EmissionColor.rgb * SampleTextureWithFilterMode(TEXTURE2D_ARGS(_EmissionTexture, sampler_EmissionTexture), uvColor, texelSizeLod, lod).rgb;
     emission = ApplyPrecisionColorToColorSRGB(float4(emission, 0.0f), precisionColor, precisionColorInverse).rgb;
     emission = SRGBToLinear(emission);
+    emission = ApplyVertexColorPerPixelEmission(emission, i.color, interpolatorNormalization);
     emission = ApplyAlphaBlendTransformToEmission(emission, color.a);
 
     color.rgb += emission;

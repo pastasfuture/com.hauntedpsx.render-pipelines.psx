@@ -58,7 +58,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             Color,
             Lighting,
             ColorBackground,
-            AlphaOnly
+            AlphaOnly,
+            Emission,
+            EmissionAndAlphaOnly
         }
 
         public enum RenderFace
@@ -244,6 +246,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _VERTEX_COLOR_MODE_LIGHTING = "_VERTEX_COLOR_MODE_LIGHTING";
             public static readonly string _VERTEX_COLOR_MODE_COLOR_BACKGROUND = "_VERTEX_COLOR_MODE_COLOR_BACKGROUND";
             public static readonly string _VERTEX_COLOR_MODE_ALPHA_ONLY = "_VERTEX_COLOR_MODE_ALPHA_ONLY";
+            public static readonly string _VERTEX_COLOR_MODE_EMISSION = "_VERTEX_COLOR_MODE_EMISSION";
+            public static readonly string _VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY = "_VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY";
             public static readonly string _LIGHTING_BAKED_ON = "_LIGHTING_BAKED_ON";
             public static readonly string _LIGHTING_DYNAMIC_ON = "_LIGHTING_DYNAMIC_ON";
             public static readonly string _SHADING_EVALUATION_MODE_PER_VERTEX = "_SHADING_EVALUATION_MODE_PER_VERTEX";
@@ -275,7 +279,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 "Controls how MainTex and EmissionTex are filtered.\nTextureFilterMode.TextureImportSettings is the standard unity behavior. Textures will be filtered using the texture's import settings.\nTextureFilterMode.Point will force PSX era nearest neighbor point sampling, regardless of texture import settings.\nTextureFilterMode.PointMipmaps is the same as TextureFilterMode.Point but supports supports point sampled lods via the texture's mipmap chain.\nTextureFilterMode.N64 will force N64 era 3-point barycentric texture filtering.\nTextureFilterMode.N64MipMaps is the same as TextureFilterMode.N64 but supports N64 sampled lods via the texture's mipmap chain.");
 
             public static readonly GUIContent VertexColorMode = new GUIContent("Vertex Color Mode",
-                "Controls how vertex colors are interpreted by the shader. VertexColorMode.Color multiplies the vertex color data with the MainTex value. This is useful for adding variation to the MainTex color per vertex, such as in a particle sim. VertexColorMode.Lighting interprets the vertexColor data as per-vertex lighting. The result will be added to other lighting that may be present. VertexColorMode.ColorBackground blends between the vertex color data and the MainTex color based on the MainTex alpha. VertexColorMode.AlphaOnly multiplies only the alpha channel of the vertex color against the alpha of MainTex.");
+                "Controls how vertex colors are interpreted by the shader. VertexColorMode.Color multiplies the vertex color data with the MainTex value. This is useful for adding variation to the MainTex color per vertex, such as in a particle sim. VertexColorMode.Lighting interprets the vertexColor data as per-vertex lighting. The result will be added to other lighting that may be present. VertexColorMode.ColorBackground blends between the vertex color data and the MainTex color based on the MainTex alpha. VertexColorMode.AlphaOnly multiplies only the alpha channel of the vertex color against the alpha of MainTex. VertexColorMode.Emission multiplies the vertex color with the Emission value. VertexColorMode.EmissionAndAlphaOnly multiplies the vertex color with the Emission value and multiplies the vertex color alpha channel with the MainTex alpha.");
 
             public static readonly GUIContent RenderQueueCategory =
                 new GUIContent("Render Queue Category", "Controls when this object is rendered.\nMaterials set to Background are rendered first.\nMaterials set to Main are rendered second.\nMaterials set to UIOverlay are rendered last.\nThe CameraVolume override controls whether or not the depth buffer will be cleared between these stages.");
@@ -602,6 +606,24 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             else
             {
                 material.DisableKeyword(Keywords._VERTEX_COLOR_MODE_COLOR_BACKGROUND);
+            }
+
+            if (vertexColorMode == VertexColorMode.Emission)
+            {
+                material.EnableKeyword(Keywords._VERTEX_COLOR_MODE_EMISSION);
+            }
+            else
+            {
+                material.DisableKeyword(Keywords._VERTEX_COLOR_MODE_EMISSION);
+            }
+
+            if (vertexColorMode == VertexColorMode.EmissionAndAlphaOnly)
+            {
+                material.EnableKeyword(Keywords._VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY);
+            }
+            else
+            {
+                material.DisableKeyword(Keywords._VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY);
             }
 
             switch (lightingMode)

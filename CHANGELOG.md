@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------------------------------
+New Material Feature: **New Vertex Color Modes**
+---------------------------------------------------------------------------------------------------------------------------
+**Alpha-Only**: Multiplies only the alpha channel of the vertex color against the alpha of MainTex.
+**Emission**: Multiplies the vertex color with the Emission value.
+**Emission And Alpha-Only**: Multiplies the vertex color with the Emission value and multiplies the vertex color alpha channel with the MainTex alpha.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Material Feature: **UV Animation Mode: Flipbook**
 ---------------------------------------------------------------------------------------------------------------------------
 Adds support for animated flipbook textures.
