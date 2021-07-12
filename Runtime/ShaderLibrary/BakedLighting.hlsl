@@ -20,6 +20,31 @@ half3 SampleSH(half3 normalWS)
     SHCoefficients[5] = unity_SHBb;
     SHCoefficients[6] = unity_SHC;
 
+#if defined(_BRDF_MODE_LAMBERT)
+    // Nothing to do here, the above factoring is already setup for a Lambert BRDF.
+
+#elif defined(_BRDF_MODE_WRAPPED_LIGHTING)
+    // Need to adjust our SH coefficients to handle convolution with the Wrapped Lighting BRDF rather than Lambert.
+    // The derivation of SH wrapped lighting can be found here:
+    // https://blog.selfshadow.com/2011/12/31/righting-wrap-part-1/
+    // In short, the coefficients for each L2 band for Lambert are: [1.0 / PI, 2.0 / (3.0 * PI), 1.0 / (4.0 * PI)]
+    // In comparison, the coefficients for each L2 band for Wrapped Lighting are: [1.0 / PI, 1.0 / (3.0 * PI) * (2.0 - w), 1.0 / (4.0 * PI) * (1.0 - w)^2]
+    // with a hardcoded wrap factor of 1.0 this simplifies to: [1.0 / PI, 1.0 / (3.0 * PI), 0.0]
+    // So to convert from Lambert to Wrapped Lighting, we simply multiply each L2 band by: [1.0, 1.0 / 3.0, 0.0]
+    // One challenge is the coefficients are already swizzled and factored with the y20 constant term pre-factored into the dc term, so we need to carefully remove that.
+    // Normalization from: https://www.ppsloan.org/publications/StupidSH36.pdf
+    // Appendix A10 Shader/CPU code for Irradiance Environment Maps
+    // Need to add back 1/3 of the L2.z term to the dc term, since it was previously subtracted out from the factoring above.
+    // The 1/3rd in the L2 term is unreleated to the L1 1/3rd scale factor.
+    SHCoefficients[0] = real4(unity_SHAr.xyz * 1.0 / 3.0, unity_SHAr.w + unity_SHBr.z * 1.0 / 3.0);
+    SHCoefficients[1] = real4(unity_SHAg.xyz * 1.0 / 3.0, unity_SHAg.w + unity_SHBg.z * 1.0 / 3.0);
+    SHCoefficients[2] = real4(unity_SHAb.xyz * 1.0 / 3.0, unity_SHAb.w + unity_SHBb.z * 1.0 / 3.0);
+    SHCoefficients[3] = 0.0;
+    SHCoefficients[4] = 0.0;
+    SHCoefficients[5] = 0.0;
+    SHCoefficients[6] = 0.0;
+#endif
+
     return max(half3(0, 0, 0), SampleSH9(SHCoefficients, normalWS));
 }
 

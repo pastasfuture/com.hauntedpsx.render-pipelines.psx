@@ -34,6 +34,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialProperty shadingEvaluationModeProp { get; set; }
 
+        protected MaterialProperty brdfModeProp { get; set; }
+
         // protected MaterialProperty surfaceTypeProp { get; set; }
 
         // protected MaterialProperty blendModeProp { get; set; }
@@ -102,6 +104,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             lightingBakedProp = FindProperty(PropertyNames._LightingBaked, properties);
             lightingDynamicProp = FindProperty(PropertyNames._LightingDynamic, properties);
             shadingEvaluationModeProp = FindProperty(PropertyNames._ShadingEvaluationMode, properties);
+            brdfModeProp = FindProperty(PropertyNames._BRDFMode, properties);
             // surfaceTypeProp = FindProperty(PropertyNames._Surface, properties);
             // blendModeProp = FindProperty(PropertyNames._Blend, properties);
             cullingProp = FindProperty(PropertyNames._Cull, properties);
@@ -139,6 +142,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PSXMaterialUtils.SetupMaterialTextureFilterMode(material);
             PSXMaterialUtils.SetupMaterialLightingModeNoVertexColorSupported(material);
             PSXMaterialUtils.SetupMaterialShadingEvaluationMode(material);
+            PSXMaterialUtils.SetupMaterialBRDFModeKeyword(material);
             // PSXMaterialUtils.SetupMaterialBlendMode(material);
             PSXMaterialUtils.SetupMaterialFogKeyword(material);
             // PSXMaterialUtils.SetupMaterialReflectionKeyword(material);
@@ -223,6 +227,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             // PSXMaterialUtils.DrawVertexColorMode(materialEditor, vertexColorModeProp);
             PSXMaterialUtils.DrawLightingMode(material, materialEditor, lightingModeProp, lightingBakedProp, lightingDynamicProp);
             PSXMaterialUtils.DrawShadingEvaluationMode(materialEditor, shadingEvaluationModeProp);
+            PSXMaterialUtils.DrawBRDFMode(materialEditor, brdfModeProp);
             // PSXMaterialUtils.DrawSurfaceTypeAndBlendMode(material, materialEditor, surfaceTypeProp, blendModeProp);
             // PSXMaterialUtils.DrawCullingSettings(material, materialEditor, cullingProp); // HACK FIXME: 
             // PSXMaterialUtils.DrawAlphaClippingSettings(material, alphaClipProp, alphaClippingDitherIsEnabledProp);

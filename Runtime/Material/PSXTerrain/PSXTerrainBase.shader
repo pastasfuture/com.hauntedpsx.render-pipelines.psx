@@ -24,6 +24,7 @@ Shader "Hidden/PSX/PSXTerrain (Base Pass)"
         [HideInInspector] _LightingBaked("__lightingBaked", Float) = 1.0
         [HideInInspector] _LightingDynamic("__lightingDynamic", Float) = 1.0
         [HideInInspector] _ShadingEvaluationMode("__shadingEvaluationMode", Float) = 0.0
+        [HideInInspector] _BRDFMode("__brdfMode", Float) = 0.0
         // [HideInInspector] _Surface("__surface", Float) = 0.0
         // [HideInInspector] _Blend("__blend", Float) = 0.0
         // [HideInInspector] _AlphaClip("__clip", Float) = 0.0
@@ -73,6 +74,7 @@ Shader "Hidden/PSX/PSXTerrain (Base Pass)"
             #pragma shader_feature _LIGHTING_BAKED_ON
             #pragma shader_feature _LIGHTING_DYNAMIC_ON
             #pragma shader_feature _SHADING_EVALUATION_MODE_PER_VERTEX _SHADING_EVALUATION_MODE_PER_PIXEL
+            #pragma shader_feature _BRDF_MODE_LAMBERT _BRDF_MODE_WRAPPED_LIGHTING
             #pragma shader_feature _EMISSION
             // #pragma shader_feature _ALPHATEST_ON
             // #pragma shader_feature _ _ALPHAPREMULTIPLY_ON _ALPHAMODULATE_ON

@@ -118,6 +118,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             Flipbook
         }
 
+        public enum BRDFMode
+        {
+            Lambert = 0,
+            WrappedLighting
+        }
+
         public static class Tags
         {
             public static readonly string RenderType = "RenderType";
@@ -172,6 +178,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _ReflectionBlendMode = "_ReflectionBlendMode";
             public static readonly string _DoubleSidedConstants = "_DoubleSidedConstants";
             public static readonly string _DoubleSidedNormalMode = "_DoubleSidedNormalMode";
+            public static readonly string _BRDFMode = "_BRDFMode";
         }
 
         public static class PropertyIDs
@@ -220,6 +227,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly int _ReflectionBlendMode = Shader.PropertyToID(PropertyNames._ReflectionBlendMode);
             public static readonly int _DoubleSidedConstants = Shader.PropertyToID(PropertyNames._DoubleSidedConstants);
             public static readonly int _DoubleSidedNormalMode = Shader.PropertyToID(PropertyNames._DoubleSidedNormalMode);
+            public static readonly int _BRDFMode = Shader.PropertyToID(PropertyNames._BRDFMode);
         }
 
         public static class LegacyPropertyNames
@@ -261,6 +269,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _FOG_ON = "_FOG_ON";
             public static readonly string _DOUBLE_SIDED_ON = "_DOUBLE_SIDED_ON";
             public static readonly string _LOD_REQUIRES_ADJUSTMENT = "_LOD_REQUIRES_ADJUSTMENT";
+            public static readonly string _BRDF_MODE_LAMBERT = "_BRDF_MODE_LAMBERT";
+            public static readonly string _BRDF_MODE_WRAPPED_LIGHTING = "_BRDF_MODE_WRAPPED_LIGHTING";
         }
 
         public static class Styles
@@ -393,6 +403,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly GUIContent reflectionBlendMode = new GUIContent("Reflection Blend Mode",
                 "Controls how reflections are blending with other incoming light at the surface. Additive is the standard, physically-based approach. Subtractive and Multiply blend modes are for special effects.");
 
+            public static readonly GUIContent BRDFMode = new GUIContent("BRDF Mode",
+                "Specifies how the material responds to lighting. BRDF stands for Bidirectional Reflectance Distribution Function.\nLambert: Standard, cheap diffuse-only response.\nWrapped Lighting: Same as Lambert, but lighting wraps to zero at 180 degrees (backface normal) instead of 90 degrees. Useful for approximating subsurface scattering, or for creating smoother lighting without needing to rely on baked data.\nWrapped Lighting is energy conserving so the reflection facing the light source will be dimmer when compared to lambert (the energy is redistributed over the sphere).");
+
             public const string textureFilterModeErrorBilinearDisabled = "Error: Texture Filter Mode {0} requires Bilinear filtering to be enabled on {1}.\nPlease select your texture and set Filter Mode to Bilinear in the Texture Import Settings in the inspector.";
             public const string textureFilterModeErrorMipmapsDisabled = "Error: Texture Filter Mode {0} requires Mipmaps to be generated on {1}.\nPlease select your texture and set Generate Mip Maps to true in the Texture Import Settings in the inspector.";
 
@@ -433,6 +446,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             SetupMaterialTextureFilterMode(material);
             SetupMaterialLightingMode(material);
             SetupMaterialShadingEvaluationMode(material);
+            SetupMaterialBRDFModeKeyword(material);
             SetupMaterialBlendMode(material);
             SetupMaterialFogKeyword(material);
             SetupMaterialReflectionKeyword(material);
@@ -851,6 +865,20 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             ReflectionBlendMode reflectionBlendMode = (ReflectionBlendMode)material.GetInt(PropertyIDs._ReflectionBlendMode);
         }
 
+        public static void SetupMaterialBRDFModeKeyword(Material material)
+        {
+            if (material == null)
+                throw new ArgumentNullException("material");
+
+            BRDFMode brdfMode = (BRDFMode)(int)material.GetFloat(PropertyIDs._BRDFMode);
+            switch (brdfMode)
+            {
+                case BRDFMode.Lambert: material.EnableKeyword(Keywords._BRDF_MODE_LAMBERT); break;
+                case BRDFMode.WrappedLighting: material.EnableKeyword(Keywords._BRDF_MODE_WRAPPED_LIGHTING); break;
+                default: material.EnableKeyword(Keywords._BRDF_MODE_LAMBERT); break;
+            }
+        }
+
         public static void DoPopup(GUIContent label, MaterialProperty property, string[] options, MaterialEditor materialEditor)
         {
             if (property == null)
@@ -1078,6 +1106,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public static void DrawShadingEvaluationMode(MaterialEditor materialEditor, MaterialProperty shadingEvaluationModeProp)
         {
             DoPopup(Styles.ShadingEvaluationMode, shadingEvaluationModeProp, Enum.GetNames(typeof(ShadingEvaluationMode)), materialEditor);
+        }
+
+        public static void DrawBRDFMode(MaterialEditor materialEditor, MaterialProperty brdfModeProp)
+        {
+            DoPopup(Styles.BRDFMode, brdfModeProp, Enum.GetNames(typeof(BRDFMode)), materialEditor);
         }
 
         public static void DrawSurfaceTypeAndBlendMode(Material material, MaterialEditor materialEditor, MaterialProperty surfaceTypeProp, MaterialProperty blendModeProp)

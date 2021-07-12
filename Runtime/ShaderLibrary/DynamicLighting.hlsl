@@ -163,6 +163,15 @@ half3 LightingLambert(half3 lightColor, half3 lightDir, half3 normal)
     return lightColor * NdotL * INV_PI;
 }
 
+// http://blog.stevemcauley.com/2011/12/03/energy-conserving-wrapped-diffuse/
+half3 LightingWrappedLighting(half3 lightColor, half3 lightDir, half3 normal)
+{
+    half NdotL = dot(normal, lightDir);
+    const half w = 1.0h;
+    const half wrapCorrectionInverse = 1.0h / ((1.0h + w) * (1.0h + w));
+    return lightColor * INV_PI * saturate(NdotL * wrapCorrectionInverse + wrapCorrectionInverse);
+}
+
 half3 EvaluateDynamicLighting(float3 positionWS, half3 normalWS)
 {
 	half3 outgoingRadiance = 0.0h;
@@ -171,7 +180,13 @@ half3 EvaluateDynamicLighting(float3 positionWS, half3 normalWS)
     {
         Light light = GetAdditionalLight(lightIndex, positionWS);
         half3 lightColor = light.color * light.distanceAttenuation;
+
+    #if defined(_BRDF_MODE_LAMBERT)
         outgoingRadiance += LightingLambert(lightColor, light.direction, normalWS);
+    #elif defined(_BRDF_MODE_WRAPPED_LIGHTING)
+        outgoingRadiance += LightingWrappedLighting(lightColor, light.direction, normalWS);
+    #endif
+
     }
     return outgoingRadiance;
 }

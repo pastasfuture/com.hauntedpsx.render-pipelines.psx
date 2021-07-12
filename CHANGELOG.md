@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------------------------------
+New Material Feature: **BRDF Modes**
+---------------------------------------------------------------------------------------------------------------------------
+**Lambert**: Standard, cheap diffuse-only response. This is the same behavior that was built in before.
+**Wrapped Lighting**: Wrapped Lighting: Same as Lambert, but lighting wraps to zero at 180 degrees (backface normal) instead of 90 degrees. Useful for approximating subsurface scattering, or for creating smoother lighting without needing to rely on baked data. Wrapped Lighting is energy conserving so the reflection facing the light source will be dimmer when compared to lambert (the energy is redistributed over the sphere).
+
+---------------------------------------------------------------------------------------------------------------------------
 New Material Feature: **New Vertex Color Modes**
 ---------------------------------------------------------------------------------------------------------------------------
 **Alpha-Only**: Multiplies only the alpha channel of the vertex color against the alpha of MainTex.
