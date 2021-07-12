@@ -44,7 +44,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             {
                 if (_defaultShader != null) { return _defaultShader; }
                 _defaultShader = Shader.Find("PSX/PSXLit");
-                Debug.Assert(_defaultShader, "Error: PSXRenderPipelineAsset: Failed to find default shader at path: PSX/PSXLit");
                 return _defaultShader;
             }
         }
