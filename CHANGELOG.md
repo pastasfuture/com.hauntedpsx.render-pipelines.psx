@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **VSync**
+---------------------------------------------------------------------------------------------------------------------------
+- Turn ON Vsync when Frame Limit is disabled. Previously, vsync would be forced off when Frame Limit was disabled, which was not the desired behavior.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Material Feature: **BRDF Modes**
 ---------------------------------------------------------------------------------------------------------------------------
 **Lambert**: Standard, cheap diffuse-only response. This is the same behavior that was built in before.

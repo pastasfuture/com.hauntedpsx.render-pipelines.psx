@@ -88,10 +88,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 }
                 else
                 {
-                    // Render at platform's default framerate.
-                    // Note we disable vsync here as well.
-                    // If a user wants to enable vsync, they should specify a target frame rate.
-                    QualitySettings.vSyncCount = 0;
+                    // Render at platform's default framerate with vsync ON.
+                    QualitySettings.vSyncCount = 1;
                     Application.targetFrameRate = -1;
                 }
 
