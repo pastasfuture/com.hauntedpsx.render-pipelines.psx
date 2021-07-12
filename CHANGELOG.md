@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Workflow Improvement: **Precision Volume->Geometry Pushback Disabled by Default**
+---------------------------------------------------------------------------------------------------------------------------
+**Geometry Pushback**: Disable Geometry Pushback by default. Artifacts from this technique can be suprising / unexpected - it makes more sense to opt into it rather than opting out. This also improves prefab workflows as it avoids geometry pushback in that context.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Camera Volume Feature: **Aspect Ratio Mode: Native**
 ---------------------------------------------------------------------------------------------------------------------------
 **Native**: Rasterizes at native camera resolution and aspect ratio. No scaling is performed. Useful with secondary cameras used for rendering UI to an offscreen render target. Allows the UI and camera to fully drive the resolution, rather than needing to duplicate the resolution values inside the volume and the camera and the UI.
