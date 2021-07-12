@@ -40,6 +40,8 @@ struct GrassVaryings
 // Structs
 struct VertexPositionInputs
 {
+    float3 objectPositionWS;
+    float3 objectPositionVS;
     float3 positionWS; // World space position
     float3 positionVS; // View space position
     float4 positionCS; // Homogeneous clip space position
@@ -49,6 +51,10 @@ struct VertexPositionInputs
 VertexPositionInputs GetVertexPositionInputs(float3 positionOS)
 {
     VertexPositionInputs input;
+
+    input.objectPositionWS = TransformObjectToWorld(float3(0.0, 0.0, 0.0));
+    input.objectPositionVS = TransformWorldToView(input.objectPositionWS);
+
     input.positionWS = TransformObjectToWorld(positionOS);
     input.positionVS = TransformWorldToView(input.positionWS);
 
@@ -108,8 +114,8 @@ GrassVaryings WavingGrassVert(GrassAttributes v)
 
     o.vertex = ApplyPrecisionGeometryToPositionCS(vertexInput.positionWS, vertexInput.positionVS, o.vertex, precisionGeometryOverrideMode, precisionGeometryOverrideParameters);
     o.uvw = ApplyAffineTextureWarpingToUVW(v.uv, vertexInput.positionCS.w, affineTextureWarpingWeight);
-    o.lighting = EvaluateLightingPerVertex(vertexInput.positionWS, o.normalWS, vertexColor, o.lightmapUV, o.uvw.z);
-    o.fog = EvaluateFogPerVertex(vertexInput.positionWS, vertexInput.positionVS, o.uvw.z, fogWeight, _PrecisionColor.rgb, _PrecisionColorInverse.rgb);
+    o.lighting = EvaluateLightingPerVertex(vertexInput.objectPositionWS, vertexInput.positionWS, o.normalWS, vertexColor, o.lightmapUV, o.uvw.z);
+    o.fog = EvaluateFogPerVertex(vertexInput.objectPositionWS, vertexInput.objectPositionVS, vertexInput.positionWS, vertexInput.positionVS, o.uvw.z, fogWeight, _PrecisionColor.rgb, _PrecisionColorInverse.rgb);
 
     return o;
 }
@@ -148,8 +154,8 @@ GrassVaryings WavingGrassBillboardVert(GrassAttributes v)
 
     o.vertex = ApplyPrecisionGeometryToPositionCS(vertexInput.positionWS, vertexInput.positionVS, o.vertex, precisionGeometryOverrideMode, precisionGeometryOverrideParameters);
     o.uvw = ApplyAffineTextureWarpingToUVW(v.uv, vertexInput.positionCS.w, affineTextureWarpingWeight);
-    // o.lighting = EvaluateLightingPerVertex(vertexInput.positionWS, o.normalWS, vertexColor, o.lightmapUV, o.uvw.z);
-    o.fog = EvaluateFogPerVertex(vertexInput.positionWS, vertexInput.positionVS, o.uvw.z, fogWeight, _PrecisionColor.rgb, _PrecisionColorInverse.rgb);
+    // o.lighting = EvaluateLightingPerVertex(vertexInput.objectPositionWS, vertexInput.positionWS, o.normalWS, vertexColor, o.lightmapUV, o.uvw.z);
+    o.fog = EvaluateFogPerVertex(vertexInput.objectPositionWS, vertexInput.objectPositionVS, vertexInput.positionWS, vertexInput.positionVS, o.uvw.z, fogWeight, _PrecisionColor.rgb, _PrecisionColorInverse.rgb);
 
     return o;
 }

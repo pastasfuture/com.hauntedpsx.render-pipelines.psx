@@ -238,6 +238,8 @@ void TerrainInstancing(inout float4 positionOS, inout float3 normal)
 // Structs
 struct VertexPositionInputs
 {
+    float3 objectPositionWS;
+    float3 objectPositionVS;
     float3 positionWS; // World space position
     float3 positionVS; // View space position
     float4 positionCS; // Homogeneous clip space position
@@ -247,6 +249,10 @@ struct VertexPositionInputs
 VertexPositionInputs GetVertexPositionInputs(float3 positionOS)
 {
     VertexPositionInputs input;
+
+    input.objectPositionWS = TransformObjectToWorld(float3(0.0, 0.0, 0.0));
+    input.objectPositionVS = TransformWorldToView(input.objectPositionWS);
+
     input.positionWS = TransformObjectToWorld(positionOS);
     input.positionVS = TransformWorldToView(input.positionWS);
 
@@ -288,8 +294,8 @@ Varyings TerrainLitPassVert(Attributes v)
 
     float4 vertexColor = 0.0f; // Terrain does not support vertex color based lighting.
     float2 lightmapUV = v.uv * unity_LightmapST.xy + unity_LightmapST.zw;
-    o.lighting = EvaluateLightingPerVertex(vertexPositionInputs.positionWS, o.normalWS, vertexColor, lightmapUV, o.uvw.z);
-    o.fog = EvaluateFogPerVertex(vertexPositionInputs.positionWS, vertexPositionInputs.positionVS, o.uvw.z, _FogWeight, precisionColor, precisionColorInverse);
+    o.lighting = EvaluateLightingPerVertex(vertexPositionInputs.objectPositionWS, vertexPositionInputs.positionWS, o.normalWS, vertexColor, lightmapUV, o.uvw.z);
+    o.fog = EvaluateFogPerVertex(vertexPositionInputs.objectPositionWS, vertexPositionInputs.objectPositionVS, vertexPositionInputs.positionWS, vertexPositionInputs.positionVS, o.uvw.z, _FogWeight, precisionColor, precisionColorInverse);
 
     return o;
 }

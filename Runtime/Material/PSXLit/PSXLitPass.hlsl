@@ -37,6 +37,8 @@ Varyings LitPassVertex(Attributes v)
     Varyings o;
     ZERO_INITIALIZE(Varyings, o);
 
+    float3 objectPositionWS = TransformObjectToWorld(float3(0.0f, 0.0f, 0.0f));
+    float3 objectPositionVS = TransformWorldToView(objectPositionWS);
     float3 positionWS = TransformObjectToWorld(v.vertex.xyz);
     float3 positionVS = TransformWorldToView(positionWS);
     ApplyGeometryPushbackToPosition(positionWS, positionVS, _GeometryPushbackParameters);
@@ -60,8 +62,8 @@ Varyings LitPassVertex(Attributes v)
     o.lightmapUV = v.lightmapUV.xy * unity_LightmapST.xy + unity_LightmapST.zw; // TODO: Apply affine warping?
     o.normalWS = TransformObjectToWorldNormal(v.normal);
     o.normalWS = EvaluateNormalDoubleSidedPerVertex(o.normalWS, o.positionWS, _WorldSpaceCameraPos);
-    o.lighting = EvaluateLightingPerVertex(positionWS, o.normalWS, v.color, o.lightmapUV, o.uvw.z);
-    o.fog = EvaluateFogPerVertex(positionWS, positionVS, o.uvw.z, _FogWeight, precisionColor, precisionColorInverse);
+    o.lighting = EvaluateLightingPerVertex(objectPositionWS, positionWS, o.normalWS, v.color, o.lightmapUV, o.uvw.z);
+    o.fog = EvaluateFogPerVertex(objectPositionWS, objectPositionVS, positionWS, positionVS, o.uvw.z, _FogWeight, precisionColor, precisionColorInverse);
 
     return o;
 }

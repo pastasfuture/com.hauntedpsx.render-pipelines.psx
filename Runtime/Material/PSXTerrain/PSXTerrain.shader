@@ -87,7 +87,7 @@ Shader "PSX/PSXTerrain"
             // #pragma shader_feature _ _VERTEX_COLOR_MODE_COLOR _VERTEX_COLOR_MODE_LIGHTING
             #pragma shader_feature _LIGHTING_BAKED_ON
             #pragma shader_feature _LIGHTING_DYNAMIC_ON
-            #pragma shader_feature _SHADING_EVALUATION_MODE_PER_VERTEX _SHADING_EVALUATION_MODE_PER_PIXEL
+            #pragma shader_feature _SHADING_EVALUATION_MODE_PER_VERTEX _SHADING_EVALUATION_MODE_PER_PIXEL _SHADING_EVALUATION_MODE_PER_OBJECT
             #pragma shader_feature _BRDF_MODE_LAMBERT _BRDF_MODE_WRAPPED_LIGHTING
             #pragma shader_feature _EMISSION
             // #pragma shader_feature _ALPHATEST_ON

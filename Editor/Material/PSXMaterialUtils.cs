@@ -34,7 +34,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public enum ShadingEvaluationMode
         {
             PerVertex = 0,
-            PerPixel
+            PerPixel,
+            PerObject
         }
 
         public enum SurfaceType
@@ -260,6 +261,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _LIGHTING_DYNAMIC_ON = "_LIGHTING_DYNAMIC_ON";
             public static readonly string _SHADING_EVALUATION_MODE_PER_VERTEX = "_SHADING_EVALUATION_MODE_PER_VERTEX";
             public static readonly string _SHADING_EVALUATION_MODE_PER_PIXEL = "_SHADING_EVALUATION_MODE_PER_PIXEL";
+            public static readonly string _SHADING_EVALUATION_MODE_PER_OBJECT = "_SHADING_EVALUATION_MODE_PER_OBJECT";
             public static readonly string _EMISSION = "_EMISSION";
             public static readonly string _ALPHATEST_ON = "_ALPHATEST_ON";
             public static readonly string _ALPHAPREMULTIPLY_ON = "_ALPHAPREMULTIPLY_ON";
@@ -307,7 +309,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 new GUIContent("Dynamic Lighting Enabled", "Controls whether or not lighting is evaluated from realtime light sources.");
 
             public static readonly GUIContent ShadingEvaluationMode =
-                new GUIContent("Shading Evaluation Mode", "Controls whether shading is evaluated per vertex or per pixel. This includes lighting, and fog.");
+                new GUIContent("Shading Evaluation Mode", "Controls whether shading is evaluated per object, per vertex or per pixel. This includes lighting, and fog.");
 
             public static readonly GUIContent surfaceType = new GUIContent("Surface Type",
                 "Select a surface type for your texture. Choose between Opaque or Transparent.");
@@ -515,10 +517,17 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 case ShadingEvaluationMode.PerVertex:
                     material.EnableKeyword(Keywords._SHADING_EVALUATION_MODE_PER_VERTEX);
                     material.DisableKeyword(Keywords._SHADING_EVALUATION_MODE_PER_PIXEL);
+                    material.DisableKeyword(Keywords._SHADING_EVALUATION_MODE_PER_OBJECT);
                     break;
                 case ShadingEvaluationMode.PerPixel:
                     material.DisableKeyword(Keywords._SHADING_EVALUATION_MODE_PER_VERTEX);
                     material.EnableKeyword(Keywords._SHADING_EVALUATION_MODE_PER_PIXEL);
+                    material.DisableKeyword(Keywords._SHADING_EVALUATION_MODE_PER_OBJECT);
+                    break;
+                case ShadingEvaluationMode.PerObject:
+                    material.DisableKeyword(Keywords._SHADING_EVALUATION_MODE_PER_VERTEX);
+                    material.DisableKeyword(Keywords._SHADING_EVALUATION_MODE_PER_PIXEL);
+                    material.EnableKeyword(Keywords._SHADING_EVALUATION_MODE_PER_OBJECT);
                     break;
 
                 default:

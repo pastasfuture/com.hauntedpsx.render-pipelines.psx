@@ -224,7 +224,7 @@ float3 EvaluateNormalDoubleSidedPerVertex(float3 normalFrontFaceWS, float3 posit
 {
     float3 normalWS = normalFrontFaceWS;
 
-#if defined(_SHADING_EVALUATION_MODE_PER_VERTEX) && defined(_DOUBLE_SIDED_ON)
+#if (defined(_SHADING_EVALUATION_MODE_PER_VERTEX) || defined(_SHADING_EVALUATION_MODE_PER_OBJECT)) && defined(_DOUBLE_SIDED_ON)
     // Double-sided normal is only needs to be resolved at the vertex stage if we are performing per-vertex lighting.
     // When performing per-pixel lighting we can defer to the pixel shader, which has a higher cost, but allows us to use VFACE semantic
     // for accurate detection of whether we are rendering the front face or back face.
@@ -251,11 +251,17 @@ float3 EvaluateNormalDoubleSidedPerPixel(float3 normalFrontFaceWS, FRONT_FACE_TY
     return normalWS;
 }
 
-float3 EvaluateLightingPerVertex(float3 positionWS, float3 normalWS, float4 vertexColor, float2 lightmapUV, float affineWarpingScale)
+float3 EvaluateLightingPerVertex(float3 objectPositionWS, float3 positionWS, float3 normalWS, float4 vertexColor, float2 lightmapUV, float affineWarpingScale)
 {
     float3 lighting = 0.0f;
 
-#if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
+#if (defined(_SHADING_EVALUATION_MODE_PER_VERTEX) || defined(_SHADING_EVALUATION_MODE_PER_OBJECT))
+
+#if defined(_SHADING_EVALUATION_MODE_PER_OBJECT)
+    float3 evaluationPositionWS = objectPositionWS;
+#else // defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
+    float3 evaluationPositionWS = positionWS;
+#endif
 
 #if defined(_LIGHTING_BAKED_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_LIGHTING_DYNAMIC_ON)
     if (_IsPSXQualityEnabled)
@@ -263,7 +269,8 @@ float3 EvaluateLightingPerVertex(float3 positionWS, float3 normalWS, float4 vert
         lighting = 0.0f;
 
 #if defined(_LIGHTING_BAKED_ON)
-    #ifdef LIGHTMAP_ON
+    #if (defined(LIGHTMAP_ON) && defined(_SHADING_EVALUATION_MODE_PER_VERTEX))
+        // Only sample lightmaps in per vertex evaluation mode. For per-object we force object SH term sampling.
         lighting = SRGBToLinear(SampleLightmap(lightmapUV, normalWS));
     #else
         // Interestingly, it seems that unity_SHXx terms are always provided in linear space, regardless of color space setting of render pipeline.
@@ -278,7 +285,7 @@ float3 EvaluateLightingPerVertex(float3 positionWS, float3 normalWS, float4 vert
 #endif
 
 #if defined(_LIGHTING_DYNAMIC_ON)
-        lighting += EvaluateDynamicLighting(positionWS, normalWS) * _DynamicLightingMultiplier;
+        lighting += EvaluateDynamicLighting(evaluationPositionWS, normalWS) * _DynamicLightingMultiplier;
 #endif
 
         // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
@@ -288,9 +295,9 @@ float3 EvaluateLightingPerVertex(float3 positionWS, float3 normalWS, float4 vert
     {
         lighting = 1.0f;
     }
-#endif
+#endif // endof defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
 
-#else // _SHADING_EVALUATION_MODE_PER_PIXEL
+#else // defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
 
 #if defined(_VERTEX_COLOR_MODE_LIGHTING)
     // Still need to evaluate vertex color per vertex, even in per pixel overall evaluation mode.
@@ -308,7 +315,7 @@ float3 EvaluateLightingPerPixel(float3 positionWS, float3 normalWS, float3 verte
 {
     float3 lighting = 0.0f;
 
-#if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
+#if (defined(_SHADING_EVALUATION_MODE_PER_VERTEX) || defined(_SHADING_EVALUATION_MODE_PER_OBJECT))
 #if defined(_LIGHTING_BAKED_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_LIGHTING_DYNAMIC_ON)
     if (_LightingIsEnabled > 0.5f)
     {
@@ -357,14 +364,22 @@ float4 ApplyLightingToColor(float3 lighting, float4 color)
     return color;
 }
 
-float4 EvaluateFogPerVertex(float3 positionWS, float3 positionVS, float affineWarpingScale, float fogWeight, float3 precisionColor, float3 precisionColorInverse)
+float4 EvaluateFogPerVertex(float3 objectPositionWS, float3 objectPositionVS, float3 positionWS, float3 positionVS, float affineWarpingScale, float fogWeight, float3 precisionColor, float3 precisionColorInverse)
 {
     float4 fog = 0.0f;
 
-#if defined(_FOG_ON) && defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
+#if defined(_FOG_ON) && (defined(_SHADING_EVALUATION_MODE_PER_VERTEX) || defined(_SHADING_EVALUATION_MODE_PER_OBJECT))
     if (_IsPSXQualityEnabled)
     {
-        float fogAlpha = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogDistanceScaleBias, _FogFalloffCurvePower);
+    #if defined(_SHADING_EVALUATION_MODE_PER_OBJECT)
+        float3 evaluationPositionWS = objectPositionWS;
+        float3 evaluationPositionVS = objectPositionVS;
+    #else // defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
+        float3 evaluationPositionWS = positionWS;
+        float3 evaluationPositionVS = positionVS;
+    #endif
+
+        float fogAlpha = EvaluateFogFalloff(evaluationPositionWS, _WorldSpaceCameraPos, evaluationPositionVS, _FogFalloffMode, _FogDistanceScaleBias, _FogFalloffCurvePower);
         fogAlpha *= _FogColor.a;
 
         // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
@@ -375,7 +390,7 @@ float4 EvaluateFogPerVertex(float3 positionWS, float3 positionVS, float affineWa
 
         if (_FogIsAdditionalLayerEnabled)
         {
-            float fogAlphaLayer1 = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
+            float fogAlphaLayer1 = EvaluateFogFalloff(evaluationPositionWS, _WorldSpaceCameraPos, evaluationPositionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
             fogAlphaLayer1 *= _FogColorLayer1.a;
 
             float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * precisionColor + 0.5f) * precisionColorInverse;
@@ -461,7 +476,7 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
     float fogAlpha = 0.0f;
 
 #if defined(_FOG_ON)
-#if defined(_SHADING_EVALUATION_MODE_PER_VERTEX)
+#if (defined(_SHADING_EVALUATION_MODE_PER_VERTEX) || defined(_SHADING_EVALUATION_MODE_PER_OBJECT))
     fogColor = vertexFog.rgb * affineWarpingScaleInverse;
     fogAlpha = vertexFog.a * affineWarpingScaleInverse;
 #elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)

@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+New Material Feature: **Shading Evaluation Mode: Per-Object**
+---------------------------------------------------------------------------------------------------------------------------
+**Shading Evaluation Mode: Per-Object**: Evaluates lighting and fog at the object origin, rather than per-vertex or per-pixel. This is useful for replicating lighting and fog artifacts that would occur when per-vertex or per-pixel lighting could not be afforded. Note, this has approximately the same performance cost as per-vertex, it is not optimization. This is due to the fact that in our render pipeline (in the context of unity SRP), it is more convinient and likely more efficient to still perform lighting in the vertex shader, rather than running say a CPU-side job to calculate lighting per-object. 
+
+---------------------------------------------------------------------------------------------------------------------------
 Workflow Improvement: **Precision Volume->Geometry Pushback Disabled by Default**
 ---------------------------------------------------------------------------------------------------------------------------
 **Geometry Pushback**: Disable Geometry Pushback by default. Artifacts from this technique can be suprising / unexpected - it makes more sense to opt into it rather than opting out. This also improves prefab workflows as it avoids geometry pushback in that context.
