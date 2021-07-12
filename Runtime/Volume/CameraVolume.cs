@@ -14,7 +14,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             FreeFitPixelPerfect,
             FreeCropPixelPerfect,
             FreeBleedPixelPerfect,
-            LockedFitPixelPerfect
+            LockedFitPixelPerfect,
+            LockedStretch
         };
 
         [Serializable]

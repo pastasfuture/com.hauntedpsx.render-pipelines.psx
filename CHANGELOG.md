@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+New Camera Volume Feature: **Aspect Ratio Mode: Locked Stretch**
+---------------------------------------------------------------------------------------------------------------------------
+**Locked Stretch**: Brings back legacy pixel-imperfect locked aspect ratio mode. This mode will enforce the rasterization resolution defined and perform naive upscaling to native resolution. Can result in pixel dropouts / doubling. Useful when you want to enforce a specific aspect ratio, but you need to align your rasterization with non-HPSXRP UI.
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix: **VSync**
 ---------------------------------------------------------------------------------------------------------------------------
 - Turn ON Vsync when Frame Limit is disabled. Previously, vsync would be forced off when Frame Limit was disabled, which was not the desired behavior.

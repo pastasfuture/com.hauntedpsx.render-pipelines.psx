@@ -116,7 +116,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     {
                         // Rather than explicitly hardcoding PSX framebuffer resolution, and enforcing 1.333 aspect ratio
                         // we allow arbitrary aspect ratios and match requested PSX framebuffer pixel density. (targetRasterizationResolutionWidth and targetRasterizationResolutionHeight).
-                        // TODO: Could create an option for this in the RenderPipelineAsset that allows users to enforce aspect with black bars.
                         if (camera.pixelWidth >= camera.pixelHeight)
                         {
                             // Horizontal aspect.
@@ -159,6 +158,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                         float uvScaleCropX = 1.0f / (ratioX * Mathf.Ceil(1.0f / ratioXYMin));
                         float uvScaleCropY = 1.0f / (ratioY * Mathf.Ceil(1.0f / ratioXYMin));
                         cameraAspectModeUVScaleBias = new Vector4(uvScaleCropX, uvScaleCropY, 0.5f - (0.5f * uvScaleCropX), 0.5f - (0.5f * uvScaleCropY));
+                    }
+                    else if (volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.LockedStretch)
+                    {
+                        float ratioX = (float)rasterizationWidth / (float)camera.pixelWidth;
+                        float ratioY = (float)rasterizationHeight / (float)camera.pixelHeight;
+                        float ratioXYMax = Mathf.Max(ratioX, ratioY);
+                        float uvScaleStretchX = 1.0f / (ratioX / ratioXYMax);
+                        float uvScaleStretchY = 1.0f / (ratioY / ratioXYMax);
+                        cameraAspectModeUVScaleBias = new Vector4(uvScaleStretchX, uvScaleStretchY, 0.5f - (0.5f * uvScaleStretchX), 0.5f - (0.5f * uvScaleStretchY));
                     }
                     else
                     {
