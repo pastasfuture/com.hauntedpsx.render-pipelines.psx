@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+New Camera Volume Feature: **Aspect Ratio Mode: Native**
+---------------------------------------------------------------------------------------------------------------------------
+**Native**: Rasterizes at native camera resolution and aspect ratio. No scaling is performed. Useful with secondary cameras used for rendering UI to an offscreen render target. Allows the UI and camera to fully drive the resolution, rather than needing to duplicate the resolution values inside the volume and the camera and the UI.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Camera Volume Feature: **Aspect Ratio Mode: Locked Stretch**
 ---------------------------------------------------------------------------------------------------------------------------
 **Locked Stretch**: Brings back legacy pixel-imperfect locked aspect ratio mode. This mode will enforce the rasterization resolution defined and perform naive upscaling to native resolution. Can result in pixel dropouts / doubling. Useful when you want to enforce a specific aspect ratio, but you need to align your rasterization with non-HPSXRP UI.

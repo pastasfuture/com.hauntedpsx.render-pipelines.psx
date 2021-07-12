@@ -99,7 +99,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 rasterizationWidth = camera.pixelWidth;
                 rasterizationHeight = camera.pixelHeight;
                 cameraAspectModeUVScaleBias = new Vector4(1.0f, 1.0f, 0.0f, 0.0f);
-                if (isPSXQualityEnabled)
+                if (isPSXQualityEnabled && (volumeSettings.aspectMode.value != CameraVolume.CameraAspectMode.Native))
                 {
                     rasterizationWidth = Mathf.Min(rasterizationWidth, volumeSettings.targetRasterizationResolutionWidth.value);
                     rasterizationHeight = Mathf.Min(rasterizationHeight, volumeSettings.targetRasterizationResolutionHeight.value);
