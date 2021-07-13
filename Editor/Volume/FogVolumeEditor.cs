@@ -21,6 +21,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         SerializedDataParameter m_DistanceMax;
         SerializedDataParameter m_FogFalloffCurve;
         SerializedDataParameter m_HeightFalloffEnabled;
+        SerializedDataParameter m_HeightFalloffMirrored;
         SerializedDataParameter m_HeightMin;
         SerializedDataParameter m_HeightMax;
         SerializedDataParameter m_ColorLUTMode;
@@ -36,6 +37,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         SerializedDataParameter m_DistanceMaxLayer1;
         SerializedDataParameter m_FogFalloffCurveLayer1;
         SerializedDataParameter m_HeightFalloffEnabledLayer1;
+        SerializedDataParameter m_HeightFalloffMirroredLayer1;
         SerializedDataParameter m_HeightMinLayer1;
         SerializedDataParameter m_HeightMaxLayer1;
 
@@ -53,6 +55,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             m_DistanceMax = Unpack(o.Find(x => x.distanceMax));
             m_FogFalloffCurve = Unpack(o.Find(x => x.fogFalloffCurve));
             m_HeightFalloffEnabled = Unpack(o.Find(x => x.heightFalloffEnabled));
+            m_HeightFalloffMirrored = Unpack(o.Find(x => x.heightFalloffMirrored));
             m_HeightMin = Unpack(o.Find(x => x.heightMin));
             m_HeightMax = Unpack(o.Find(x => x.heightMax));
             m_ColorLUTMode = Unpack(o.Find(x => x.colorLUTMode));
@@ -68,6 +71,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             m_DistanceMaxLayer1 = Unpack(o.Find(x => x.distanceMaxLayer1));
             m_FogFalloffCurveLayer1 = Unpack(o.Find(x => x.fogFalloffCurveLayer1));
             m_HeightFalloffEnabledLayer1 = Unpack(o.Find(x => x.heightFalloffEnabledLayer1));
+            m_HeightFalloffMirroredLayer1 = Unpack(o.Find(x => x.heightFalloffMirroredLayer1));
             m_HeightMinLayer1 = Unpack(o.Find(x => x.heightMinLayer1));
             m_HeightMaxLayer1 = Unpack(o.Find(x => x.heightMaxLayer1));
         }
@@ -92,6 +96,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PropertyField(m_HeightFalloffEnabled, EditorGUIUtility.TrTextContent("Height Falloff Enabled", "Controls whether or not the fog falls off vertically, in addition to in depth."));
             if (m_HeightFalloffEnabled.value.boolValue)
             {
+                PropertyField(m_HeightFalloffMirrored, EditorGUIUtility.TrTextContent("Height Falloff Mirrored", "If enabled, height fog will be mirrored about Height Max, creating fog that fades in below and above. Especially useful when combined with ColorLUTMode.Texture2DDistanceAndHeight, which can be used to give the mirrored fog a different color."));
                 PropertyField(m_HeightMin, EditorGUIUtility.TrTextContent("Height Min", "Controls the height that fog reaches full opacity. Only has an effect if Height Falloff Enabled is true."));
                 PropertyField(m_HeightMax, EditorGUIUtility.TrTextContent("Height Max", "Controls the height that fog reaches zero opacity. Only has an effect if Height Falloff Enabled is true."));
             }
@@ -127,6 +132,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 PropertyField(m_HeightFalloffEnabledLayer1, EditorGUIUtility.TrTextContent("Height Falloff Enabled Secondary", "Controls whether or not the fog falls off vertically, in addition to in depth."));
                 if (m_HeightFalloffEnabledLayer1.value.boolValue)
                 {
+                    PropertyField(m_HeightFalloffMirroredLayer1, EditorGUIUtility.TrTextContent("Height Falloff Mirrored Secondary", "If enabled, height fog will be mirrored about Height Max, creating fog that fades in below and above. Especially useful when combined with ColorLUTMode.Texture2DDistanceAndHeight, which can be used to give the mirrored fog a different color."));
                     PropertyField(m_HeightMinLayer1, EditorGUIUtility.TrTextContent("Height Min Secondary", "Controls the height that fog reaches full opacity. Only has an effect if Height Falloff Enabled is true."));
                     PropertyField(m_HeightMaxLayer1, EditorGUIUtility.TrTextContent("Height Max Secondary", "Controls the height that fog reaches zero opacity. Only has an effect if Height Falloff Enabled is true."));
                 }

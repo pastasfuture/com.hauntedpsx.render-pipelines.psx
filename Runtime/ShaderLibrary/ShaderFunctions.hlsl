@@ -279,7 +279,7 @@ struct FogFalloffData
     float3 falloffDirectionWS;
 };
 
-FogFalloffData EvaluateFogFalloffData(float3 positionWS, float3 cameraPositionWS, float3 positionVS, int fogFalloffMode, float4 fogDistanceScaleBias, float fogFalloffCurvePower)
+FogFalloffData EvaluateFogFalloffData(float3 positionWS, float3 cameraPositionWS, float3 positionVS, int fogFalloffMode, bool fogHeightFalloffMirrored, float4 fogDistanceScaleBias, float fogFalloffCurvePower)
 {
     float falloffDepth = 0.0f;
 
@@ -298,19 +298,27 @@ FogFalloffData EvaluateFogFalloffData(float3 positionWS, float3 cameraPositionWS
 
     // fogDistanceScaleBias.xy contains distance falloff scale bias terms.
     // fogDistanceScaleBias.zw contains height falloff scale bias terms.
-    float falloffDistance = saturate(falloffDepth * fogDistanceScaleBias.x + fogDistanceScaleBias.y);
+    float falloffDistance = falloffDepth * fogDistanceScaleBias.x + fogDistanceScaleBias.y;
+    falloffDistance = saturate(falloffDistance);
     falloffDistance = pow(falloffDistance, fogFalloffCurvePower);
     
     float falloffHeight = positionWS.y;
-    falloffHeight = saturate(falloffHeight * fogDistanceScaleBias.z + fogDistanceScaleBias.w);
+    falloffHeight = falloffHeight * fogDistanceScaleBias.z + fogDistanceScaleBias.w;
+    float falloffHeightSign = (falloffHeight >= 0.0f) ? 1.0f : -1.0f;
+    falloffHeight = fogHeightFalloffMirrored ? abs(falloffHeight) : falloffHeight;
+    falloffHeight = saturate(falloffHeight);
     falloffHeight = pow(falloffHeight, fogFalloffCurvePower);
     
     float falloff = falloffDistance * falloffHeight;
 
+    float falloffHeightForLUT = fogHeightFalloffMirrored
+        ? (falloffHeight * falloffHeightSign * 0.5f + 0.5f)
+        : falloffHeight;
+
     FogFalloffData res;
     res.falloff = falloff;
     res.falloffDistance = falloffDistance;
-    res.falloffHeight = falloffHeight;
+    res.falloffHeight = falloffHeightForLUT;
     res.falloffDirectionWS = mul(float3x3(_FogColorLUTRotationTangent, _FogColorLUTRotationBitangent, _FogColorLUTRotationNormal), normalize(positionWS - cameraPositionWS));
 
     return res;

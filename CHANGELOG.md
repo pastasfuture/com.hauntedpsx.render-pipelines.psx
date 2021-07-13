@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------------------------------
+New Fog Volume Feature: **Height Falloff Mirrored**
+---------------------------------------------------------------------------------------------------------------------------
+**Height Falloff Mirrored**: If enabled, height fog will be mirrored about Height Max, creating fog that fades in below and above. Especially useful when combined with ColorLUTMode.Texture2DDistanceAndHeight, which can be used to give the mirrored fog a different color.
+**Height Falloff Mirrored Secondary**: If enabled, height fog secondary layer will be mirrored about Height Max, creating fog that fades in below and above. Especially useful when combined with ColorLUTMode.Texture2DDistanceAndHeight, which can be used to give the mirrored fog a different color.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Fog Volume Feature: **Blend Mode**
 ---------------------------------------------------------------------------------------------------------------------------
 **Blend Mode**: Selects the function used to blend Fog with the underlying geometry color.

@@ -379,7 +379,7 @@ float4 EvaluateFogPerVertex(float3 objectPositionWS, float3 objectPositionVS, fl
         float3 evaluationPositionVS = positionVS;
     #endif
 
-        FogFalloffData fogFalloffDataLayer0 = EvaluateFogFalloffData(evaluationPositionWS, _WorldSpaceCameraPos, evaluationPositionVS, _FogFalloffMode, _FogDistanceScaleBias, _FogFalloffCurvePower);
+        FogFalloffData fogFalloffDataLayer0 = EvaluateFogFalloffData(evaluationPositionWS, _WorldSpaceCameraPos, evaluationPositionVS, _FogFalloffMode, _FogHeightFalloffMirrored == 1, _FogDistanceScaleBias, _FogFalloffCurvePower);
         float4 fogFalloffColorLayer0 = EvaluateFogFalloffColor(fogFalloffDataLayer0);
         float fogAlpha = fogFalloffDataLayer0.falloff;
         fogAlpha *= _FogColor.a * lerp(1.0f, fogFalloffColorLayer0.a, _FogColorLUTWeight.x);
@@ -392,7 +392,7 @@ float4 EvaluateFogPerVertex(float3 objectPositionWS, float3 objectPositionVS, fl
 
         if (_FogIsAdditionalLayerEnabled)
         {
-            FogFalloffData fogFalloffDataLayer1 = EvaluateFogFalloffData(evaluationPositionWS, _WorldSpaceCameraPos, evaluationPositionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
+            FogFalloffData fogFalloffDataLayer1 = EvaluateFogFalloffData(evaluationPositionWS, _WorldSpaceCameraPos, evaluationPositionVS, _FogFalloffModeLayer1, _FogHeightFalloffMirroredLayer1 == 1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
             float fogAlphaLayer1 = fogFalloffDataLayer1.falloff;
             fogAlphaLayer1 *= _FogColorLayer1.a * lerp(fogFalloffColorLayer0.a, 1.0f, _FogColorLUTWeight.y);
 
@@ -483,7 +483,7 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
     fogColor = vertexFog.rgb * affineWarpingScaleInverse;
     fogAlpha = vertexFog.a * affineWarpingScaleInverse;
 #elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
-    FogFalloffData fogFalloffDataLayer0 = EvaluateFogFalloffData(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogDistanceScaleBias, _FogFalloffCurvePower);
+    FogFalloffData fogFalloffDataLayer0 = EvaluateFogFalloffData(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogHeightFalloffMirrored == 1, _FogDistanceScaleBias, _FogFalloffCurvePower);
     float4 fogFalloffColorLayer0 = EvaluateFogFalloffColor(fogFalloffDataLayer0);
     fogAlpha = _FogColor.a * fogFalloffDataLayer0.falloff * lerp(1.0f, fogFalloffColorLayer0.a, _FogColorLUTWeight.x);
     
@@ -494,7 +494,7 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
 
     if (_FogIsAdditionalLayerEnabled)
     {
-        FogFalloffData fogFalloffDataLayer1 = EvaluateFogFalloffData(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
+        FogFalloffData fogFalloffDataLayer1 = EvaluateFogFalloffData(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffModeLayer1, _FogHeightFalloffMirroredLayer1 == 1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
         float fogAlphaLayer1 = _FogColorLayer1.a * fogFalloffDataLayer1.falloff * lerp(1.0f, fogFalloffColorLayer0.a, _FogColorLUTWeight.y);
 
         float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * lerp(float3(1.0f, 1.0f, 1.0f), fogFalloffColorLayer0.rgb, _FogColorLUTWeight.y) * precisionColor.rgb + 0.5f) * precisionColorInverse;

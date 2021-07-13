@@ -72,6 +72,8 @@ float2 _PrecisionAlphaAndInverse;
 float _AffineTextureWarping;
 int _FogBlendMode;
 int _FogFalloffMode;
+int _FogHeightFalloffMirrored;
+int _FogHeightFalloffMirroredLayer1;
 float4 _FogColor;
 float4 _FogDistanceScaleBias;
 float _FogFalloffCurvePower;

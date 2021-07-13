@@ -710,6 +710,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 FogVolume.FogBlendMode blendMode = volumeSettings.blendMode.value;
                 cmd.SetGlobalInt(PSXShaderIDs._FogBlendMode, (int)blendMode);
 
+                cmd.SetGlobalInt(PSXShaderIDs._FogHeightFalloffMirrored, volumeSettings.heightFalloffMirrored.value ? 1 : 0);
+                cmd.SetGlobalInt(PSXShaderIDs._FogHeightFalloffMirroredLayer1, volumeSettings.heightFalloffMirroredLayer1.value ? 1 : 0);
+
                 int fogFalloffMode = (int)volumeSettings.fogFalloffMode.value;
                 cmd.SetGlobalInt(PSXShaderIDs._FogFalloffMode, fogFalloffMode);
                 cmd.SetGlobalVector(PSXShaderIDs._FogColor, new Vector4(volumeSettings.color.value.r, volumeSettings.color.value.g, volumeSettings.color.value.b, volumeSettings.color.value.a));

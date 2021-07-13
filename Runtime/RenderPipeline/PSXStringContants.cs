@@ -145,6 +145,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _DrawDistance = Shader.PropertyToID("_DrawDistance");
         public static readonly int _FogBlendMode = Shader.PropertyToID("_FogBlendMode");
         public static readonly int _FogFalloffMode = Shader.PropertyToID("_FogFalloffMode");
+        public static readonly int _FogHeightFalloffMirrored = Shader.PropertyToID("_FogHeightFalloffMirrored");
         public static readonly int _FogColor = Shader.PropertyToID("_FogColor");
         public static readonly int _FogPrecisionAlphaAndInverse = Shader.PropertyToID("_FogPrecisionAlphaAndInverse");
         public static readonly int _FogPrecisionAlphaDitherTexture = Shader.PropertyToID("_FogPrecisionAlphaDitherTexture");
@@ -154,6 +155,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _FogFalloffCurvePower = Shader.PropertyToID("_FogFalloffCurvePower");
         public static readonly int _FogColorLUTWeight = Shader.PropertyToID("_FogColorLUTWeight");
         public static readonly int _FogIsAdditionalLayerEnabled = Shader.PropertyToID("_FogIsAdditionalLayerEnabled");
+        public static readonly int _FogHeightFalloffMirroredLayer1 = Shader.PropertyToID("_FogHeightFalloffMirroredLayer1");
         public static readonly int _FogFalloffModeLayer1 = Shader.PropertyToID("_FogFalloffModeLayer1");
         public static readonly int _FogColorLayer1 = Shader.PropertyToID("_FogColorLayer1");
         public static readonly int _FogDistanceScaleBiasLayer1 = Shader.PropertyToID("_FogDistanceScaleBiasLayer1");
