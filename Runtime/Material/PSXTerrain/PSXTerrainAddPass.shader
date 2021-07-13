@@ -83,6 +83,7 @@ Shader "Hidden/PSX/PSXTerrain (Add Pass)"
             // -------------------------------------
             // Global Keywords (set by render pipeline)
             #pragma multi_compile _OUTPUT_LDR _OUTPUT_HDR
+            #pragma multi_compile _FOG_COLOR_LUT_MODE_DISABLED _FOG_COLOR_LUT_MODE_TEXTURE2D_DISTANCE_AND_HEIGHT _FOG_COLOR_LUT_MODE_TEXTURECUBE
 
             // -------------------------------------
             // Material Keywords

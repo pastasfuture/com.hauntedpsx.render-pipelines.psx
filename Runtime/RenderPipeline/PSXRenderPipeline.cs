@@ -3,6 +3,8 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
 using System.Collections.Generic;
+using UnityEditor;
+using System.ComponentModel;
 
 namespace HauntedPSX.RenderPipelines.PSX.Runtime
 {
@@ -705,6 +707,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     fogDistanceScaleBias.w = 1.0f;
                 }
 
+                FogVolume.FogBlendMode blendMode = volumeSettings.blendMode.value;
+                cmd.SetGlobalInt(PSXShaderIDs._FogBlendMode, (int)blendMode);
+
                 int fogFalloffMode = (int)volumeSettings.fogFalloffMode.value;
                 cmd.SetGlobalInt(PSXShaderIDs._FogFalloffMode, fogFalloffMode);
                 cmd.SetGlobalVector(PSXShaderIDs._FogColor, new Vector4(volumeSettings.color.value.r, volumeSettings.color.value.g, volumeSettings.color.value.b, volumeSettings.color.value.a));
@@ -738,6 +743,66 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
                 cmd.SetGlobalVector(PSXShaderIDs._FogDistanceScaleBias, fogDistanceScaleBias);
                 cmd.SetGlobalFloat(PSXShaderIDs._FogFalloffCurvePower, fogFalloffCurvePower);
+
+                switch (volumeSettings.colorLUTMode.value)
+                {
+                    case FogVolume.FogColorLUTMode.Disabled:
+                    {
+                        cmd.SetGlobalTexture(PSXShaderIDs._FogColorLUTTexture2D, Texture2D.whiteTexture);
+                        cmd.SetGlobalTexture(PSXShaderIDs._FogColorLUTTextureCube, whiteCubemap);
+
+                        cmd.SetGlobalVector(PSXShaderIDs._FogColorLUTRotationTangent, Vector3.zero);
+                        cmd.SetGlobalVector(PSXShaderIDs._FogColorLUTRotationBitangent, Vector3.zero);
+                        cmd.SetGlobalVector(PSXShaderIDs._FogColorLUTRotationNormal, Vector3.zero);
+
+                        cmd.EnableShaderKeyword(PSXShaderKeywords.s_FOG_COLOR_LUT_MODE_DISABLED);
+                        cmd.DisableShaderKeyword(PSXShaderKeywords.s_FOG_COLOR_LUT_MODE_TEXTURE2D_DISTANCE_AND_HEIGHT);
+                        cmd.DisableShaderKeyword(PSXShaderKeywords.s_FOG_COLOR_LUT_MODE_TEXTURECUBE);
+                        break;
+                    }
+
+                    case FogVolume.FogColorLUTMode.Texture2DDistanceAndHeight:
+                    {
+                        cmd.SetGlobalTexture(PSXShaderIDs._FogColorLUTTexture2D, volumeSettings.colorLUTTexture.value);
+                        cmd.SetGlobalTexture(PSXShaderIDs._FogColorLUTTextureCube, whiteCubemap);
+
+                        cmd.SetGlobalVector(PSXShaderIDs._FogColorLUTRotationTangent, Vector3.zero);
+                        cmd.SetGlobalVector(PSXShaderIDs._FogColorLUTRotationBitangent, Vector3.zero);
+                        cmd.SetGlobalVector(PSXShaderIDs._FogColorLUTRotationNormal, Vector3.zero);
+
+                        cmd.DisableShaderKeyword(PSXShaderKeywords.s_FOG_COLOR_LUT_MODE_DISABLED);
+                        cmd.EnableShaderKeyword(PSXShaderKeywords.s_FOG_COLOR_LUT_MODE_TEXTURE2D_DISTANCE_AND_HEIGHT);
+                        cmd.DisableShaderKeyword(PSXShaderKeywords.s_FOG_COLOR_LUT_MODE_TEXTURECUBE);
+                        break;
+                    }
+
+                    case FogVolume.FogColorLUTMode.TextureCube:
+                    {
+                        cmd.SetGlobalTexture(PSXShaderIDs._FogColorLUTTexture2D, Texture2D.whiteTexture);
+                        cmd.SetGlobalTexture(PSXShaderIDs._FogColorLUTTextureCube, volumeSettings.colorLUTTexture.value);
+
+                        Quaternion cubemapRotation = Quaternion.Euler(volumeSettings.colorLUTRotationDegrees.value);
+                        Vector3 cubemapRotationTangent = cubemapRotation * Vector3.right;
+                        Vector3 cubemapRotationBitangent = cubemapRotation * Vector3.up;
+                        Vector3 cubemapRotationNormal = cubemapRotation * Vector3.forward;
+                        cmd.SetGlobalVector(PSXShaderIDs._FogColorLUTRotationTangent, cubemapRotationTangent);
+                        cmd.SetGlobalVector(PSXShaderIDs._FogColorLUTRotationBitangent, cubemapRotationBitangent);
+                        cmd.SetGlobalVector(PSXShaderIDs._FogColorLUTRotationNormal, cubemapRotationNormal);
+
+                        cmd.DisableShaderKeyword(PSXShaderKeywords.s_FOG_COLOR_LUT_MODE_DISABLED);
+                        cmd.DisableShaderKeyword(PSXShaderKeywords.s_FOG_COLOR_LUT_MODE_TEXTURE2D_DISTANCE_AND_HEIGHT);
+                        cmd.EnableShaderKeyword(PSXShaderKeywords.s_FOG_COLOR_LUT_MODE_TEXTURECUBE);
+                        break;
+                    }
+
+                    default:
+                    {
+                        Debug.AssertFormat(false, "Encountered unsupported FogColorLUTMode {0} in Volume", volumeSettings.colorLUTMode.value);
+                        break;
+                    }
+                }
+
+                cmd.SetGlobalVector(PSXShaderIDs._FogColorLUTWeight, new Vector2(volumeSettings.colorLUTWeight.value, volumeSettings.colorLUTWeightLayer1.value));
 
                 bool isAdditionalLayerEnabled = volumeSettings.isAdditionalLayerEnabled.value; 
                 cmd.SetGlobalInt(PSXShaderIDs._FogIsAdditionalLayerEnabled, isAdditionalLayerEnabled ? 1 : 0);
@@ -1393,6 +1458,28 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 s_FullscreenMesh.SetIndices(new[] { 0, 1, 2, 2, 1, 3 }, MeshTopology.Triangles, 0, false);
                 s_FullscreenMesh.UploadMeshData(true);
                 return s_FullscreenMesh;
+            }
+        }
+
+        static Cubemap s_whiteCubemap = null;
+
+        static Cubemap whiteCubemap
+        {
+            get
+            {
+                if (s_whiteCubemap != null)
+                    return s_whiteCubemap;
+
+                s_whiteCubemap = new Cubemap(1, GraphicsFormat.R8G8B8A8_UNorm, TextureCreationFlags.None);
+                s_whiteCubemap.SetPixel(CubemapFace.NegativeX, 0, 0, Color.white);
+                s_whiteCubemap.SetPixel(CubemapFace.NegativeY, 0, 0, Color.white);
+                s_whiteCubemap.SetPixel(CubemapFace.NegativeZ, 0, 0, Color.white);
+                s_whiteCubemap.SetPixel(CubemapFace.PositiveX, 0, 0, Color.white);
+                s_whiteCubemap.SetPixel(CubemapFace.PositiveY, 0, 0, Color.white);
+                s_whiteCubemap.SetPixel(CubemapFace.PositiveZ, 0, 0, Color.white);
+                s_whiteCubemap.Apply(updateMipmaps: false, makeNoLongerReadable: true);
+
+                return s_whiteCubemap;
             }
         }
 

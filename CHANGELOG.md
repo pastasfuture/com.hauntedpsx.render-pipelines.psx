@@ -1,4 +1,26 @@
 ---------------------------------------------------------------------------------------------------------------------------
+New Fog Volume Feature: **Blend Mode**
+---------------------------------------------------------------------------------------------------------------------------
+**Blend Mode**: Selects the function used to blend Fog with the underlying geometry color.
+	- **Over**: Blends fog with the underlying color using the Over operator. This is the same behavior that existed before and results in the most physically plausible fog.
+	- **Additive**: Blends fog with with the underlying color using the Additive operator.
+	- **Subtractive**: Blends fog with the underlying color using the Subtractive operator.
+	- **Multiply**: Blends fog with the underlying color using the Multiply operator.
+
+---------------------------------------------------------------------------------------------------------------------------
+New Fog Volume Feature: **Color LUT Texture**
+---------------------------------------------------------------------------------------------------------------------------
+**Color LUT Mode**: Controls whether or not a Color Look-Up-Texture is used, and the format used.
+	- Disabled: No Color LUT is used.
+	- Texture 2D Distance and Height: Uses a Texture2D where the horizontal axis stores the color along distance, and the vertical axis stores the color along height.
+	- TextureCube: Uses a TextureCube that is sampled using view direction (direction from camera to surface).
+**Color LUT Texture**:
+	- When Color LUT Mode is set to Texture 2D Distance and Height: Specifies the texture used as the Color Look-Up-Texture. Expects a Texture2D where the horizontal axis stores the color along distance, and the vertical axis stores the color along height.
+	- When Color LUT Mode is set to Texture Cube: Specifies the texture used as the Color Look-Up-Texture. Expects a TextureCube that is sampled using view direction (direction from camera to surface).
+**Color LUT Weight**: Specifies the amount of influence the Color LUT Texture has on the final fog color. A value of 1.0 is full influence, meaning Color LUT Texture is multiplied against the Fog Color. A value of 0.0 is no influence, meaning the final color is simply the Fog Color.
+**Color LUT Weight Secondary**: Specifies the amount of influence the Color LUT Texture has on the Secondary Fog Layer.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Material Feature: **Shading Evaluation Mode: Per-Object**
 ---------------------------------------------------------------------------------------------------------------------------
 **Shading Evaluation Mode: Per-Object**: Evaluates lighting and fog at the object origin, rather than per-vertex or per-pixel. This is useful for replicating lighting and fog artifacts that would occur when per-vertex or per-pixel lighting could not be afforded. Note, this has approximately the same performance cost as per-vertex, it is not optimization. This is due to the fact that in our render pipeline (in the context of unity SRP), it is more convinient and likely more efficient to still perform lighting in the vertex shader, rather than running say a CPU-side job to calculate lighting per-object. 

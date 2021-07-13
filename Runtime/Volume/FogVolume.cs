@@ -22,8 +22,40 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 : base(value, overrideState) {}
         }
 
+        [Serializable]
+        public enum FogBlendMode
+        {
+            Over = 0,
+            Additive,
+            Subtractive,
+            Multiply
+        }
+
+        [Serializable]
+        public sealed class FogBlendModeParameter : VolumeParameter<FogBlendMode>
+        {
+            public FogBlendModeParameter(FogBlendMode value, bool overrideState = false)
+                : base(value, overrideState) { }
+        }
+
+        [Serializable]
+        public enum FogColorLUTMode
+        {
+            Disabled = 0,
+            Texture2DDistanceAndHeight,
+            TextureCube
+        };
+
+        [Serializable]
+        public sealed class FogColorLUTModeParameter : VolumeParameter<FogColorLUTMode>
+        {
+            public FogColorLUTModeParameter(FogColorLUTMode value, bool overrideState = false)
+                : base(value, overrideState) { }
+        }
+
         public BoolParameter isEnabled = new BoolParameter(true);
         public FogFalloffModeParameter fogFalloffMode = new FogFalloffModeParameter(FogFalloffMode.Planar);
+        public FogBlendModeParameter blendMode = new FogBlendModeParameter(FogBlendMode.Over);
         public ColorParameter color = new ColorParameter(new Color(0.5f, 0.5f, 0.5f, 1.0f));
         public FloatParameter precisionAlpha = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
         public TextureParameter precisionAlphaDitherTexture = new TextureParameter(null);
@@ -34,6 +66,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public BoolParameter heightFalloffEnabled = new BoolParameter(false);
         public FloatParameter heightMin = new FloatParameter(0.0f);
         public FloatParameter heightMax = new FloatParameter(10.0f);
+        public FogColorLUTModeParameter colorLUTMode = new FogColorLUTModeParameter(FogColorLUTMode.Disabled);
+        public TextureParameter colorLUTTexture = new TextureParameter(null);
+        public Vector3Parameter colorLUTRotationDegrees = new Vector3Parameter(Vector3.zero);
+        public ClampedFloatParameter colorLUTWeight = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
+        public ClampedFloatParameter colorLUTWeightLayer1 = new ClampedFloatParameter(0.0f, 0.0f, 1.0f);
 
         public BoolParameter isAdditionalLayerEnabled = new BoolParameter(false);
         public FogFalloffModeParameter fogFalloffModeLayer1 = new FogFalloffModeParameter(FogFalloffMode.Planar);

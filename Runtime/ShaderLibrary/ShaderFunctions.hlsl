@@ -271,7 +271,15 @@ void ComputeAndFetchAlphaClippingParameters(out float alphaClippingDither, out f
     }
 }
 
-float EvaluateFogFalloff(float3 positionWS, float3 cameraPositionWS, float3 positionVS, int fogFalloffMode, float4 fogDistanceScaleBias, float fogFalloffCurvePower)
+struct FogFalloffData
+{
+    float falloff;
+    float falloffDistance;
+    float falloffHeight;
+    float3 falloffDirectionWS;
+};
+
+FogFalloffData EvaluateFogFalloffData(float3 positionWS, float3 cameraPositionWS, float3 positionVS, int fogFalloffMode, float4 fogDistanceScaleBias, float fogFalloffCurvePower)
 {
     float falloffDepth = 0.0f;
 
@@ -288,16 +296,43 @@ float EvaluateFogFalloff(float3 positionWS, float3 cameraPositionWS, float3 posi
         falloffDepth = length(positionVS);
     }
 
-    float falloffHeight = positionWS.y;
-
     // fogDistanceScaleBias.xy contains distance falloff scale bias terms.
     // fogDistanceScaleBias.zw contains height falloff scale bias terms.
-    float falloff = saturate(falloffDepth * fogDistanceScaleBias.x + fogDistanceScaleBias.y)
-        * saturate(falloffHeight * fogDistanceScaleBias.z + fogDistanceScaleBias.w);
+    float falloffDistance = saturate(falloffDepth * fogDistanceScaleBias.x + fogDistanceScaleBias.y);
+    falloffDistance = pow(falloffDistance, fogFalloffCurvePower);
+    
+    float falloffHeight = positionWS.y;
+    falloffHeight = saturate(falloffHeight * fogDistanceScaleBias.z + fogDistanceScaleBias.w);
+    falloffHeight = pow(falloffHeight, fogFalloffCurvePower);
+    
+    float falloff = falloffDistance * falloffHeight;
 
-    falloff = pow(falloff, fogFalloffCurvePower);
+    FogFalloffData res;
+    res.falloff = falloff;
+    res.falloffDistance = falloffDistance;
+    res.falloffHeight = falloffHeight;
+    res.falloffDirectionWS = mul(float3x3(_FogColorLUTRotationTangent, _FogColorLUTRotationBitangent, _FogColorLUTRotationNormal), normalize(positionWS - cameraPositionWS));
 
-    return falloff;
+    return res;
+}
+
+float4 EvaluateFogFalloffColor(FogFalloffData fogFalloffData)
+{
+    float4 fogColorLUTSample = float4(1.0f, 1.0f, 1.0f, 1.0f);
+
+#if defined(_FOG_COLOR_LUT_MODE_TEXTURE2D_DISTANCE_AND_HEIGHT)
+    // Flip Y so that LUT authoring is more intuitive: height fog min value is at the bottom of the texture and height fog max value is at the top.
+    float2 colorLUTUV = float2(fogFalloffData.falloffDistance, 1.0f - fogFalloffData.falloffHeight);
+    fogColorLUTSample = SAMPLE_TEXTURE2D_LOD(_FogColorLUTTexture2D, s_linear_clamp_sampler, colorLUTUV, 0);
+
+#elif defined(_FOG_COLOR_LUT_MODE_TEXTURECUBE)
+    fogColorLUTSample = SAMPLE_TEXTURECUBE_LOD(_FogColorLUTTextureCube, s_linear_clamp_sampler,  fogFalloffData.falloffDirectionWS, 0);
+
+#else // defined(_FOG_COLOR_LUT_MODE_DISABLED)
+    fogColorLUTSample = float4(1.0f, 1.0f, 1.0f, 1.0f);    
+#endif
+
+    return fogColorLUTSample;
 }
 
 float ComputeFogAlphaDiscretization(float alpha, float2 positionSS)

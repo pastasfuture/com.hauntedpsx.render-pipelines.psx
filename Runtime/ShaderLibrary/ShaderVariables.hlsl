@@ -46,6 +46,12 @@
 #define PSX_PRECISION_COLOR_OVERRIDE_MODE_ADD (3)
 #define PSX_PRECISION_COLOR_OVERRIDE_MODE_MULTIPLY (4)
 
+// Warning: These definitions must stay in sync with FogVolume.FogBlendMode enum.
+#define PSX_FOG_BLEND_MODE_OVER (0)
+#define PSX_FOG_BLEND_MODE_ADDITIVE (1)
+#define PSX_FOG_BLEND_MODE_SUBTRACTIVE (2)
+#define PSX_FOG_BLEND_MODE_MULTIPLY (3)
+
 // Globals:
 // Unity Standard:
 //
@@ -64,6 +70,7 @@ float4 _PrecisionColor; // [scaleR, scaleG, scaleB, precisionColorIndexNormalize
 float4 _PrecisionColorInverse; // [1 / scaleR, 1 / scaleG, 1 / scaleB, precisionChromaBit]
 float2 _PrecisionAlphaAndInverse;
 float _AffineTextureWarping;
+int _FogBlendMode;
 int _FogFalloffMode;
 float4 _FogColor;
 float4 _FogDistanceScaleBias;
@@ -77,6 +84,12 @@ int _FogFalloffModeLayer1;
 float4 _FogColorLayer1;
 float4 _FogDistanceScaleBiasLayer1;
 float _FogFalloffCurvePowerLayer1;
+float2 _FogColorLUTWeight;
+float3 _FogColorLUTRotationTangent;
+float3 _FogColorLUTRotationBitangent;
+float3 _FogColorLUTRotationNormal;
+TEXTURE2D(_FogColorLUTTexture2D);
+TEXTURECUBE(_FogColorLUTTextureCube);
 
 // Lighting (In the future this might be moved to UnityPerMaterial if we get multiple lights):
 int _LightingIsEnabled;

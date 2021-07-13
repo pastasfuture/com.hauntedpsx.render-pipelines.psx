@@ -11,6 +11,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
     public class FogVolumeEditor : VolumeComponentEditor
     {
         SerializedDataParameter m_IsEnabled;
+        SerializedDataParameter m_BlendMode;
         SerializedDataParameter m_FogFalloffMode;
         SerializedDataParameter m_Color;
         SerializedDataParameter m_PrecisionAlpha;
@@ -22,6 +23,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         SerializedDataParameter m_HeightFalloffEnabled;
         SerializedDataParameter m_HeightMin;
         SerializedDataParameter m_HeightMax;
+        SerializedDataParameter m_ColorLUTMode;
+        SerializedDataParameter m_ColorLUTTexture;
+        SerializedDataParameter m_ColorLUTRotationDegrees;
+        SerializedDataParameter m_ColorLUTWeight;
+        SerializedDataParameter m_ColorLUTWeightLayer1;
 
         SerializedDataParameter m_IsAdditionalLayerEnabled;
         SerializedDataParameter m_FogFalloffModeLayer1;
@@ -37,6 +43,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         {
             var o = new PropertyFetcher<FogVolume>(serializedObject);
             m_IsEnabled = Unpack(o.Find(x => x.isEnabled));
+            m_BlendMode = Unpack(o.Find(x => x.blendMode));
             m_FogFalloffMode = Unpack(o.Find(x => x.fogFalloffMode));
             m_Color = Unpack(o.Find(x => x.color));
             m_PrecisionAlpha = Unpack(o.Find(x => x.precisionAlpha));
@@ -48,6 +55,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             m_HeightFalloffEnabled = Unpack(o.Find(x => x.heightFalloffEnabled));
             m_HeightMin = Unpack(o.Find(x => x.heightMin));
             m_HeightMax = Unpack(o.Find(x => x.heightMax));
+            m_ColorLUTMode = Unpack(o.Find(x => x.colorLUTMode));
+            m_ColorLUTTexture = Unpack(o.Find(x => x.colorLUTTexture));
+            m_ColorLUTRotationDegrees = Unpack(o.Find(x => x.colorLUTRotationDegrees));
+            m_ColorLUTWeight = Unpack(o.Find(x => x.colorLUTWeight));
+            m_ColorLUTWeightLayer1 = Unpack(o.Find(x => x.colorLUTWeightLayer1));
 
             m_IsAdditionalLayerEnabled = Unpack(o.Find(x => x.isAdditionalLayerEnabled));
             m_FogFalloffModeLayer1 = Unpack(o.Find(x => x.fogFalloffModeLayer1));
@@ -63,6 +75,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public override void OnInspectorGUI()
         {
             PropertyField(m_IsEnabled, EditorGUIUtility.TrTextContent("Enabled", "Controls whether or not fog is enabled"));
+            PropertyField(m_BlendMode, EditorGUIUtility.TrTextContent("Blend Mode", "Selects the function used to blend Fog with the underlying geometry color."));
             PropertyField(m_FogFalloffMode, EditorGUIUtility.TrTextContent("Fog Falloff Mode", "Controls the shape of the fog falloff."));
             PropertyField(m_Color, EditorGUIUtility.TrTextContent("Color", "Controls color (and opacity) of global distance fog."));
             PropertyField(m_PrecisionAlpha, EditorGUIUtility.TrTextContent("Precision Alpha", "Controls the fog alpha precision. Lower values creates more alpha (opacity) banding along fog fade."));
@@ -81,6 +94,25 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             {
                 PropertyField(m_HeightMin, EditorGUIUtility.TrTextContent("Height Min", "Controls the height that fog reaches full opacity. Only has an effect if Height Falloff Enabled is true."));
                 PropertyField(m_HeightMax, EditorGUIUtility.TrTextContent("Height Max", "Controls the height that fog reaches zero opacity. Only has an effect if Height Falloff Enabled is true."));
+            }
+            PropertyField(m_ColorLUTMode, EditorGUIUtility.TrTextContent("Color LUT Mode", "Controls whether or not a Color Look-Up-Texture is used, and the format used.\nDisabled: No Color LUT is used.\nTexture 2D Distance and Height: Uses a Texture2D where the horizontal axis stores the color along distance, and the vertical axis stores the color along height.\nTextureCube: Uses a TextureCube that is sampled using view direction (direction from camera to surface)."));
+            if ((FogVolume.FogColorLUTMode)m_ColorLUTMode.value.intValue == FogVolume.FogColorLUTMode.Texture2DDistanceAndHeight)
+            {
+                PropertyField(m_ColorLUTTexture, EditorGUIUtility.TrTextContent("Color LUT Texture", "Specifies the texture used as the Color Look-Up-Texture. Expects a Texture2D where the horizontal axis stores the color along distance, and the vertical axis stores the color along height."));
+            }
+            else if ((FogVolume.FogColorLUTMode)m_ColorLUTMode.value.intValue == FogVolume.FogColorLUTMode.TextureCube)
+            {
+                PropertyField(m_ColorLUTTexture, EditorGUIUtility.TrTextContent("Color LUT Texture", "Specifies the texture used as the Color Look-Up-Texture. Expects a TextureCube that is sampled using view direction (direction from camera to surface)."));
+                PropertyField(m_ColorLUTRotationDegrees, EditorGUIUtility.TrTextContent("Color LUT Rotation", "Specifies the rotation of the Color Look-Up-Texture Cubemap in Euler Degrees."));
+            }
+
+            if ((FogVolume.FogColorLUTMode)m_ColorLUTMode.value.intValue != FogVolume.FogColorLUTMode.Disabled)
+            {
+                PropertyField(m_ColorLUTWeight, EditorGUIUtility.TrTextContent("Color LUT Weight", "Specifies the amount of influence the Color LUT Texture has on the final fog color. A value of 1.0 is full influence, meaning Color LUT Texture is multiplied against the Fog Color. A value of 0.0 is no influence, meaning the final color is simply the Fog Color."));
+                if (m_IsAdditionalLayerEnabled.value.boolValue)
+                {
+                    PropertyField(m_ColorLUTWeightLayer1, EditorGUIUtility.TrTextContent("Color LUT Weight Secondary", "Specifies the amount of influence the Color LUT Texture has on the Secondary Fog Layer."));
+                }
             }
 
             PropertyField(m_IsAdditionalLayerEnabled, EditorGUIUtility.TrTextContent("Secondary Fog Layer Enabled", "Controls whether or not to apply a second layer of fog. A second layer can be useful for simulating soft global fog, in addition to sharper, low hanging height fog. Computing a second fog layer comes at additional cost and should be disabled when not necessary."));

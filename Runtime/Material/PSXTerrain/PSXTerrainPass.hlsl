@@ -193,11 +193,10 @@ float4 ApplyFogToColorSplatmap(float4 color, float4 fog)
 
     #ifdef TERRAIN_SPLAT_ADDPASS
         // Add pass needs to handle transparency from additive blending.
-        // Simply lerp down the final result based on fog, as fog was handled in base pass.
-        color.rgb = lerp(color.rgb, 0.0h, fog.a);
+        color = ApplyFogToColorWithHardwareAdditiveBlend(fog, color);
     #else
         // Apply fog normally:
-        color.rgb = lerp(color.rgb, fog.rgb, fog.a);
+        color = ApplyFogToColor(fog, color);
     #endif
 
     return color;

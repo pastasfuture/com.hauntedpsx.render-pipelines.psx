@@ -379,21 +379,24 @@ float4 EvaluateFogPerVertex(float3 objectPositionWS, float3 objectPositionVS, fl
         float3 evaluationPositionVS = positionVS;
     #endif
 
-        float fogAlpha = EvaluateFogFalloff(evaluationPositionWS, _WorldSpaceCameraPos, evaluationPositionVS, _FogFalloffMode, _FogDistanceScaleBias, _FogFalloffCurvePower);
-        fogAlpha *= _FogColor.a;
+        FogFalloffData fogFalloffDataLayer0 = EvaluateFogFalloffData(evaluationPositionWS, _WorldSpaceCameraPos, evaluationPositionVS, _FogFalloffMode, _FogDistanceScaleBias, _FogFalloffCurvePower);
+        float4 fogFalloffColorLayer0 = EvaluateFogFalloffColor(fogFalloffDataLayer0);
+        float fogAlpha = fogFalloffDataLayer0.falloff;
+        fogAlpha *= _FogColor.a * lerp(1.0f, fogFalloffColorLayer0.a, _FogColorLUTWeight.x);
 
         // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
         // For now just do it here to make this code easier to refactor as we figure out the architecture.
-        float3 fogColor = floor(_FogColor.rgb * precisionColor + 0.5f) * precisionColorInverse;
+        float3 fogColor = floor(_FogColor.rgb * lerp(float3(1.0f, 1.0f, 1.0f), fogFalloffColorLayer0.rgb, _FogColorLUTWeight.x) * precisionColor + 0.5f) * precisionColorInverse;
         fogColor = SRGBToLinear(fogColor);
         fogColor *= fogAlpha;
 
         if (_FogIsAdditionalLayerEnabled)
         {
-            float fogAlphaLayer1 = EvaluateFogFalloff(evaluationPositionWS, _WorldSpaceCameraPos, evaluationPositionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
-            fogAlphaLayer1 *= _FogColorLayer1.a;
+            FogFalloffData fogFalloffDataLayer1 = EvaluateFogFalloffData(evaluationPositionWS, _WorldSpaceCameraPos, evaluationPositionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
+            float fogAlphaLayer1 = fogFalloffDataLayer1.falloff;
+            fogAlphaLayer1 *= _FogColorLayer1.a * lerp(fogFalloffColorLayer0.a, 1.0f, _FogColorLUTWeight.y);
 
-            float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * precisionColor + 0.5f) * precisionColorInverse;
+            float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * lerp(float3(1.0f, 1.0f, 1.0f), fogFalloffColorLayer0.rgb, _FogColorLUTWeight.y) * precisionColor + 0.5f) * precisionColorInverse;
             fogColorLayer1 = SRGBToLinear(fogColorLayer1);
             fogColorLayer1 *= fogAlphaLayer1;
 
@@ -480,20 +483,21 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
     fogColor = vertexFog.rgb * affineWarpingScaleInverse;
     fogAlpha = vertexFog.a * affineWarpingScaleInverse;
 #elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
-    fogAlpha = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogDistanceScaleBias, _FogFalloffCurvePower);
-    fogAlpha *= _FogColor.a;
+    FogFalloffData fogFalloffDataLayer0 = EvaluateFogFalloffData(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogDistanceScaleBias, _FogFalloffCurvePower);
+    float4 fogFalloffColorLayer0 = EvaluateFogFalloffColor(fogFalloffDataLayer0);
+    fogAlpha = _FogColor.a * fogFalloffDataLayer0.falloff * lerp(1.0f, fogFalloffColorLayer0.a, _FogColorLUTWeight.x);
     
     // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
     // For now just do it here to make this code easier to refactor as we figure out the architecture.
-    fogColor = floor(_FogColor.rgb * precisionColor + 0.5f) * precisionColorInverse;
+    fogColor = floor(_FogColor.rgb * lerp(float3(1.0f, 1.0f, 1.0f), fogFalloffColorLayer0.rgb, _FogColorLUTWeight.x) * precisionColor + 0.5f) * precisionColorInverse;
     fogColor = SRGBToLinear(fogColor);
 
     if (_FogIsAdditionalLayerEnabled)
     {
-        float fogAlphaLayer1 = EvaluateFogFalloff(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
-        fogAlphaLayer1 *= _FogColorLayer1.a;
+        FogFalloffData fogFalloffDataLayer1 = EvaluateFogFalloffData(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffModeLayer1, _FogDistanceScaleBiasLayer1, _FogFalloffCurvePowerLayer1);
+        float fogAlphaLayer1 = _FogColorLayer1.a * fogFalloffDataLayer1.falloff * lerp(1.0f, fogFalloffColorLayer0.a, _FogColorLUTWeight.y);
 
-        float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * precisionColor.rgb + 0.5f) * precisionColorInverse;
+        float3 fogColorLayer1 = floor(_FogColorLayer1.rgb * lerp(float3(1.0f, 1.0f, 1.0f), fogFalloffColorLayer0.rgb, _FogColorLUTWeight.y) * precisionColor.rgb + 0.5f) * precisionColorInverse;
         fogColorLayer1 = SRGBToLinear(fogColorLayer1);
         fogColorLayer1 *= fogAlphaLayer1;
 
@@ -526,8 +530,52 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
 float4 ApplyFogToColor(float4 fog, float4 color)
 {
 #if defined(_FOG_ON)
-    // fogColor has premultiplied alpha.
-    color.rgb = lerp(color.rgb, fog.rgb, fog.a);
+    if (_FogBlendMode == PSX_FOG_BLEND_MODE_OVER)
+    {
+        // fogColor has premultiplied alpha.
+        color.rgb = lerp(color.rgb, fog.rgb, fog.a);
+    }
+    else if (_FogBlendMode == PSX_FOG_BLEND_MODE_ADDITIVE)
+    {
+        color.rgb += fog.rgb * fog.a;
+    }
+    else if (_FogBlendMode == PSX_FOG_BLEND_MODE_SUBTRACTIVE)
+    {
+        color.rgb = max(float3(0.0f, 0.0f, 0.0f), color.rgb - fog.rgb * fog.a);
+    }
+    else if (_FogBlendMode == PSX_FOG_BLEND_MODE_MULTIPLY)
+    {
+        // fogColor has premultiplied alpha.
+        color.rgb *= lerp(float3(1.0f, 1.0f, 1.0f), fog.rgb, fog.a);
+    }
+#endif
+
+    return color;
+}
+
+float4 ApplyFogToColorWithHardwareAdditiveBlend(float4 fog, float4 color)
+{
+#if defined(_FOG_ON)
+    if (_FogBlendMode == PSX_FOG_BLEND_MODE_OVER)
+    {
+        // Simply lerp down the final result based on fog, as fog was handled in base pass.
+        color.rgb = lerp(color.rgb, 0.0, fog.a);
+    }
+    else if (_FogBlendMode == PSX_FOG_BLEND_MODE_ADDITIVE)
+    {
+        // Do nothing, fog energy add was handled in the base pass.
+    }
+    else if (_FogBlendMode == PSX_FOG_BLEND_MODE_SUBTRACTIVE)
+    {
+        // Because we are not accumulating to a signed render target, we need to handle the subtraction at every layer.
+        // This is not mathematically equivalent, but is correct for the extremes (when the layerWeight is zero and when the layerWeight is one).
+        color.rgb = max(float3(0.0f, 0.0f, 0.0f), color.rgb - fog.rgb * fog.a);
+    }
+    else if (_FogBlendMode == PSX_FOG_BLEND_MODE_MULTIPLY)
+    {
+        // For multiply, we need to handle the subtraction at every layer (which is mathematically equivalent).
+        color.rgb *= lerp(float3(1.0f, 1.0f, 1.0f), fog.rgb, fog.a);
+    }
 #endif
 
     return color;

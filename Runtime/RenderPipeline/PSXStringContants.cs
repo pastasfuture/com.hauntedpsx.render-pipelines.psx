@@ -76,6 +76,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_TEXTURE_FILTER_MODE_POINT_MIPMAPS = "_TEXTURE_FILTER_MODE_POINT_MIPMAPS";
         public static readonly string s_TEXTURE_FILTER_MODE_N64 = "_TEXTURE_FILTER_MODE_N64";
         public static readonly string s_TEXTURE_FILTER_MODE_N64_MIPMAPS = "_TEXTURE_FILTER_MODE_N64_MIPMAPS";
+        public static readonly string s_FOG_COLOR_LUT_MODE_DISABLED = "_FOG_COLOR_LUT_MODE_DISABLED";
+        public static readonly string s_FOG_COLOR_LUT_MODE_TEXTURE2D_DISTANCE_AND_HEIGHT = "_FOG_COLOR_LUT_MODE_TEXTURE2D_DISTANCE_AND_HEIGHT";
+        public static readonly string s_FOG_COLOR_LUT_MODE_TEXTURECUBE = "_FOG_COLOR_LUT_MODE_TEXTURECUBE";
     }
 
     internal static class PSXComputeKernels
@@ -140,6 +143,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _FramebufferDither = Shader.PropertyToID("_FramebufferDither");
         public static readonly int _DrawDistanceFalloffMode = Shader.PropertyToID("_DrawDistanceFalloffMode");
         public static readonly int _DrawDistance = Shader.PropertyToID("_DrawDistance");
+        public static readonly int _FogBlendMode = Shader.PropertyToID("_FogBlendMode");
         public static readonly int _FogFalloffMode = Shader.PropertyToID("_FogFalloffMode");
         public static readonly int _FogColor = Shader.PropertyToID("_FogColor");
         public static readonly int _FogPrecisionAlphaAndInverse = Shader.PropertyToID("_FogPrecisionAlphaAndInverse");
@@ -148,11 +152,17 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _FogPrecisionAlphaDither = Shader.PropertyToID("_FogPrecisionAlphaDither");
         public static readonly int _FogDistanceScaleBias = Shader.PropertyToID("_FogDistanceScaleBias");
         public static readonly int _FogFalloffCurvePower = Shader.PropertyToID("_FogFalloffCurvePower");
+        public static readonly int _FogColorLUTWeight = Shader.PropertyToID("_FogColorLUTWeight");
         public static readonly int _FogIsAdditionalLayerEnabled = Shader.PropertyToID("_FogIsAdditionalLayerEnabled");
         public static readonly int _FogFalloffModeLayer1 = Shader.PropertyToID("_FogFalloffModeLayer1");
         public static readonly int _FogColorLayer1 = Shader.PropertyToID("_FogColorLayer1");
         public static readonly int _FogDistanceScaleBiasLayer1 = Shader.PropertyToID("_FogDistanceScaleBiasLayer1");
         public static readonly int _FogFalloffCurvePowerLayer1 = Shader.PropertyToID("_FogFalloffCurvePowerLayer1");
+        public static readonly int _FogColorLUTTexture2D = Shader.PropertyToID("_FogColorLUTTexture2D");
+        public static readonly int _FogColorLUTTextureCube = Shader.PropertyToID("_FogColorLUTTextureCube");
+        public static readonly int _FogColorLUTRotationTangent = Shader.PropertyToID("_FogColorLUTRotationTangent");
+        public static readonly int _FogColorLUTRotationBitangent = Shader.PropertyToID("_FogColorLUTRotationBitangent");
+        public static readonly int _FogColorLUTRotationNormal = Shader.PropertyToID("_FogColorLUTRotationNormal");
         public static readonly int _LightingIsEnabled = Shader.PropertyToID("_LightingIsEnabled");
         public static readonly int _IsPSXQualityEnabled = Shader.PropertyToID("_IsPSXQualityEnabled");
         public static readonly int _TonemapperIsEnabled = Shader.PropertyToID("_TonemapperIsEnabled");
