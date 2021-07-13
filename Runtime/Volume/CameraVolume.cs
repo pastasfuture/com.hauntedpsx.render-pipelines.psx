@@ -15,7 +15,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             FreeCropPixelPerfect,
             FreeBleedPixelPerfect,
             LockedFitPixelPerfect,
-            LockedStretch,
+            LockedFit,
             Native
         };
 

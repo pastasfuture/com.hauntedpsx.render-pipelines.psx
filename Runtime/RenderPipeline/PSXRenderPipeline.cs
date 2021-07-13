@@ -161,7 +161,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                         float uvScaleCropY = 1.0f / (ratioY * Mathf.Ceil(1.0f / ratioXYMin));
                         cameraAspectModeUVScaleBias = new Vector4(uvScaleCropX, uvScaleCropY, 0.5f - (0.5f * uvScaleCropX), 0.5f - (0.5f * uvScaleCropY));
                     }
-                    else if (volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.LockedStretch)
+                    else if (volumeSettings.aspectMode.value == CameraVolume.CameraAspectMode.LockedFit)
                     {
                         float ratioX = (float)rasterizationWidth / (float)camera.pixelWidth;
                         float ratioY = (float)rasterizationHeight / (float)camera.pixelHeight;
