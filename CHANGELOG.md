@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix Material Inspector: **UV Animation Mode**
+---------------------------------------------------------------------------------------------------------------------------
+Fixed bug where changing UV Animation Mode.Pan Sin.UV Animation Oscillation Frequency would erroneously zero out UV Animation Scale.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Fog Volume Feature: **Height Falloff Mirrored**
 ---------------------------------------------------------------------------------------------------------------------------
 **Height Falloff Mirrored**: If enabled, height fog will be mirrored about Height Max, creating fog that fades in below and above. Especially useful when combined with ColorLUTMode.Texture2DDistanceAndHeight, which can be used to give the mirrored fog a different color.

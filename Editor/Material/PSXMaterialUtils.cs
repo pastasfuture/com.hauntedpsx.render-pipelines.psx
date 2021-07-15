@@ -1456,22 +1456,25 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 }
                 case UVAnimationMode.PanSin:
                 {
-                    Vector2 panSinFrequency = modeChanged ? new Vector2(1.0f, 1.0f) : new Vector2(uvAnimationParameters.x, uvAnimationParameters.y);
+                    uvAnimationParameters = modeChanged ? new Vector4(1.0f, 1.0f, 1.0f, 1.0f) : uvAnimationParameters;
+                    Vector2 panSinFrequency = new Vector2(uvAnimationParameters.x, uvAnimationParameters.y);
                     EditorGUI.BeginChangeCheck();
                     panSinFrequency = EditorGUILayout.Vector2Field(Styles.uvAnimationPanSinFrequency, panSinFrequency);
                     if (EditorGUI.EndChangeCheck() || modeChanged)
                     {
                         needsUpdate = true;
-                        uvAnimationParameters = new Vector4(panSinFrequency.x, panSinFrequency.y, 0.0f, 0.0f);
+                        uvAnimationParameters.x = panSinFrequency.x;
+                        uvAnimationParameters.y = panSinFrequency.y;
                     }
 
-                    Vector2 panSinScale = modeChanged ? new Vector2(1.0f, 1.0f) : new Vector2(uvAnimationParameters.z, uvAnimationParameters.w);
+                    Vector2 panSinScale = new Vector2(uvAnimationParameters.z, uvAnimationParameters.w);
                     EditorGUI.BeginChangeCheck();
                     panSinScale = EditorGUILayout.Vector2Field(Styles.uvAnimationPanSinScale, panSinScale);
                     if (EditorGUI.EndChangeCheck() || modeChanged)
                     {
                         needsUpdate = true;
-                        uvAnimationParameters = new Vector4(uvAnimationParameters.x, uvAnimationParameters.y, panSinScale.x, panSinScale.y);
+                        uvAnimationParameters.z = panSinScale.x;
+                        uvAnimationParameters.w = panSinScale.y;
                     }
                     break;
                 }
