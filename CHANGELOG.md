@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix UV Animation Mode: **Flipbook**
+---------------------------------------------------------------------------------------------------------------------------
+Fixed flipbook uv calculation bugs that caused unintentional jerky animation and frame drop outs. Special thanks to Fever Dream Johnny who noticed the bug and provided the first iteration of the bugfix.
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix Material Inspector: **UV Animation Mode**
 ---------------------------------------------------------------------------------------------------------------------------
 Fixed bug where changing UV Animation Mode.Pan Sin.UV Animation Oscillation Frequency would erroneously zero out UV Animation Scale.

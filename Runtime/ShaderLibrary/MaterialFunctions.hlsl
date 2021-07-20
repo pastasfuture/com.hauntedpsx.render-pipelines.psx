@@ -679,27 +679,26 @@ float2 ApplyUVAnimationPixel(inout float4 texelSizeLod, inout float lod, float2 
 
             float tileIndex = floor(timeSeconds * uvAnimationParameters.z);
 
-            // fmod(tileIndex, tileCount) == tileIndex - floor(tileIndex / tileCount) * tileCount
-            tileIndex = fmod(tileIndex, tileCount);
-
-            float tileY = floor(tileIndex / height);
+            // Loop limit tileIndex to range [0, tileCount - 1].
+            float tileCountMinusOne = tileCount - 1.0;
+            tileIndex = floor(tileIndex / tileCountMinusOne) * -tileCountMinusOne + tileIndex;
+            
+            float tileY = floor(tileIndex / width);
             float tileX = tileIndex - tileY * width;
-
-            float2 tileScale = 1.0 / float2(width, height);
-            float2 tileUvBase = float2(tileX, tileY) * tileScale;
 
             // If you'd like to maintain this flip feature, it might be a good idea to store flipY in uvAnimationParameters.w
             // and implement a material parameter so users can toggle the flip on and off. I'm guessing you'd only need flipY
             // (I'd be suprised if someone authored their flipbook right to left).
-            bool flipX = false;
-            bool flipY = true;
-
+            //
             // Conditionals like this are very cheap, contrary to what is often reccomended.
             // It boils down to a single conditional assignment instruction, not a branch.
             // I prefer to write these types of conditions in explicit conditional assignment form,
             // rather than using scale, bias arithmetic, which is often harder to read + debug.
-            tileUvBase.x = flipX ? (1.0 - tileUvBase.x) : tileUvBase.x;
-            tileUvBase.y = flipY ? (1.0 - tileUvBase.y) : tileUvBase.y;
+            bool flipY = true;
+            tileY = flipY ? (height - 1.0 - tileY) : tileY;
+
+            float2 tileScale = 1.0 / float2(width, height);
+            float2 tileUvBase = float2(tileX, tileY) * tileScale;
 
             // This compiles down to a fused-multiply-add, which is a single instruction.
             // Alternatively, I could have written this as:
