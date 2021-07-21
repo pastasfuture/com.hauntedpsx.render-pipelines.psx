@@ -333,7 +333,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetRenderTarget(camera.targetTexture);
                 {
                     PushGlobalPostProcessingParameters(camera, cmd, m_Asset, rasterizationRT, rasterizationWidth, rasterizationHeight, cameraAspectModeUVScaleBias);
-                    //PushCompressionParameters(camera, cmd, m_Asset, rasterizationRT, compressionCSKernels);
+                    PushCompressionParameters(camera, cmd, m_Asset, rasterizationRT, compressionCSKernels);
                     PushCathodeRayTubeParameters(camera, cmd, crtMaterial);
                     PSXRenderPipeline.DrawFullScreenQuad(cmd, crtMaterial);
 

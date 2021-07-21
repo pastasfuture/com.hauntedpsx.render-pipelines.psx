@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix Compression Volume
+---------------------------------------------------------------------------------------------------------------------------
+Compression volume rendering code was erroneously disabled in 1.4.0. Reenabled it.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Lighting Feature: **Shadow Mask**
 ---------------------------------------------------------------------------------------------------------------------------
 **Shadow Mask** baked shadows are now supported. Shadow Mask allows baking shadows for up to 4 lights per surface. Static surfaces recieve high quality Shadow Mask lightmap textures. These Shadow mask textures are sampled per-vertex if **Shading Evaluation Mode** is set to **Per Vertex**, or sampled per-pixel if **Shading Evaluation Mode** is set to **Per Pixel**. Dynamic objects will sample Shadow Mask values from the nearby Light Probe Group.
