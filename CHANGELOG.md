@@ -9,6 +9,8 @@ To use Shadow Mask shadows:
 	- Mesh Renderer->Lighting->Receive Shadows: True
 	- Mesh Renderer->Lighting->Contribute Global Illumination: True
 	- Mesh Renderer->Lighting->Receive Global Illumination: Lightmaps
+	- Make sure **Generate Lightmap UVs** is enabled in your model import settings
+		- Make sure the **Min Lightmap Resolution** is correct for your Window->rendering->Lighting->Lightmap Resolution setting.
 3) Make sure any dynamic Game Objects that you would like to receive Shadow Mask Probe data have the following settings:
 	- Mesh Renderer->Lighting->Receive Shadows: True
 	- Mesh Renderer->Lighting->Receive Global Illumination: Light Probes
