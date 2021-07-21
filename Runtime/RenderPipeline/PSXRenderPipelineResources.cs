@@ -14,6 +14,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             [Reload("Runtime/PostProcessing/Shaders/Sky.shader")]
             public Shader skyPS;
+            [Reload("Runtime/PostProcessing/Shaders/AccumulationMotionBlur.shader")]
+            public Shader accumulationMotionBlurPS;
+            [Reload("Runtime/PostProcessing/Shaders/CopyColorRespectFlipY.shader")]
+            public Shader copyColorRespectFlipYPS;
             [Reload("Runtime/PostProcessing/Shaders/CRT.shader")]
             public Shader crtPS;
             [Reload("Runtime/PostProcessing/Shaders/Compression.compute")]

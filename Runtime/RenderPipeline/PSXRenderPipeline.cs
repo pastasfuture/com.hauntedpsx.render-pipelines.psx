@@ -18,8 +18,13 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         internal const PerObjectData k_RendererConfigurationDynamicLighting = PerObjectData.LightData | PerObjectData.LightIndices;
 
         Material skyMaterial;
+        Material accumulationMotionBlurMaterial;
+        Material copyColorRespectFlipYMaterial;
         Material crtMaterial;
         int[] compressionCSKernels;
+
+        // Use to detect frame changes (for accurate frame count in editor, consider using psxCamera.GetCameraFrameCount)
+        int frameCount;
 
         public static PSXRenderPipeline instance = null;
         
@@ -61,7 +66,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         internal protected void Allocate()
         {
             this.skyMaterial = CoreUtils.CreateEngineMaterial(m_Asset.renderPipelineResources.shaders.skyPS);
+            this.accumulationMotionBlurMaterial = CoreUtils.CreateEngineMaterial(m_Asset.renderPipelineResources.shaders.accumulationMotionBlurPS);
+            this.copyColorRespectFlipYMaterial = CoreUtils.CreateEngineMaterial(m_Asset.renderPipelineResources.shaders.copyColorRespectFlipYPS);
             this.crtMaterial = CoreUtils.CreateEngineMaterial(m_Asset.renderPipelineResources.shaders.crtPS);
+
             FindComputeKernels();
             AllocateLighting();
         }
@@ -70,13 +78,17 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             base.Dispose(disposing);
 
+            PSXCamera.ClearAll();
+
             CoreUtils.Destroy(skyMaterial);
+            CoreUtils.Destroy(accumulationMotionBlurMaterial);
+            CoreUtils.Destroy(copyColorRespectFlipYMaterial);
             CoreUtils.Destroy(crtMaterial);
             compressionCSKernels = null;
             DisposeLighting();
         }
 
-        void PushCameraParameters(Camera camera, CommandBuffer cmd, out int rasterizationWidth, out int rasterizationHeight, out Vector4 cameraAspectModeUVScaleBias, bool isPSXQualityEnabled)
+        void PushCameraParameters(Camera camera, PSXCamera psxCamera, CommandBuffer cmd, out int rasterizationWidth, out int rasterizationHeight, out Vector4 cameraAspectModeUVScaleBias, bool isPSXQualityEnabled)
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushCameraParameters))
             {
@@ -186,11 +198,36 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     // subtle change can occur from pixel rounding error.
                     camera.aspect = (float)rasterizationWidth / (float)rasterizationHeight;
                 }
+
+                bool rasterizationHistoryRequested = false;
+                bool rasterizationPreUICopyRequested = false;
+                {
+                    var accumulationMotionBlurVolumeSettings = VolumeManager.instance.stack.GetComponent<AccumulationMotionBlurVolume>();
+                    if (!accumulationMotionBlurVolumeSettings) accumulationMotionBlurVolumeSettings = AccumulationMotionBlurVolume.@default;
+
+                    rasterizationHistoryRequested = accumulationMotionBlurVolumeSettings.weight.value > 1e-5f;
+                    rasterizationPreUICopyRequested = rasterizationHistoryRequested && !accumulationMotionBlurVolumeSettings.applyToUIOverlay.value;
+                }
+
+                psxCamera.UpdateBeginFrame(new PSXCamera.PSXCameraUpdateContext()
+                {
+                    rasterizationWidth = rasterizationWidth,
+                    rasterizationHeight = rasterizationHeight,
+                    rasterizationHistoryRequested = rasterizationHistoryRequested,
+                    rasterizationPreUICopyRequested = rasterizationPreUICopyRequested,
+                    rasterizationRandomWriteRequested = IsComputeShaderSupportedPlatform(),
+                    rasterizationDepthBufferRequested = EvaluateIsDepthBufferEnabledFromVolume()
+                });
             }
         }
 
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
         {
+            if (TryUpdateFrameCount(cameras))
+            {
+                PSXCamera.CleanUnused();
+            }
+
             if (cameras.Length == 0) { return; }
 
             UnityEngine.Rendering.RenderPipeline.BeginFrameRendering(context, cameras);
@@ -220,7 +257,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 isPSXQualityEnabled &= CoreUtils.ArePostProcessesEnabled(camera);
 
                 var cmd = CommandBufferPool.Get(PSXStringConstants.s_CommandBufferRenderForwardStr);
-                PushCameraParameters(camera, cmd, out int rasterizationWidth, out int rasterizationHeight, out Vector4 cameraAspectModeUVScaleBias, isPSXQualityEnabled);
+                PSXCamera psxCamera = PSXCamera.GetOrCreate(camera);
+                PushCameraParameters(camera, psxCamera, cmd, out int rasterizationWidth, out int rasterizationHeight, out Vector4 cameraAspectModeUVScaleBias, isPSXQualityEnabled);
 
                 // Disable shadow casters completely as we currently do not support dynamic light sources.
                 cullingParameters.cullingOptions &= ~CullingOptions.ShadowCasters;
@@ -244,44 +282,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 context.SetupCameraProperties(camera);
 
                 bool hdrIsSupported = false;
-                RenderTexture rasterizationRT = RenderTexture.GetTemporary(
-                    new RenderTextureDescriptor
-                    {
-                        dimension = TextureDimension.Tex2D,
-                        width = rasterizationWidth,
-                        height = rasterizationHeight,
-                        volumeDepth = 1,
-                        depthBufferBits = EvaluateIsDepthBufferEnabledFromVolume() ? 24 : 0,
-                        graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm,// GetFrameBufferRenderTextureFormatHDR(out bool hdrIsSupported),
-                        sRGB = false,
-                        msaaSamples = 1,
-                        memoryless = RenderTextureMemoryless.None,
-                        vrUsage = VRTextureUsage.None,
-                        useDynamicScale = false,
-                        enableRandomWrite = IsComputeShaderSupportedPlatform(),
-                        autoGenerateMips = false,
-                        mipCount = 1
-                    }
-                ); 
-
-                // var rasterizationRTDescriptor = new RenderTextureDescriptor(
-                //     rasterizationWidth,
-                //     rasterizationHeight,
-                //     GetFrameBufferRenderTextureFormatHDR(out bool hdrIsSupported),
-                //     EvaluateIsDepthBufferEnabledFromVolume() ? 24 : 0
-                // );
-                // // rasterizationRTDescriptor.useMipMap = false;
-                // // rasterizationRTDescriptor.autoGenerateMips = false;
-                // // rasterizationRTDescriptor.enableRandomWrite = IsComputeShaderSupportedPlatform();
-                // // rasterizationRTDescriptor.sRGB = false;
-                // // rasterizationRTDescriptor.vrUsage = VRTextureUsage.None;
-                // // rasterizationRTDescriptor.useDynamicScale = false;
-
-                // Debug.Log("rasterizationRTDescriptor.graphicsFormat = " + rasterizationRTDescriptor.graphicsFormat);
-
-                // RenderTexture rasterizationRT = RenderTexture.GetTemporary(rasterizationRTDescriptor);
-
-                cmd.SetRenderTarget(rasterizationRT);
+                RTHandle rasterizationRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.Rasterization);
+                RTHandle rasterizationDepthStencilRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.RasterizationDepthStencil);
+                cmd.SetRenderTarget(rasterizationRT.rt, rasterizationDepthStencilRT.rt);
                 {
                     // Clear background to fog color to create seamless blend between forward-rendered fog, and "sky" / infinity.
                     PushGlobalRasterizationParameters(camera, cmd, rasterizationWidth, rasterizationHeight, hdrIsSupported);
@@ -307,9 +310,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     DrawMainOpaque(context, camera, ref cullingResults);
                     DrawMainTransparent(context, camera, ref cullingResults);
 
-                    // TODO: DrawSkybox(context, camera);
-
                     cmd = CommandBufferPool.Get(PSXStringConstants.s_CommandBufferRenderPreUIOverlayStr);
+                    TryDrawAccumulationMotionBlurPreUIOverlay(psxCamera, cmd, accumulationMotionBlurMaterial, copyColorRespectFlipYMaterial);
                     PushPreUIOverlayParameters(camera, cmd);
                     context.ExecuteCommandBuffer(cmd);
                     cmd.Release();
@@ -325,23 +327,55 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 }
 
                 cmd = CommandBufferPool.Get(PSXStringConstants.s_CommandBufferRenderPostProcessStr);
+                {
+                    TryDrawAccumulationMotionBlurPostUIOverlay(psxCamera, cmd, accumulationMotionBlurMaterial);
+                }
                 cmd.SetRenderTarget(camera.targetTexture);
                 {
                     PushGlobalPostProcessingParameters(camera, cmd, m_Asset, rasterizationRT, rasterizationWidth, rasterizationHeight, cameraAspectModeUVScaleBias);
-                    PushCompressionParameters(camera, cmd, m_Asset, rasterizationRT, compressionCSKernels);
+                    //PushCompressionParameters(camera, cmd, m_Asset, rasterizationRT, compressionCSKernels);
                     PushCathodeRayTubeParameters(camera, cmd, crtMaterial);
                     PSXRenderPipeline.DrawFullScreenQuad(cmd, crtMaterial);
-                }
 
+                    TryDrawAccumulationMotionBlurFinalBlit(psxCamera, cmd, camera.targetTexture, copyColorRespectFlipYMaterial);
+                }
+                
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Release();
                 context.Submit();
-                RenderTexture.ReleaseTemporary(rasterizationRT);
+
+                psxCamera.UpdateEndFrame();
 
                 // Reset any modifications to the cameras aspect ratio so that built in unity handles draw normally.
                 camera.ResetAspect();
 
                 UnityEngine.Rendering.RenderPipeline.EndCameraRendering(context, camera);
+            }
+        }
+
+        private bool TryUpdateFrameCount(Camera[] cameras)
+        {
+#if UNITY_EDITOR
+            int newCount = frameCount;
+            foreach (var c in cameras)
+            {
+                if (c.cameraType != CameraType.Preview)
+                {
+                    newCount++;
+                    break;
+                }
+            }
+#else
+            int newCount = Time.frameCount;
+#endif
+            if (newCount != frameCount)
+            {
+                frameCount = newCount;
+                return true;
+            }
+            else
+            {
+                return false;
             }
         }
 
@@ -891,8 +925,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 {
                     // in DirectX mode (flip Y), there is an additional flip that needs to occur for the game view,
                     // as an extra blit seems to occur.
-                    flipY = false;
+                    flipY = true;
                 }
+                else
+                {
+                    flipY = false;
+                }                
 
                 cmd.SetGlobalInt(PSXShaderIDs._FlipY, flipY ? 1 : 0);
                 cmd.SetGlobalVector(PSXShaderIDs._CameraAspectModeUVScaleBias, cameraAspectModeUVScaleBias);
@@ -1189,6 +1227,127 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
                 cmd.SetGlobalFloat(PSXShaderIDs._SkyFramebufferDitherWeight, volumeSettings.framebufferDitherWeight.value);
             }
+        }
+
+        static void TryDrawAccumulationMotionBlurPreUIOverlay(PSXCamera psxCamera, CommandBuffer cmd, Material accumulationMotionBlurMaterial, Material copyColorRespectFlipYMaterial)
+        {
+            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_DrawAccumulationMotionBlurPreUIOverlay))
+            {
+                var volumeSettings = VolumeManager.instance.stack.GetComponent<AccumulationMotionBlurVolume>();
+                if (!volumeSettings) volumeSettings = AccumulationMotionBlurVolume.@default;
+
+                if (volumeSettings.weight.value <= 1e-5f)
+                {
+                    psxCamera.ResetAccumulationMotionBlurFrameCount();
+                }
+
+                if ((psxCamera.GetCameraAccumulationMotionBlurFrameCount() > 0) && (!volumeSettings.applyToUIOverlay.value))
+                {
+                    PSXRenderPipeline.PushAccumulationMotionBlurParameters(psxCamera, cmd, volumeSettings);
+                    PSXRenderPipeline.DrawFullScreenQuad(cmd, accumulationMotionBlurMaterial);
+
+                    RTHandle rasterizationCurrentRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.Rasterization);
+                    RTHandle rasterizationPreUICopyRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.RasterizationPreUICopy);
+
+                    PSXRenderPipeline.CopyColorRespectFlipY(psxCamera.camera, cmd, rasterizationCurrentRT, rasterizationPreUICopyRT, copyColorRespectFlipYMaterial);
+
+                    // The above blit changes the global state of our bound render target.
+                    // Switch the global bound render target back to the one we were rendering with before.
+                    RTHandle rasterizationDepthStencilCurrentRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.RasterizationDepthStencil);
+                    cmd.SetRenderTarget(rasterizationCurrentRT, rasterizationDepthStencilCurrentRT);
+                }
+            }
+        }
+
+        static void TryDrawAccumulationMotionBlurPostUIOverlay(PSXCamera psxCamera, CommandBuffer cmd, Material accumulationMotionBlurMaterial)
+        {
+            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_DrawAccumulationMotionBlurPostUIOverlay))
+            {
+                var volumeSettings = VolumeManager.instance.stack.GetComponent<AccumulationMotionBlurVolume>();
+                if (!volumeSettings) volumeSettings = AccumulationMotionBlurVolume.@default;
+
+                if (volumeSettings.weight.value <= 1e-5f)
+                {
+                    psxCamera.ResetAccumulationMotionBlurFrameCount();
+                }
+
+                if ((psxCamera.GetCameraAccumulationMotionBlurFrameCount() > 0) && volumeSettings.applyToUIOverlay.value)
+                {
+                    PSXRenderPipeline.PushAccumulationMotionBlurParameters(psxCamera, cmd, volumeSettings);
+                    PSXRenderPipeline.DrawFullScreenQuad(cmd, accumulationMotionBlurMaterial);
+                }
+            }
+        }
+
+        static void TryDrawAccumulationMotionBlurFinalBlit(PSXCamera psxCamera, CommandBuffer cmd, RenderTexture renderTargetCurrent, Material copyColorRespectFlipYMaterial)
+        {
+            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_DrawAccumulationMotionBlurFinalBlit))
+            {
+                var volumeSettings = VolumeManager.instance.stack.GetComponent<AccumulationMotionBlurVolume>();
+                if (!volumeSettings) volumeSettings = AccumulationMotionBlurVolume.@default;
+
+                if ((psxCamera.GetCameraAccumulationMotionBlurFrameCount() > 0) && (!volumeSettings.applyToUIOverlay.value))
+                {
+                    // Copy our pre-ui data back to the current RT so that it will get correctly swapped into the history back buffer for sampling next frame.
+                    RTHandle rasterizationPreUICopyRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.RasterizationPreUICopy);
+                    RTHandle rasterizationCurrentRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.Rasterization);
+
+                    PSXRenderPipeline.CopyColorRespectFlipY(psxCamera.camera, cmd, rasterizationPreUICopyRT, rasterizationCurrentRT, copyColorRespectFlipYMaterial);
+
+                    // Our blit call will change the global state of the bound render target.
+                    // Bind back our previous render target to avoid non-obvious side effects.
+                    // This actually is necessary in the editor. It seems the final camera render target needs to be bound before the context is submitted,
+                    // otherwise we get this error spilling: Dimensions of color surface does not match dimensions of depth surface.
+                    cmd.SetRenderTarget(renderTargetCurrent);
+                }
+            }
+        }
+
+        static void PushAccumulationMotionBlurParameters(PSXCamera psxCamera, CommandBuffer cmd, AccumulationMotionBlurVolume volumeSettings)
+        {
+            RTHandle rasterizationHistoryRT = psxCamera.GetPreviousFrameRT((int)PSXCameraFrameHistoryType.Rasterization);
+
+            float rasterizationHistoryWeight = volumeSettings.weight.value;
+
+            // Treat our volume history weight as a target rather than using it directly.
+            // Lerp up history based on the number of frames we have accumulated until we reach out target.
+            // This avoids incorrectly biasing toward earlier frames which would result in first frame burn in.
+            rasterizationHistoryWeight = Mathf.Min(rasterizationHistoryWeight, 0.9999f);
+            rasterizationHistoryWeight = Mathf.Min(rasterizationHistoryWeight, 1.0f - 1.0f / (float)(psxCamera.GetCameraAccumulationMotionBlurFrameCount() + 1));
+
+            cmd.SetGlobalFloat(PSXShaderIDs._RasterizationHistoryWeight, rasterizationHistoryWeight);
+            cmd.SetGlobalFloat(PSXShaderIDs._RasterizationHistoryCompositeDither, volumeSettings.dither.value);
+            cmd.SetGlobalVector(PSXShaderIDs._AccumulationMotionBlurParameters, new Vector4(
+                volumeSettings.zoom.value * 10.0f,
+                volumeSettings.vignette.value,
+                volumeSettings.zoomDither.value,
+                volumeSettings.anisotropy.value
+            ));
+            cmd.SetGlobalTexture(PSXShaderIDs._RasterizationHistoryRT, rasterizationHistoryRT);
+        }
+
+        static void CopyColorRespectFlipY(Camera camera, CommandBuffer cmd, RTHandle source, RTHandle destination, Material copyColorRespectFlipYMaterial)
+        {
+            // Flip logic taken from URP:
+            // Blit has logic to flip projection matrix when rendering to render texture.
+            // Currently the y-flip is handled in CopyColorRespectFlipY.shader by checking _ProjectionParams.x
+            // If you replace this Blit with a Draw* that sets projection matrix double check
+            // to also update shader.
+            //
+            // We need to handle y-flip in a way that all existing shaders using _ProjectionParams.x work.
+            // Otherwise we get flipping issues like this one (case https://issuetracker.unity3d.com/issues/lwrp-depth-texture-flipy)
+
+            // Unity flips projection matrix in non-OpenGL platforms and when rendering to a render texture.
+            // If HPSXRP is rendering to RT:
+            //  - Source is upside down. We need to copy using a shader that has flipped matrix as well so we have same orientation for source and destination.
+            //  - When shaders render objects that sample screen space textures they adjust the uv sign with  _ProjectionParams.x. (https://docs.unity3d.com/Manual/SL-PlatformDifferences.html
+            // If HPSXRP is NOT rendering to RT and is NOT rendering with OpenGL:
+            //  - Source is NOT flipped. We CANNOT flip when copying and don't flip when sampling. (ProjectionParams.x == 1)
+
+            cmd.SetGlobalVector(PSXShaderIDs._CopyColorSourceRTSize, new Vector4(source.rt.width, source.rt.height, 1.0f / source.rt.width, 1.0f / source.rt.height));
+            cmd.SetGlobalTexture(PSXShaderIDs._CopyColorSourceRT, source);
+            cmd.SetRenderTarget(destination);
+            PSXRenderPipeline.DrawFullScreenQuad(cmd, copyColorRespectFlipYMaterial);
         }
 
         static void PushCathodeRayTubeParameters(Camera camera, CommandBuffer cmd, Material crtMaterial)
@@ -1569,9 +1728,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
         }
 
+
         static bool ComputeCameraProjectionIsFlippedY(Camera camera)
         {
-            return GL.GetGPUProjectionMatrix(camera.projectionMatrix, true).inverse.MultiplyPoint(new Vector3(0, 1, 0)).y < 0;
+            bool isFlipped = GL.GetGPUProjectionMatrix(camera.projectionMatrix, true).inverse.MultiplyPoint(new Vector3(0, 1, 0)).y < 0;
+            return isFlipped;
         }
 
         // Taken from HDCamera:
@@ -1596,7 +1757,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             float verticalFoV = camera.GetGateFittedFieldOfView() * Mathf.Deg2Rad;
             Vector2 lensShift = camera.GetGateFittedLensShift();
 
-            return ComputePixelCoordToWorldSpaceViewDirectionMatrix(verticalFoV, lensShift, resolution, viewMatrix, true, aspect);
+            return ComputePixelCoordToWorldSpaceViewDirectionMatrix(verticalFoV, lensShift, resolution, viewMatrix, renderToCubemap: false, aspect);
         }
 
         static Matrix4x4 ComputePixelCoordToWorldSpaceViewDirectionMatrix(float verticalFoV, Vector2 lensShift, Vector4 screenSize, Matrix4x4 worldToViewMatrix, bool renderToCubemap, float aspectRatio = -1)
