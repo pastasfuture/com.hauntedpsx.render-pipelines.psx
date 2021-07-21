@@ -85,6 +85,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_FOG_COLOR_LUT_MODE_DISABLED = "_FOG_COLOR_LUT_MODE_DISABLED";
         public static readonly string s_FOG_COLOR_LUT_MODE_TEXTURE2D_DISTANCE_AND_HEIGHT = "_FOG_COLOR_LUT_MODE_TEXTURE2D_DISTANCE_AND_HEIGHT";
         public static readonly string s_FOG_COLOR_LUT_MODE_TEXTURECUBE = "_FOG_COLOR_LUT_MODE_TEXTURECUBE";
+        public static readonly string k_LIGHTMAP_SHADOW_MASK = "LIGHTMAP_SHADOW_MASK";
     }
 
     internal static class PSXComputeKernels

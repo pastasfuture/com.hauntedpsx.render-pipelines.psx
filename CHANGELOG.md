@@ -1,8 +1,33 @@
 ---------------------------------------------------------------------------------------------------------------------------
+New Lighting Feature: **Shadow Mask**
+---------------------------------------------------------------------------------------------------------------------------
+**Shadow Mask** baked shadows are now supported. Shadow Mask allows baking shadows for up to 4 lights per surface. Static surfaces recieve high quality Shadow Mask lightmap textures. These Shadow mask textures are sampled per-vertex if **Shading Evaluation Mode** is set to **Per Vertex**, or sampled per-pixel if **Shading Evaluation Mode** is set to **Per Pixel**. Dynamic objects will sample Shadow Mask values from the nearby Light Probe Group.
+
+To use Shadow Mask shadows:
+1) Under Window->Rendering->Lighting: Go to the **Mixed Lighting** section, and turn ON **Baked Global Illumination**. Also set **Lighting Mode** to **Shadow Mask**.
+2) Make sure any Game Objects that you would like to receive Shadow Mask Lightmaps are set to **Static**. This should automatically set the following settings:
+	- Mesh Renderer->Lighting->Receive Shadows: True
+	- Mesh Renderer->Lighting->Contribute Global Illumination: True
+	- Mesh Renderer->Lighting->Receive Global Illumination: Lightmaps
+3) Make sure any dynamic Game Objects that you would like to receive Shadow Mask Probe data have the following settings:
+	- Mesh Renderer->Lighting->Receive Shadows: True
+	- Mesh Renderer->Lighting->Receive Global Illumination: Light Probes
+4) If your scene contains dynamic objects: make sure you have a **Light Probe Group** in your scene. GameObject->Light->Light Probe Group
+	- Make sure your scene has fairly good probe coverage. A probe every few meters is a reasonable choice for typically scaled games.
+5) For any light that you would like to case Shadow Mask shadows:
+	- Light->Mode: Mixed
+	- Light->Shadow Type: Hard Shadows or Soft Shadows
+	- Light->Realtime Shadows->Strength: This controls the amount lighting from this light will be darkened by Shadow Mask shadows. A value of 1.0 should be used for fully opaque shadows. Values < 1.0 can be used for stylistic purposes, but have no physical basis. Values < 1.0 are often used to cheaply approximate bounce light.
+6) Under Window->Rendering->Lighting: Click **Generate Lighting** and wait for the bake to complete.
+
+For more information on the Shadow Mask feature in unity, visit: https://docs.unity3d.com/Manual/LightMode-Mixed-Shadowmask.html
+
+Note: If ANY light source in your scene requests Shadow Mask, HPSXRP will use Shadow Mask mode for ALL Mixed light sources. You cannot have some lights set to Mixed and some lights set to baked. Of NO light sources request Shadow Mask, HPSXRP will automatically configure itself to expect Lighting Mode->Baked Indirect data. 
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix Fog Volume: **Fog Color LUT Modes**
 ---------------------------------------------------------------------------------------------------------------------------
 Fixed WebGL compatibility issue with Fog Color LUT Modes. WebGL doesn't support SAMPLE_TEXTURE2D_LOD or SAMPLE_CUBE_LOD - replaced with SAMPLE_TEXTURE2D and SAMPLE_CUBE. The LOD call was unnecessary. 
-
 
 ---------------------------------------------------------------------------------------------------------------------------
 New Volume Feature: **Accumulation Motion Blur Volume**

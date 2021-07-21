@@ -119,14 +119,22 @@ float4x4 unity_MatrixVP;
 float4x4 unity_MatrixInvVP;
 
 CBUFFER_START(UnityPerDraw)
+// Space block Feature
 float4x4 unity_ObjectToWorld;
 float4x4 unity_WorldToObject;
-float4 unity_WorldTransformParams; // w is usually 1.0, or -1.0 for odd-negative scale transforms
+float4 unity_LODFade; // x is the fade value ranging within [0,1]. y is x quantized into 16 levels
+real4 unity_WorldTransformParams; // w is usually 1.0, or -1.0 for odd-negative scale transforms
 
 // Light Indices block feature
 // These are set internally by the engine upon request by RendererConfiguration.
 real4 unity_LightData;
 real4 unity_LightIndices[2];
+
+float4 unity_ProbesOcclusion;
+
+// Reflection Probe 0 block feature
+// HDR environment map decode instructions
+real4 unity_SpecCube0_HDR;
 
 // Lightmap block feature
 float4 unity_LightmapST;
@@ -160,7 +168,7 @@ float4 _AdditionalLightsPosition[MAX_VISIBLE_LIGHTS];
 half4 _AdditionalLightsColor[MAX_VISIBLE_LIGHTS];
 half4 _AdditionalLightsAttenuation[MAX_VISIBLE_LIGHTS];
 half4 _AdditionalLightsSpotDir[MAX_VISIBLE_LIGHTS];
-// half4 _AdditionalLightsOcclusionProbes[MAX_VISIBLE_LIGHTS];
+half4 _AdditionalLightOcclusionProbeChannel[MAX_VISIBLE_LIGHTS];
 #ifndef SHADER_API_GLES3
 CBUFFER_END
 #endif
@@ -207,6 +215,9 @@ TEXTURE2D(unity_Lightmap);
 SAMPLER(samplerunity_Lightmap);
 // Dual or directional lightmap (always used with unity_Lightmap, so can share sampler)
 TEXTURE2D(unity_LightmapInd);
+
+TEXTURE2D(unity_ShadowMask);
+SAMPLER(samplerunity_ShadowMask);
 
 TEXTURE2D(_FramebufferDitherTexture);
 float4 _FramebufferDitherSize;

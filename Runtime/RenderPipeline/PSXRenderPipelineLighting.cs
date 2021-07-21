@@ -20,13 +20,22 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         // directional lights to return 1.0 for both distance and angle attenuation
         Vector4 k_DefaultLightAttenuation = new Vector4(0.0f, 1.0f, 0.0f, 1.0f);
         Vector4 k_DefaultLightSpotDirection = new Vector4(0.0f, 0.0f, 1.0f, 0.0f);
-        Vector4 k_DefaultLightsProbeChannel = new Vector4(-1.0f, 1.0f, -1.0f, -1.0f);
+        Vector4 k_DefaultLightsProbeChannel = new Vector4(-1.0f, 1.0f, 0.0f, 0.0f);
 
         Vector4[] m_AdditionalLightPositions;
         Vector4[] m_AdditionalLightColors;
         Vector4[] m_AdditionalLightAttenuations;
         Vector4[] m_AdditionalLightSpotDirections;
         Vector4[] m_AdditionalLightOcclusionProbeChannels;
+
+        public enum MixedLightingSetup
+        {
+            None,
+            ShadowMask,
+            Subtractive,
+        };
+
+        MixedLightingSetup m_MixedLightingSetup;
 
         void AllocateLighting()
         {
@@ -44,6 +53,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushDynamicLightingParameters))
             {
+                m_MixedLightingSetup = MixedLightingSetup.None;
+
+                // TODO: We always set the shadowmask global keyword to false here, and then optionally set it to true later.
+                // This makes it easier to implement given all of the early outs below, but it does mean they we set the keyword twice.
+                CoreUtils.SetKeyword(cmd, PSXShaderKeywords.k_LIGHTMAP_SHADOW_MASK, false);
+
                 var volumeSettings = VolumeManager.instance.stack.GetComponent<LightingVolume>();
                 if (!volumeSettings) volumeSettings = LightingVolume.@default;
 
@@ -94,6 +109,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetGlobalVectorArray(PSXShaderIDs._AdditionalLightOcclusionProbeChannel, m_AdditionalLightOcclusionProbeChannels);
 
                 cmd.SetGlobalVector(PSXShaderIDs._AdditionalLightsCount, new Vector4(dynamicLightsMaxPerObjectCount, 0.0f, 0.0f, 0.0f));
+
+                // Turn on Shadow Mask sampling globally if we encountered a mixed light set to ShadowMask.
+                CoreUtils.SetKeyword(cmd, PSXShaderKeywords.k_LIGHTMAP_SHADOW_MASK, m_MixedLightingSetup == MixedLightingSetup.ShadowMask);
             }
         }
 
@@ -235,26 +253,28 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 lightAttenuation.w = add;
             }
 
-            // Light light = lightData.light;
+            Light light = lightData.light;
 
-            // // Set the occlusion probe channel.
-            // int occlusionProbeChannel = light != null ? light.bakingOutput.occlusionMaskChannel : -1;
+            // Set the occlusion probe channel.
+            int occlusionProbeChannel = light != null ? light.bakingOutput.occlusionMaskChannel : -1;
 
-            // // If we have baked the light, the occlusion channel is the index we need to sample in 'unity_ProbesOcclusion'
-            // // If we have not baked the light, the occlusion channel is -1.
-            // // In case there is no occlusion channel is -1, we set it to zero, and then set the second value in the
-            // // input to one. We then, in the shader max with the second value for non-occluded lights.
-            // lightOcclusionProbeChannel.x = occlusionProbeChannel == -1 ? 0f : occlusionProbeChannel;
-            // lightOcclusionProbeChannel.y = occlusionProbeChannel == -1 ? 1f : 0f;
+            lightOcclusionProbeChannel.x = occlusionProbeChannel;
+            lightOcclusionProbeChannel.y = occlusionProbeChannel == -1 ? 1f : light.shadowStrength;
 
-            // // TODO: Add support to shadow mask
-            // if (light != null && light.bakingOutput.mixedLightingMode == MixedLightingMode.Subtractive && light.bakingOutput.lightmapBakeType == LightmapBakeType.Mixed)
-            // {
-            //     if (m_MixedLightingSetup == MixedLightingSetup.None && lightData.light.shadows != LightShadows.None)
-            //     {
-            //         m_MixedLightingSetup = MixedLightingSetup.Subtractive;
-            //     }
-            // }
+            if (light.bakingOutput.lightmapBakeType == LightmapBakeType.Mixed &&
+                lightData.light.shadows != LightShadows.None &&
+                m_MixedLightingSetup == MixedLightingSetup.None)
+            {
+                switch (light.bakingOutput.mixedLightingMode)
+                {
+                    //case MixedLightingMode.Subtractive:
+                    //    m_MixedLightingSetup = MixedLightingSetup.Subtractive;
+                    //    break;
+                    case MixedLightingMode.Shadowmask:
+                        m_MixedLightingSetup = MixedLightingSetup.ShadowMask;
+                        break;
+                }
+            }
         }
 
         // Handle conversion from HPSXRP representation of light sources to lightmapper's representation of light sources here.

@@ -123,6 +123,19 @@ half3 SampleLightmap(float2 lightmapUV, half3 normalWS)
 #endif
 }
 
+half4 SampleShadowMask(float2 lightmapUV)
+{
+#if defined(LIGHTMAP_SHADOW_MASK)
+    #if defined(LIGHTMAP_ON)
+        return SAMPLE_TEXTURE2D_LOD(unity_ShadowMask, samplerunity_ShadowMask, lightmapUV, 0);
+    #else
+        return unity_ProbesOcclusion;
+    #endif
+#else
+    return 1.0h;
+#endif
+}
+
 // #if defined(LIGHTMAP_ON)
 // #define SAMPLE_GI(lmName, shName, normalWSName) SampleLightmap(lmName, normalWSName)
 // #else

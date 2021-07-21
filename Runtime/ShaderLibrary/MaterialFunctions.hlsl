@@ -268,7 +268,7 @@ float3 EvaluateLightingPerVertex(float3 objectPositionWS, float3 positionWS, flo
     {
         lighting = 0.0f;
 
-#if defined(_LIGHTING_BAKED_ON)
+#if defined(_LIGHTING_BAKED_ON) && !defined(LIGHTMAP_SHADOW_MASK)
     #if (defined(LIGHTMAP_ON) && defined(_SHADING_EVALUATION_MODE_PER_VERTEX))
         // Only sample lightmaps in per vertex evaluation mode. For per-object we force object SH term sampling.
         lighting = SRGBToLinear(SampleLightmap(lightmapUV, normalWS));
@@ -285,7 +285,12 @@ float3 EvaluateLightingPerVertex(float3 objectPositionWS, float3 positionWS, flo
 #endif
 
 #if defined(_LIGHTING_DYNAMIC_ON)
-        lighting += EvaluateDynamicLighting(evaluationPositionWS, normalWS) * _DynamicLightingMultiplier;
+    #if defined(LIGHTMAP_SHADOW_MASK)
+        half4 shadowMask = SampleShadowMask(lightmapUV);
+    #else
+        half4 shadowMask = 1.0h;
+    #endif
+        lighting += EvaluateDynamicLighting(evaluationPositionWS, normalWS, shadowMask) * _DynamicLightingMultiplier;
 #endif
 
         // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
@@ -327,7 +332,7 @@ float3 EvaluateLightingPerPixel(float3 positionWS, float3 normalWS, float3 verte
     if (_LightingIsEnabled > 0.5f)
     {
 
-    #if defined(_LIGHTING_BAKED_ON)
+    #if defined(_LIGHTING_BAKED_ON) && !defined(LIGHTMAP_SHADOW_MASK)
     #ifdef LIGHTMAP_ON
         lighting = SRGBToLinear(SampleLightmap(lightmapUV, normalWS));
     #else
@@ -343,7 +348,12 @@ float3 EvaluateLightingPerPixel(float3 positionWS, float3 normalWS, float3 verte
 #endif
 
 #if defined(_LIGHTING_DYNAMIC_ON)
-        lighting += EvaluateDynamicLighting(positionWS, normalWS) * _DynamicLightingMultiplier;
+    #if defined(LIGHTMAP_SHADOW_MASK)
+        half4 shadowMask = SampleShadowMask(lightmapUV);
+    #else
+        half4 shadowMask = 1.0h;
+    #endif
+        lighting += EvaluateDynamicLighting(positionWS, normalWS, shadowMask) * _DynamicLightingMultiplier;
 #endif
     }
 #endif
