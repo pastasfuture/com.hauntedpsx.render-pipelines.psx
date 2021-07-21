@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix Fog Volume: **Fog Color LUT Modes**
+---------------------------------------------------------------------------------------------------------------------------
+Fixed WebGL compatibility issue with Fog Color LUT Modes. WebGL doesn't support SAMPLE_TEXTURE2D_LOD or SAMPLE_CUBE_LOD - replaced with SAMPLE_TEXTURE2D and SAMPLE_CUBE. The LOD call was unnecessary. 
+
+
+---------------------------------------------------------------------------------------------------------------------------
 New Volume Feature: **Accumulation Motion Blur Volume**
 ---------------------------------------------------------------------------------------------------------------------------
 **Weight**: Controls the amount of motion blur. A value of 0.0 completely disables motion blur. A value of 1.0 is the maxium amount of motion blur. Rather than using per-pixel motion vectors to render motion blur in a physically plausible way as is done in a contemporary PBR render pipeline, motion blur in HPSXRP is implemented by simply blending the previous frame with the current frame. This accumulation-based motion blur was the common implementation in the PSX / N64 era. Lerping between the the current frame and the previous frame is called an Exponential Moving Average. An Exponential Moving Average creates a gaussian-shaped falloff over time. An Exponential Moving Average has a non-linear response to the Weight variable. In particular, values between [0.0, 0.5] have a fairly small effect, compared to values between [0.9, 0.95] which have a relatively strong effect.
