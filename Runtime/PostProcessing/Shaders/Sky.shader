@@ -63,6 +63,7 @@ Shader "Hidden/HauntedPS1/Sky"
     {
         Varyings output;
         output.positionCS = input.vertex;
+        output.positionCS.y *= -_ProjectionParams.x;
         output.uv = input.uv;
         
         return output;

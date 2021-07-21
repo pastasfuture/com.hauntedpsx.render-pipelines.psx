@@ -14,6 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shaders:
     skyPS: {fileID: 4800000, guid: 6ec5e78dd02dbef42a1a3b87dd67fe9e, type: 3}
+    accumulationMotionBlurPS: {fileID: 4800000, guid: 47c6446ac797e654097c9582b6af334b,
+      type: 3}
+    copyColorRespectFlipYPS: {fileID: 4800000, guid: 820795b7ced284d4f9201f7ab9b17d04,
+      type: 3}
     crtPS: {fileID: 4800000, guid: 8e05d2f66aadbd84fb2998f8248241c2, type: 3}
     compressionCS: {fileID: 7200000, guid: df0df86f8582eae44b9aa77c0230a7e5, type: 3}
     terrainDetailLitPS: {fileID: 4800000, guid: e27b34a93e5789948958f9e2e7a00b90,

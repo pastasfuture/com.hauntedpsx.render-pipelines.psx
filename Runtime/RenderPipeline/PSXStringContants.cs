@@ -29,6 +29,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_PushFogParametersStr = "Push Fog Parameters";
         public static readonly string s_PushCompressionParametersStr = "Push Compression Parameters";
         public static readonly string s_PushCathodeRayTubeParametersStr = "Push Cathode Ray Tube Parameters";
+        public static readonly string s_DrawAccumulationMotionBlurPreUIOverlayStr = "Accumulation Motion Blur Pre UI Overlay";
+        public static readonly string s_DrawAccumulationMotionBlurPostUIOverlayStr = "Accumulation Motion Blur Post UI Overlay";
+        public static readonly string s_DrawAccumulationMotionBlurFinalBlitStr = "Accumulation Motion Blur Final Blit";
 
         public static ProfilingSampler s_PushCameraParameters = new ProfilingSampler(s_PushCameraParametersStr);
         public static ProfilingSampler s_PushGlobalRasterizationParameters = new ProfilingSampler(s_PushGlobalRasterizationParametersStr);
@@ -44,6 +47,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static ProfilingSampler s_PushFogParameters = new ProfilingSampler(s_PushFogParametersStr);
         public static ProfilingSampler s_PushCompressionParameters = new ProfilingSampler(s_PushCompressionParametersStr);
         public static ProfilingSampler s_PushCathodeRayTubeParameters = new ProfilingSampler(s_PushCathodeRayTubeParametersStr);
+        public static ProfilingSampler s_DrawAccumulationMotionBlurPreUIOverlay = new ProfilingSampler(s_DrawAccumulationMotionBlurPreUIOverlayStr);
+        public static ProfilingSampler s_DrawAccumulationMotionBlurPostUIOverlay = new ProfilingSampler(s_DrawAccumulationMotionBlurPostUIOverlayStr);
+        public static ProfilingSampler s_DrawAccumulationMotionBlurFinalBlit = new ProfilingSampler(s_DrawAccumulationMotionBlurFinalBlitStr);
     }
 
     internal static class PSXShaderPassNames
@@ -209,5 +215,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _SkyTiledLayersSkyRotationLayer1 = Shader.PropertyToID("_SkyTiledLayersSkyRotationLayer1");
         public static readonly int _SkyTiledLayersSkyScrollScaleLayer1 = Shader.PropertyToID("_SkyTiledLayersSkyScrollScaleLayer1");
         public static readonly int _SkyTiledLayersSkyScrollRotationLayer1 = Shader.PropertyToID("_SkyTiledLayersSkyScrollRotationLayer1");
+        public static readonly int _RasterizationHistoryWeight = Shader.PropertyToID("_RasterizationHistoryWeight");
+        public static readonly int _RasterizationHistoryCompositeDither = Shader.PropertyToID("_RasterizationHistoryCompositeDither");
+        public static readonly int _RasterizationHistoryRT = Shader.PropertyToID("_RasterizationHistoryRT");
+        public static readonly int _AccumulationMotionBlurParameters = Shader.PropertyToID("_AccumulationMotionBlurParameters");
+        public static readonly int _CopyColorSourceRT = Shader.PropertyToID("_CopyColorSourceRT");
+        public static readonly int _CopyColorSourceRTSize = Shader.PropertyToID("_CopyColorSourceRTSize");
     }
 }
