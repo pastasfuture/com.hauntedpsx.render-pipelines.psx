@@ -35,11 +35,9 @@ int _UVAnimationMode;
 float2 _UVAnimationParametersFrameLimit;
 float4 _UVAnimationParameters;
 
-#if defined(SCENESELECTIONPASS)
 // Following two variables are feeded by the C++ Editor for Scene selection
 int _ObjectId;
 int _PassValue;
-#endif
 
 CBUFFER_END
 

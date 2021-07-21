@@ -46,8 +46,50 @@ half AngleAttenuation(half3 spotDirection, half3 lightDirection, half2 spotAtten
     return atten * atten;
 }
 
+half BakedShadow(half4 shadowMask, half4 occlusionProbeChannels)
+{
+    int occlusionMaskChannel = (int)occlusionProbeChannels.x;
+    float shadowStrength = occlusionProbeChannels.y;
+    half bakedShadow = 1.0h;
+    if (occlusionMaskChannel == -1)
+    {
+        bakedShadow = 1.0h;
+    }
+    else if (occlusionMaskChannel == 0)
+    {
+        bakedShadow = shadowMask.x;
+    }
+    else if (occlusionMaskChannel == 1)
+    {
+        bakedShadow = shadowMask.y;
+    }
+    else if (occlusionMaskChannel == 2)
+    {
+        bakedShadow = shadowMask.z;
+    }
+    else if (occlusionMaskChannel == 3)
+    {
+        bakedShadow = shadowMask.w;
+    }
+
+    bakedShadow = lerp(1.0h, bakedShadow, shadowStrength);
+    
+    return bakedShadow;
+}
+
+half AdditionalLightShadow(half4 shadowMask, half4 occlusionProbeChannels)
+{
+#ifdef LIGHTMAP_SHADOW_MASK
+    half bakedShadow = BakedShadow(shadowMask, occlusionProbeChannels);
+#else
+    half bakedShadow = 1.0h;
+#endif
+
+    return bakedShadow;
+}
+
 // Fills a light struct given a perObjectLightIndex
-Light GetAdditionalPerObjectLight(int perObjectLightIndex, float3 positionWS)
+Light GetAdditionalPerObjectLight(int perObjectLightIndex, float3 positionWS, half4 shadowMask)
 {
 //     // Abstraction over Light input constants
 // #if USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA
@@ -61,7 +103,7 @@ Light GetAdditionalPerObjectLight(int perObjectLightIndex, float3 positionWS)
     half3 color = _AdditionalLightsColor[perObjectLightIndex].rgb;
     half4 distanceAndSpotAttenuation = _AdditionalLightsAttenuation[perObjectLightIndex];
     half4 spotDirection = _AdditionalLightsSpotDir[perObjectLightIndex];
-    // half4 lightOcclusionProbeInfo = _AdditionalLightsOcclusionProbes[perObjectLightIndex];
+    half4 occlusionProbeChannels = _AdditionalLightOcclusionProbeChannel[perObjectLightIndex];
 // #endif
 
     // Directional lights store direction in lightPosition.xyz and have .w set to 0.0.
@@ -72,10 +114,15 @@ Light GetAdditionalPerObjectLight(int perObjectLightIndex, float3 positionWS)
     half3 lightDirection = half3(lightVector * rsqrt(distanceSqr));
     half attenuation = DistanceAttenuation(distanceSqr, distanceAndSpotAttenuation.xy) * AngleAttenuation(spotDirection.xyz, lightDirection, distanceAndSpotAttenuation.zw);
 
+    if (attenuation > 1e-3h)
+    {
+        attenuation *= AdditionalLightShadow(shadowMask, occlusionProbeChannels);
+    }
+    
     Light light;
     light.direction = lightDirection;
     light.distanceAttenuation = attenuation;
-    light.shadowAttenuation = 1.0f;//AdditionalLightRealtimeShadow(perObjectLightIndex, positionWS);
+    light.shadowAttenuation = 1.0;//AdditionalLightRealtimeShadow(perObjectLightIndex, positionWS, shadowMask, occlusionProbeChannels);
     light.color = color;
 
 //     // In case we're using light probes, we can sample the attenuation from the `unity_ProbesOcclusion`
@@ -143,10 +190,10 @@ int GetPerObjectLightIndex(uint index)
 
 // Fills a light struct given a loop i index. This will convert the i
 // index to a perObjectLightIndex
-Light GetAdditionalLight(uint i, float3 positionWS)
+Light GetAdditionalLight(uint i, float3 positionWS, half4 shadowMask)
 {
     int perObjectLightIndex = GetPerObjectLightIndex(i);
-    return GetAdditionalPerObjectLight(perObjectLightIndex, positionWS);
+    return GetAdditionalPerObjectLight(perObjectLightIndex, positionWS, shadowMask);
 }
 
 int GetAdditionalLightsCount()
@@ -172,13 +219,13 @@ half3 LightingWrappedLighting(half3 lightColor, half3 lightDir, half3 normal)
     return lightColor * INV_PI * saturate(NdotL * wrapCorrectionInverse + wrapCorrectionInverse);
 }
 
-half3 EvaluateDynamicLighting(float3 positionWS, half3 normalWS)
+half3 EvaluateDynamicLighting(float3 positionWS, half3 normalWS, half4 shadowMask)
 {
 	half3 outgoingRadiance = 0.0h;
 	uint lightsCount = GetAdditionalLightsCount();
     for (uint lightIndex = 0u; lightIndex < lightsCount; ++lightIndex)
     {
-        Light light = GetAdditionalLight(lightIndex, positionWS);
+        Light light = GetAdditionalLight(lightIndex, positionWS, shadowMask);
         half3 lightColor = light.color * light.distanceAttenuation;
 
     #if defined(_BRDF_MODE_LAMBERT)

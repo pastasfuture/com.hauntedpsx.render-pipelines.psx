@@ -587,7 +587,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             {
                 if (volumeSettings.bakedLightingMultiplier.value > 0.0f)
                 {
-                    perObjectData |= k_RendererConfigurationBakedLighting;
+                    perObjectData |= k_RendererConfigurationBakedLightingWithShadowMask;
                 }
 
                 if (volumeSettings.dynamicLightingMultiplier.value > 0.0f)
