@@ -180,6 +180,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _DoubleSidedConstants = "_DoubleSidedConstants";
             public static readonly string _DoubleSidedNormalMode = "_DoubleSidedNormalMode";
             public static readonly string _BRDFMode = "_BRDFMode";
+            public static readonly string _VirtualTesselationOn = "_VirtualTesselationOn";
+            public static readonly string _VirtualTesselationUVWarpMax = "_VirtualTesselationUVWarpMax";
         }
 
         public static class PropertyIDs
@@ -229,6 +231,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly int _DoubleSidedConstants = Shader.PropertyToID(PropertyNames._DoubleSidedConstants);
             public static readonly int _DoubleSidedNormalMode = Shader.PropertyToID(PropertyNames._DoubleSidedNormalMode);
             public static readonly int _BRDFMode = Shader.PropertyToID(PropertyNames._BRDFMode);
+            public static readonly int _VirtualTesselationOn = Shader.PropertyToID(PropertyNames._VirtualTesselationOn);
+            public static readonly int _VirtualTesselationUVWarpMax = Shader.PropertyToID(PropertyNames._VirtualTesselationUVWarpMax);
         }
 
         public static class LegacyPropertyNames
@@ -273,6 +277,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _LOD_REQUIRES_ADJUSTMENT = "_LOD_REQUIRES_ADJUSTMENT";
             public static readonly string _BRDF_MODE_LAMBERT = "_BRDF_MODE_LAMBERT";
             public static readonly string _BRDF_MODE_WRAPPED_LIGHTING = "_BRDF_MODE_WRAPPED_LIGHTING";
+            public static readonly string _VIRTUAL_TESSELATION_ON = "_VIRTUAL_TESSELATION_ON";
         }
 
         public static class Styles
@@ -408,6 +413,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly GUIContent BRDFMode = new GUIContent("BRDF Mode",
                 "Specifies how the material responds to lighting. BRDF stands for Bidirectional Reflectance Distribution Function.\nLambert: Standard, cheap diffuse-only response.\nWrapped Lighting: Same as Lambert, but lighting wraps to zero at 180 degrees (backface normal) instead of 90 degrees. Useful for approximating subsurface scattering, or for creating smoother lighting without needing to rely on baked data.\nWrapped Lighting is energy conserving so the reflection facing the light source will be dimmer when compared to lambert (the energy is redistributed over the sphere).");
 
+            public static readonly GUIContent virtualTesselationOn = new GUIContent("Virtual Tesselation For Affine Warp Reduction",
+                "Enable to reduce affine warp artifacts by virtually tesselating geometry along the UV tangent plane.\nUseful when you would like to avoid excessive texture stretching at glancing angles and / or along large triangles.\nThis feature does not use hardware tesselation, so it has a very low performance cost, and is availible on all platforms.");
+
+            public static readonly GUIContent virtualTesselationUVWarpMax = new GUIContent("Virtual Tesselation UV Warp Max",
+                "Controls the maximum amount of UV affine warp distortion allowed before virtual tesselation will occur.\nDecrease value to decrease warping via increased virtual tesselation.\nIncrease value to increase warping via decreased virtual tesselation.\nThis value has no performance implications because no hardware tesselation occurs. Simply set the the value that you prefer visually.");
+
             public const string textureFilterModeErrorBilinearDisabled = "Error: Texture Filter Mode {0} requires Bilinear filtering to be enabled on {1}.\nPlease select your texture and set Filter Mode to Bilinear in the Texture Import Settings in the inspector.";
             public const string textureFilterModeErrorMipmapsDisabled = "Error: Texture Filter Mode {0} requires Mipmaps to be generated on {1}.\nPlease select your texture and set Generate Mip Maps to true in the Texture Import Settings in the inspector.";
 
@@ -455,6 +466,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             SetupMaterialEmissionKeyword(material);
             SetupDoubleSidedKeyword(material);
             SetupLodRequiresAdjustmentKeyword(material);
+            SetupVirtualTesselationKeyword(material);
         }
 
         public static void ClearMaterialKeywords(Material material)
@@ -503,6 +515,22 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             else
             {
                 material.DisableKeyword(Keywords._LOD_REQUIRES_ADJUSTMENT);
+            }
+        }
+
+        public static void SetupVirtualTesselationKeyword(Material material)
+        {
+            if (material == null) { throw new ArgumentNullException("material"); }
+
+            bool virtualTesselationOn = material.GetFloat(PropertyIDs._VirtualTesselationOn) > 0.5f;
+
+            if (virtualTesselationOn)
+            {
+                material.EnableKeyword(Keywords._VIRTUAL_TESSELATION_ON);
+            }
+            else
+            {
+                material.DisableKeyword(Keywords._VIRTUAL_TESSELATION_ON);
             }
         }
 
@@ -1250,6 +1278,31 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                         float alphaClippingMax = Mathf.Min(alphaClippingMin + 1e-5f, 1.0f);
                         alphaClippingScaleBiasMinMaxProp.vectorValue = new Vector4(1.0f / (alphaClippingMax - alphaClippingMin), -alphaClippingMin / (alphaClippingMax - alphaClippingMin), alphaClippingMin, alphaClippingMax);
                     }
+                }
+            }
+        }
+
+        public static void DrawVirtualTesselation(MaterialProperty virtualTesselationOnProp, MaterialProperty virtualTesselationUVWarpMaxProp)
+        {
+            EditorGUI.BeginChangeCheck();
+            bool virtualTesselationOnChanged = false;
+            bool virtualTesselationOn = EditorGUILayout.Toggle(Styles.virtualTesselationOn, virtualTesselationOnProp.floatValue > 0.5f ? true : false);
+            if (EditorGUI.EndChangeCheck())
+            {
+                virtualTesselationOnChanged = true;
+                virtualTesselationOnProp.floatValue = virtualTesselationOn ? 1.0f : 0.0f;
+            }
+
+            if (virtualTesselationOn)
+            {
+                Vector2 virtualTesselationUVWarpMax = virtualTesselationOnChanged ? new Vector2(0.25f, 0.25f) : new Vector2(virtualTesselationUVWarpMaxProp.vectorValue.x, virtualTesselationUVWarpMaxProp.vectorValue.y);
+                EditorGUI.BeginChangeCheck();
+                virtualTesselationUVWarpMax = EditorGUILayout.Vector2Field(Styles.virtualTesselationUVWarpMax, virtualTesselationUVWarpMax);
+                if (EditorGUI.EndChangeCheck() || virtualTesselationOnChanged)
+                {
+                    virtualTesselationUVWarpMax.x = Mathf.Max(1e-5f, virtualTesselationUVWarpMax.x);
+                    virtualTesselationUVWarpMax.y = Mathf.Max(1e-5f, virtualTesselationUVWarpMax.y);
+                    virtualTesselationUVWarpMaxProp.vectorValue = new Vector4(virtualTesselationUVWarpMax.x, virtualTesselationUVWarpMax.y, 1.0f / virtualTesselationUVWarpMax.x, 1.0f / virtualTesselationUVWarpMax.y);
                 }
             }
         }

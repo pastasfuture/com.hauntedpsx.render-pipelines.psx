@@ -30,6 +30,10 @@ struct Varyings
     float4 fog : TEXCOORD5;
     float3 lighting : TEXCOORD6;
     float2 lightmapUV : TEXCOORD7;
+
+#if defined(_VIRTUAL_TESSELATION_ON)
+    float2 uvPerspectiveCorrect : TEXCOORD8;
+#endif
 };
 
 Varyings LitPassVertex(Attributes v)
@@ -54,7 +58,17 @@ Varyings LitPassVertex(Attributes v)
     float precisionChromaBit = _PrecisionColorInverse.w;
     ApplyPrecisionColorOverride(precisionColor, precisionColorInverse, _PrecisionColor.rgb, _PrecisionColorInverse.rgb, precisionColorIndexNormalized, precisionChromaBit, _PrecisionColorOverrideMode, _PrecisionColorOverrideParameters);
 
+#if defined(_VIRTUAL_TESSELATION_ON)
+    o.uvPerspectiveCorrect = uv;
+#endif
+
     o.vertex = ApplyPrecisionGeometryToPositionCS(positionWS, positionVS, o.vertex, _PrecisionGeometryOverrideMode, _PrecisionGeometryOverrideParameters, _DrawDistanceOverrideMode, _DrawDistanceOverride);
+    
+    // Update positionWS and positionVS via back projection to correctly account for positional changes due to vertex snapping.
+    // float4 positionWSNonHomogenized = mul(UNITY_MATRIX_I_VP, o.vertex);
+    // positionWS = positionWSNonHomogenized.xyz / positionWSNonHomogenized.w;
+    // positionVS = mul(UNITY_MATRIX_V, float4(positionWS, 1.0f)).xyz;
+
     o.uvw = ApplyAffineTextureWarpingToUVW(uv, positionCS.w, _AffineTextureWarpingWeight);
     o.color = EvaluateVertexColorPerVertex(v.color, o.uvw.z);
     o.positionVS = positionVS; // TODO: Apply affine warping?
@@ -81,6 +95,121 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
 
     float2 uv = i.uvw.xy * interpolatorNormalization;
     float2 uvColor = TRANSFORM_TEX(uv, _MainTex);
+
+#if defined(_VIRTUAL_TESSELATION_ON)
+    /*
+    float3 positionWSDDX = ddx(i.positionWS);
+    float3 positionWSDDY = ddy(i.positionWS);
+    float2 uvPerspectiveCorrectDDX = ddx(i.uvPerspectiveCorrect);
+    float2 uvPerspectiveCorrectDDY = ddy(i.uvPerspectiveCorrect);
+    */
+    float2 uvColorPerspectiveCorrect = TRANSFORM_TEX(i.uvPerspectiveCorrect, _MainTex);
+    float2 uvColorAffineWarpOffset = uvColor - uvColorPerspectiveCorrect;
+    float2 uvColorAffineWarpOffsetSign = float2(
+        (uvColorAffineWarpOffset.x >= 0.0f) ? 1.0f : -1.0f,
+        (uvColorAffineWarpOffset.y >= 0.0f) ? 1.0f : -1.0f
+    );
+    uvColorAffineWarpOffset = abs(uvColorAffineWarpOffset);
+
+#if 0
+    uvColorAffineWarpOffset *= _VirtualTesselationUVWarpMax.zw;
+    uvColorAffineWarpOffset -= floor(uvColorAffineWarpOffset);
+    uvColorAffineWarpOffset *= _VirtualTesselationUVWarpMax.xy;
+#elif 0
+    uvColorAffineWarpOffset *= _VirtualTesselationUVWarpMax.zw;
+    float uvColorAffineWarpOffsetMaxScalar = max(uvColorAffineWarpOffset.x, uvColorAffineWarpOffset.y);
+    uvColorAffineWarpOffsetMaxScalar = floor(uvColorAffineWarpOffsetMaxScalar);
+    uvColorAffineWarpOffset /= max(1.0f, uvColorAffineWarpOffsetMaxScalar);
+    uvColorAffineWarpOffset *= _VirtualTesselationUVWarpMax.xy;
+#else
+    float3 positionWSDDX = ddx(i.positionWS);
+    float3 positionWSDDY = ddy(i.positionWS);
+    float2 uvPerspectiveCorrectDDX = ddx(uvColorPerspectiveCorrect);
+    float2 uvPerspectiveCorrectDDY = ddy(uvColorPerspectiveCorrect);
+
+    float3x3 worldFromTangentMatrix = ComputeCotangentFrame(normalWS, positionWSDDX, positionWSDDY, uvPerspectiveCorrectDDX, uvPerspectiveCorrectDDY);
+
+    float virtualTesselationUVSpaceSplitCount = _VirtualTesselationUVWarpMax.z;
+    float virtualTesselationUVSpaceSplitCountInverse = 1.0f / virtualTesselationUVSpaceSplitCount;
+
+    float2 virtualVertexUVLL = floor(uvColorPerspectiveCorrect * virtualTesselationUVSpaceSplitCount) * virtualTesselationUVSpaceSplitCountInverse;
+
+    float2 virtualVertexUVLLOffsetNormalized = (uvColorPerspectiveCorrect - virtualVertexUVLL) * virtualTesselationUVSpaceSplitCount;
+    bool isUpperTriangle = virtualVertexUVLLOffsetNormalized.y > virtualVertexUVLLOffsetNormalized.x;
+
+    float2 virtualVertexUVUR = virtualVertexUVLL + float2(1.0f, 1.0f) * virtualTesselationUVSpaceSplitCountInverse;
+    float2 virtualVertexUVUL = virtualVertexUVLL + float2(0.0f, 1.0f) * virtualTesselationUVSpaceSplitCountInverse;
+    float2 virtualVertexUVLR = virtualVertexUVLL + float2(1.0f, 0.0f) * virtualTesselationUVSpaceSplitCountInverse;
+
+    float3 virtualVertexPositionWSLL = mul(worldFromTangentMatrix, float3(virtualVertexUVLL - uvColorPerspectiveCorrect, 0.0f)) + i.positionWS;
+    float3 virtualVertexPositionWSUR = mul(worldFromTangentMatrix, float3(virtualVertexUVUR - uvColorPerspectiveCorrect, 0.0f)) + i.positionWS;
+    float3 virtualVertexPositionWSUL = mul(worldFromTangentMatrix, float3(virtualVertexUVUL - uvColorPerspectiveCorrect, 0.0f)) + i.positionWS;
+    float3 virtualVertexPositionWSLR = mul(worldFromTangentMatrix, float3(virtualVertexUVLR - uvColorPerspectiveCorrect, 0.0f)) + i.positionWS;
+
+    float4 virtualVertexPositionCSLL = TransformWorldToHClip(virtualVertexPositionWSLL);
+    virtualVertexPositionCSLL.xy /= virtualVertexPositionCSLL.w;
+
+    float4 virtualVertexPositionCSUR = TransformWorldToHClip(virtualVertexPositionWSUR);
+    virtualVertexPositionCSUR.xy /= virtualVertexPositionCSUR.w;
+
+    float4 virtualVertexPositionCSUL = TransformWorldToHClip(virtualVertexPositionWSUL);
+    virtualVertexPositionCSUL.xy /= virtualVertexPositionCSUL.w;
+
+    float4 virtualVertexPositionCSLR = TransformWorldToHClip(virtualVertexPositionWSLR);
+    virtualVertexPositionCSLR.xy /= virtualVertexPositionCSLR.w;
+
+    float4 samplePositionCS = TransformWorldToHClip(i.positionWS);
+    samplePositionCS /= samplePositionCS.w;
+
+    float2 virtualVertexPositionCSA = virtualVertexPositionCSLL.xy;
+    float2 virtualVertexPositionCSB = isUpperTriangle ? virtualVertexPositionCSUR.xy : virtualVertexPositionCSLR.xy;
+    float2 virtualVertexPositionCSC = isUpperTriangle ? virtualVertexPositionCSUL.xy : virtualVertexPositionCSUR.xy;
+
+    float virtualVertexPositionCSWA = virtualVertexPositionCSLL.w;
+    float virtualVertexPositionCSWB = isUpperTriangle ? virtualVertexPositionCSUR.w : virtualVertexPositionCSLR.w;
+    float virtualVertexPositionCSWC = isUpperTriangle ? virtualVertexPositionCSUL.w : virtualVertexPositionCSUR.w;
+
+    //float2 samplePositionCS2 = (positionSS * _ScreenSize.zw * 2.0f - 1.0f) * float2(1.0f, -1.0f);
+    //return float4(abs(samplePositionCS2.xy - samplePositionCS) * 100.0f, 0.0f, 1.0f);
+
+    float3 virtualTriangleBarycentric = ComputeTriangle2DBarycentricCoordinates(virtualVertexPositionCSA, virtualVertexPositionCSB, virtualVertexPositionCSC, samplePositionCS.xy);
+
+    float2 virtualVertexUVA = virtualVertexUVLL;
+    float2 virtualVertexUVB = isUpperTriangle ? virtualVertexUVUR : virtualVertexUVLR;
+    float2 virtualVertexUVC = isUpperTriangle ? virtualVertexUVUL : virtualVertexUVUR;
+
+    // virtualVertexUVA /= virtualVertexPositionCSWA;
+    // virtualVertexUVB /= virtualVertexPositionCSWB;
+    // virtualVertexUVC /= virtualVertexPositionCSWC;
+
+    //float zNormalization = 1.0f / (virtualTriangleBarycentric.x / virtualVertexPositionCSWA + virtualTriangleBarycentric.y / virtualVertexPositionCSWB + virtualTriangleBarycentric.z / virtualVertexPositionCSWC);
+
+    uvColor = virtualVertexUVA * virtualTriangleBarycentric.x + virtualVertexUVB * virtualTriangleBarycentric.y + virtualVertexUVC * virtualTriangleBarycentric.z;
+
+    // return float4(frac(uvColor.x * 10.0f), 0.0f, 0.0f, 1.0f);//(modf(, 0.05f) > 0.5f) ? float4(1.0f, 1.0f, 1.0f, 1.0f) : 0.0f; 
+    // uvColor /= zNormalization;
+
+    // virtualTriangleBarycentric.x *= virtualVertexPositionCSWA;
+    // virtualTriangleBarycentric.y *= virtualVertexPositionCSWB;
+    // virtualTriangleBarycentric.z *= virtualVertexPositionCSWC;
+    // virtualTriangleBarycentric /= zNormalization;
+
+    //uvColor = (uvColor - uvColorPerspectiveCorrect) * 100.0f + uvColorPerspectiveCorrect;
+    
+    //return float4(virtualTriangleBarycentric, 1.0f);
+    //return float4(abs(uvColor - uvColorPerspectiveCorrect) * 100.0f, 0.0f, 1.0f);
+    //return float4(frac(uvColor), 0.0f, 1.0f);
+    //return float4(positionSS * _ScreenSize.zw, 0.0f, 1.0f);
+    float2 virtualVertexPositionAverageCS = (virtualVertexPositionCSA + virtualVertexPositionCSB + virtualVertexPositionCSC) / 3.0f;
+    float3 barycentricDebugPosition = float3(0.0f, 0.5f, 0.5f);
+    // return float4((length(virtualTriangleBarycentric - barycentricDebugPosition) < 0.05f) ? float3(1.0f, 1.0f, 0.0f) : ((length(samplePositionCS.xy - virtualVertexPositionAverageCS) < 0.001f) ? float3(1.0f, 0.0f, 1.0f) : virtualTriangleBarycentric), 1.0f);
+    //return float4((virtualVertexPositionCSA * virtualTriangleBarycentric.y) * 0.5f + 0.5f, 0.0f, 1.0f);
+    //return float4(virtualVertexPositionCSA * virtualTriangleBarycentric.x + virtualVertexPositionCSB * virtualTriangleBarycentric.y + virtualVertexPositionCSC * virtualTriangleBarycentric.z, 0.0f, 1.0f);
+
+#endif
+
+    //uvColor = uvColorAffineWarpOffset * uvColorAffineWarpOffsetSign + uvColorPerspectiveCorrect;
+#endif
     
     float4 texelSizeLod;
     float lod;

@@ -89,6 +89,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialProperty doubleSidedConstantsProp { get; set; }
 
+        protected MaterialProperty virtualTesselationOnProp { get; set; }
+
+        protected MaterialProperty virtualTesselationUVWarpMaxProp { get; set; }
+
         public bool m_FirstTimeApply = true;
 
         // Header foldout states
@@ -142,6 +146,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             reflectionBlendModeProp = FindProperty(PropertyNames._ReflectionBlendMode, properties, false);
             doubleSidedNormalModeProp = FindProperty(PropertyNames._DoubleSidedNormalMode, properties);
             doubleSidedConstantsProp = FindProperty(PropertyNames._DoubleSidedConstants, properties);
+            virtualTesselationOnProp = FindProperty(PropertyNames._VirtualTesselationOn, properties);
+            virtualTesselationUVWarpMaxProp = FindProperty(PropertyNames._VirtualTesselationUVWarpMax, properties);
         }
 
         public override void OnGUI(MaterialEditor materialEditorIn, MaterialProperty[] properties)
@@ -227,6 +233,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PSXMaterialUtils.DrawCullingSettings(material, materialEditor, cullingProp, doubleSidedNormalModeProp, doubleSidedConstantsProp);
             PSXMaterialUtils.DrawAlphaClippingSettings(material, alphaClipProp, alphaClippingDitherIsEnabledProp, alphaClippingScaleBiasMinMaxProp);
 
+            PSXMaterialUtils.DrawVirtualTesselation(virtualTesselationOnProp, virtualTesselationUVWarpMaxProp);
             PSXMaterialUtils.DrawAffineTextureWarpingWeight(affineTextureWarpingWeightProp);
             PSXMaterialUtils.DrawFogWeight(fogWeightProp);
             PSXMaterialUtils.DrawPrecisionGeometryOverride(precisionGeometryOverrideModeProp, precisionGeometryOverrideParametersProp, precisionGeometryWeightDeprecatedProp);

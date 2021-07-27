@@ -26,6 +26,7 @@
         _UVAnimationMode("_UVAnimationMode", Float) = 0.0
         _UVAnimationParametersFrameLimit("_UVAnimationParametersFrameLimit", Vector) = (0, 60, 0, 0)
         _UVAnimationParameters("_UVAnimationParameters", Vector) = (1, 1, 0, 0)
+        _VirtualTesselationUVWarpMax("_VirtualTesselationUVWarpMax", Vector) = (0.25, 0.25, 4.0, 4.0)
 
         // C# side material state tracking.
         [HideInInspector] _TextureFilterMode("__textureFilterMode", Float) = 0.0
@@ -47,6 +48,7 @@
         [HideInInspector] _ColorMask("__colorMask", Float) = 15.0 // UnityEngine.Rendering.ColorWriteMask.All
         [HideInInspector] _Reflection("__reflection", Float) = 0.0
         [HideInInspector] _DoubleSidedNormalMode("__doubleSidedNormalMode", Float) = 0.0
+        [HideInInspector] _VirtualTesselationOn("__virtualTesselationOn", Float) = 0.0
     }
     SubShader
     {
@@ -91,6 +93,7 @@
             #pragma shader_feature _DOUBLE_SIDED_ON
             #pragma shader_feature _BLENDMODE_TONEMAPPER_OFF
             #pragma shader_feature _LOD_REQUIRES_ADJUSTMENT
+            #pragma shader_feature _VIRTUAL_TESSELATION_ON
 
             // -------------------------------------
             // Unity defined keywords

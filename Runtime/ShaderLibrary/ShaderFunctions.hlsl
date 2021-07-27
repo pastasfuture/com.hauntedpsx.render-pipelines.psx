@@ -471,4 +471,37 @@ float4 SampleTextureWithFilterModeN64(TEXTURE2D_PARAM(tex, samp), float2 uv, flo
 #endif
 }
 
+// http://www.thetenthplanet.de/archives/1180
+float3x3 ComputeCotangentFrame(float3 normal, float3 deltaPositionA, float3 deltaPositionB, float2 deltaUVA, float2 deltaUVB)
+{
+    // Solve the linear system.
+    float3 deltaPositionBT = cross(deltaPositionB, normal);
+    float3 deltaPositionAT = cross(normal, deltaPositionA);
+    float3 tangent = deltaPositionBT * deltaUVA.x + deltaPositionAT * deltaUVB.x;
+    float3 bitangent = deltaPositionBT * deltaUVA.y + deltaPositionAT * deltaUVB.y;
+
+    float inverseMax = rsqrt(max(dot(tangent, tangent), dot(bitangent, bitangent)));
+
+    return transpose(float3x3(tangent * inverseMax, bitangent * inverseMax, normal));
+}
+
+float ComputeTriangle2DArea(float2 a, float2 b, float2 c)
+{
+    return 0.5f * length(cross(float3(b - a, 0.0f), float3(c - a, 0.0f)));
+}
+
+float3 ComputeTriangle2DBarycentricCoordinates(float2 a, float2 b, float2 c, float2 x)
+{
+    float triangleArea = ComputeTriangle2DArea(a, b, c);
+    float triangleAreaInverse = 1.0f / triangleArea;
+    float barycentricA = ComputeTriangle2DArea(b, c, x) * triangleAreaInverse;
+    float barycentricB = ComputeTriangle2DArea(c, a, x) * triangleAreaInverse;
+    float barycentricC = 1.0f - barycentricA - barycentricB;
+    return float3(
+        barycentricA,
+        barycentricB,
+        barycentricC
+    );
+}
+
 #endif
