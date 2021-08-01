@@ -704,6 +704,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     1.0f / framebufferDitherTex.width,
                     1.0f / framebufferDitherTex.height
                 ));
+                cmd.SetGlobalVector(PSXShaderIDs._FramebufferDitherScaleAndInverse, new Vector2(volumeSettings.ditherSize.value, 1.0f / volumeSettings.ditherSize.value));
 
                 int drawDistanceFalloffMode = (int)volumeSettings.drawDistanceFalloffMode.value;
                 cmd.SetGlobalInt(PSXShaderIDs._DrawDistanceFalloffMode, drawDistanceFalloffMode);

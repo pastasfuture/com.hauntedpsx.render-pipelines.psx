@@ -31,6 +31,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public ClampedFloatParameter alpha = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
         public ClampedFloatParameter affineTextureWarping = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
         public ClampedFloatParameter framebufferDither = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
+        public ClampedIntParameter ditherSize = new ClampedIntParameter(1, 1, 8);
         public DrawDistanceFalloffModeParameter drawDistanceFalloffMode = new DrawDistanceFalloffModeParameter(DrawDistanceFalloffMode.Planar);
         public MinFloatParameter drawDistance = new MinFloatParameter(100.0f, 0.0f);
         static PrecisionVolume s_Default = null;

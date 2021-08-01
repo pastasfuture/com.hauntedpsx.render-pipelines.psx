@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------------------------------
+New Precision Volume Feature: **Dither Size**
+---------------------------------------------------------------------------------------------------------------------------
+**Dither Size**: Controls the size (in rasterization resolution pixels) of screen space dither.
+A value of 1 results in standard, 1:1 mapping between rasterization resolution pixels and dither pattern pixels.
+Values > 1 result a dither pattern that covers multiple rasterization resolution pixels.
+Values > 1 are useful for aesthetic purposes, particularly with higher rasterization resolutions, where you want the dither pattern to be more noticable / clear.
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix Render Target + Viewport Scaling Issue
 ---------------------------------------------------------------------------------------------------------------------------
 Fix up multiple bugs introduced by new RTHandleSystem use. The RTHandleSystem will only allocate new Render Textures if the requested size is greater then the previously max allocated size.

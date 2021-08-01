@@ -19,6 +19,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         SerializedDataParameter m_Alpha;
         SerializedDataParameter m_AffineTextureWarping;
         SerializedDataParameter m_FramebufferDither;
+        SerializedDataParameter m_DitherSize;
         SerializedDataParameter m_DrawDistanceFalloffMode;
         SerializedDataParameter m_DrawDistance;
 
@@ -34,6 +35,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             m_Alpha = Unpack(o.Find(x => x.alpha));
             m_AffineTextureWarping = Unpack(o.Find(x => x.affineTextureWarping));
             m_FramebufferDither = Unpack(o.Find(x => x.framebufferDither));
+            m_DitherSize = Unpack(o.Find(x => x.ditherSize));
             m_DrawDistanceFalloffMode = Unpack(o.Find(x => x.drawDistanceFalloffMode));
             m_DrawDistance = Unpack(o.Find(x => x.drawDistance));
         }
@@ -55,6 +57,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PropertyField(m_Alpha, EditorGUIUtility.TrTextContent("Alpha", "Controls the alpha precision. Lower values creates more alpha (opacity) banding along fades."));
             PropertyField(m_AffineTextureWarping, EditorGUIUtility.TrTextContent("Affine Texture Warping", "Controls the amount of affine texture warping to apply.\nA value of 1.0 creates the most warping, and is most accurate to PSX hardware.\nA value of 0.0 creates no warping, uvs are perspective correct."));
             PropertyField(m_FramebufferDither, EditorGUIUtility.TrTextContent("Framebuffer Dither", "Controls the amount of dither applied between banding steps.\nA value of 1.0 fully breaks up banding (at the cost of dither noise).\nA value of 0.0 applies no dither, so banding artifacts from low precision color / alpha are fully visible.\nFramebuffer banding will be dithered between using framebufferDitherTex specified in the PSXRenderPipelineResources."));
+            PropertyField(m_DitherSize, EditorGUIUtility.TrTextContent("Dither Size", "Controls the size (in rasterization resolution pixels) of screen space dither.\nA value of 1 results in standard, 1:1 mapping between rasterization resolution pixels and dither pattern pixels.\nValues > 1 result a dither pattern that covers multiple rasterization resolution pixels.\nValues > 1 are useful for aesthetic purposes, particularly with higher rasterization resolutions, where you want the dither pattern to be more noticable / clear."));
             PropertyField(m_DrawDistanceFalloffMode, EditorGUIUtility.TrTextContent("Draw Distance Falloff Mode", "Controls the shape of the draw distance clipping."));
             PropertyField(m_DrawDistance, EditorGUIUtility.TrTextContent("Draw Distance", "Controls the max distance (in meters) that triangles will render."));
         }

@@ -224,6 +224,7 @@ SAMPLER(samplerunity_ShadowMask);
 TEXTURE2D(_FramebufferDitherTexture);
 float4 _FramebufferDitherSize;
 float _FramebufferDither;
+float2 _FramebufferDitherScaleAndInverse;
 
 
 TEXTURE2D(_AlphaClippingDitherTexture);

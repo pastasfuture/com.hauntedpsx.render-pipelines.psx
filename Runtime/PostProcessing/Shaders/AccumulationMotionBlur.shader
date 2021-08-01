@@ -97,7 +97,7 @@ Shader "Hidden/HauntedPS1/AccumulationMotionBlur"
         UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
         float2 positionSS = input.positionCS.xy;
-        uint2 framebufferDitherTexelCoord = (uint2)floor(frac(positionSS * _FramebufferDitherSize.zw) * _FramebufferDitherSize.xy);
+        uint2 framebufferDitherTexelCoord = (uint2)floor(frac(positionSS * _FramebufferDitherScaleAndInverse.yy * _FramebufferDitherSize.zw) * _FramebufferDitherSize.xy);
         float framebufferDither = LOAD_TEXTURE2D_LOD(_FramebufferDitherTexture, framebufferDitherTexelCoord, 0).a;
         float historyAlphaDither = NoiseDitherRemapTriangularDistribution(framebufferDither);
         historyAlphaDither = lerp(0.5, framebufferDither, _RasterizationHistoryCompositeDither);

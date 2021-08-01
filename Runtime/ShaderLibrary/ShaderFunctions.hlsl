@@ -240,7 +240,7 @@ float3 ComputeFramebufferDiscretization(float3 color, float2 positionSS, float d
     float framebufferDitherWeight = _FramebufferDither * ditherWeight;
     if (framebufferDitherWeight > 0.0f)
     {
-        uint2 framebufferDitherTexelCoord = (uint2)floor(frac(positionSS * _FramebufferDitherSize.zw) * _FramebufferDitherSize.xy);
+        uint2 framebufferDitherTexelCoord = (uint2)floor(frac(positionSS * _FramebufferDitherScaleAndInverse.yy * _FramebufferDitherSize.zw) * _FramebufferDitherSize.xy);
         framebufferDither = LOAD_TEXTURE2D_LOD(_FramebufferDitherTexture, framebufferDitherTexelCoord, 0).a;
         framebufferDither = NoiseDitherRemapTriangularDistribution(framebufferDither);
         framebufferDither = lerp(0.5f, framebufferDither, framebufferDitherWeight);
@@ -259,7 +259,7 @@ void ComputeAndFetchAlphaClippingParameters(out float alphaClippingDither, out f
 {
     if (alphaClippingDitherIsEnabled > 0.5f)
     {
-        uint2 alphaClippingDitherTexelCoord = (uint2)floor(frac(positionSS * _AlphaClippingDitherSize.zw) * _AlphaClippingDitherSize.xy);
+        uint2 alphaClippingDitherTexelCoord = (uint2)floor(frac(positionSS * _FramebufferDitherScaleAndInverse.yy * _AlphaClippingDitherSize.zw) * _AlphaClippingDitherSize.xy);
         alphaClippingDither = LOAD_TEXTURE2D_LOD(_AlphaClippingDitherTexture, alphaClippingDitherTexelCoord, 0).a;
         alphaClippingDither = min(0.999f, alphaClippingDither);
         alphaForClipping = saturate(alpha * alphaClippingScaleBiasMinMax.x + alphaClippingScaleBiasMinMax.y);
@@ -348,7 +348,7 @@ float ComputeFogAlphaDiscretization(float alpha, float2 positionSS)
     float dither = 0.5f;
     if (_FogPrecisionAlphaDither > 0.0f)
     {
-        uint2 ditherTexelCoord = (uint2)floor(frac(positionSS * _FogPrecisionAlphaDitherSize.zw) * _FogPrecisionAlphaDitherSize.xy);
+        uint2 ditherTexelCoord = (uint2)floor(frac(positionSS * _FramebufferDitherScaleAndInverse.yy * _FogPrecisionAlphaDitherSize.zw) * _FogPrecisionAlphaDitherSize.xy);
         dither = LOAD_TEXTURE2D_LOD(_FogPrecisionAlphaDitherTexture, ditherTexelCoord, 0).a;
         dither = NoiseDitherRemapTriangularDistribution(dither);
         dither = lerp(0.5f, dither, _FogPrecisionAlphaDither);
