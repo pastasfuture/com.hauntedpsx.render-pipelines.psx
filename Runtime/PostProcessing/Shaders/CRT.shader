@@ -146,7 +146,7 @@ Shader "Hidden/HauntedPS1/CRT"
         float2 posNoiseSignal = floor(pos * res + off) * noiseTextureSize.zw;
         float2 posNoiseCRT = floor(pos * _ScreenSize.xy + off * res * _ScreenSize.zw) * noiseTextureSize.zw;
         pos = (floor(pos * res + off) + 0.5) / res;
-        if (min(pos.x, pos.y) < 0.0 || max(pos.x, pos.y) > 1.0) { return float4(0.0, 0.0, 0.0, 0.0f); }
+        if (!ComputeRasterizationRTUVIsInBounds(pos)) { return float4(0.0, 0.0, 0.0, 0.0f); }
         float4 value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, FetchFrameBuffer(pos));
         value.rgb = SRGBToLinear(value.rgb);
         return value;
@@ -497,7 +497,7 @@ Shader "Hidden/HauntedPS1/CRT"
 
         if (!_IsPSXQualityEnabled || !_CRTIsEnabled)
         {
-            return (max(abs(positionFramebufferNDC.x * 2.0 - 1.0), abs(positionFramebufferNDC.y * 2.0 - 1.0)) <= 1.0)
+            return ComputeRasterizationRTUVIsInBounds(positionFramebufferNDC.xy)
                 ? SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0)
                 : float4(0.0, 0.0, 0.0, 1.0);
         }

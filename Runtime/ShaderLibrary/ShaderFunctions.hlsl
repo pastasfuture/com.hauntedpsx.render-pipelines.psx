@@ -471,4 +471,28 @@ float4 SampleTextureWithFilterModeN64(TEXTURE2D_PARAM(tex, samp), float2 uv, flo
 #endif
 }
 
+float2 ComputeRasterizationRTUV(float2 uv)
+{
+    return uv * _RasterizationRTScaledMaxSSAndUV.zw;
+}
+
+float2 ClampRasterizationRTUV(float2 uv)
+{
+    return clamp(uv, _RasterizationRTScaledClampBoundsUV.xy, _RasterizationRTScaledClampBoundsUV.zw);
+}
+
+bool ComputeRasterizationRTUVIsInBounds(float2 uv)
+{
+    return (min(uv.x, uv.y) >= 0.0f)
+        && (uv.x <= _RasterizationRTScaledMaxSSAndUV.z)
+        && (uv.y <= _RasterizationRTScaledMaxSSAndUV.w);
+}
+
+bool ComputeRasterizationRTPositionSSIsInBounds(float2 positionSS)
+{
+    return (min(positionSS.x, positionSS.y) >= 0.0f)
+        && (positionSS.x <= _RasterizationRTScaledMaxSSAndUV.x)
+        && (positionSS.y <= _RasterizationRTScaledMaxSSAndUV.y);
+}
+
 #endif

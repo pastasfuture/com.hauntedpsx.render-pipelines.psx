@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix Render Target + Viewport Scaling Issue
+---------------------------------------------------------------------------------------------------------------------------
+Fix up multiple bugs introduced by new RTHandleSystem use. The RTHandleSystem will only allocate new Render Textures if the requested size is greater then the previously max allocated size.
+On the first frame, all Render Textures exactly match the rasterization resolution. However, if resolution changes occur, such as from window resizing, toggling of PSX Quality, or changes to target rasterization resolution, multiple bugs existed due to incorrect viewport setting and / or UV calculation.
+Viewports are now correctly set, and all existing affected passes (blit, AccumulationMotionBlur, CRT) have been fixed up to correctly handle these cases.
+For context, multiple users reported seeing this issue with incorrect dither size, incorrect geometry precision, and incorrect aspect ratios. These have all been fixed.
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix Compression Volume
 ---------------------------------------------------------------------------------------------------------------------------
 Compression volume rendering code was erroneously disabled in 1.4.0. Reenabled it.

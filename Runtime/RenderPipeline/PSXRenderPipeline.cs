@@ -285,9 +285,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 RTHandle rasterizationRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.Rasterization);
                 RTHandle rasterizationDepthStencilRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.RasterizationDepthStencil);
                 cmd.SetRenderTarget(rasterizationRT.rt, rasterizationDepthStencilRT.rt);
+                PSXRenderPipeline.SetViewport(cmd, rasterizationRT);
                 {
                     // Clear background to fog color to create seamless blend between forward-rendered fog, and "sky" / infinity.
-                    PushGlobalRasterizationParameters(camera, cmd, rasterizationWidth, rasterizationHeight, hdrIsSupported);
+                    PushGlobalRasterizationParameters(camera, cmd, rasterizationRT, rasterizationWidth, rasterizationHeight, hdrIsSupported);
                     PushQualityOverrideParameters(camera, cmd, isPSXQualityEnabled);
                     PushPrecisionParameters(camera, cmd, m_Asset);
                     PushFogParameters(camera, cmd);
@@ -331,6 +332,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     TryDrawAccumulationMotionBlurPostUIOverlay(psxCamera, cmd, accumulationMotionBlurMaterial);
                 }
                 cmd.SetRenderTarget(camera.targetTexture);
+                PSXRenderPipeline.SetViewport(cmd, camera, camera.targetTexture);
                 {
                     PushGlobalPostProcessingParameters(camera, cmd, m_Asset, rasterizationRT, rasterizationWidth, rasterizationHeight, cameraAspectModeUVScaleBias);
                     PushCompressionParameters(camera, cmd, m_Asset, rasterizationRT, compressionCSKernels);
@@ -877,7 +879,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             }
         }
 
-        void PushGlobalRasterizationParameters(Camera camera, CommandBuffer cmd, int rasterizationWidth, int rasterizationHeight, bool hdrIsSupported)
+        void PushGlobalRasterizationParameters(Camera camera, CommandBuffer cmd, RTHandle rasterizationRT, int rasterizationWidth, int rasterizationHeight, bool hdrIsSupported)
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushGlobalRasterizationParameters))
             {
@@ -885,6 +887,19 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.ClearRenderTarget(clearDepth: true, clearColor: false, backgroundColor: clearColorUnused);
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSizeRasterization, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
+
+                // Clamp our uv to software emulate a clamped wrap mode within the context of our potentially scaled RT
+                // (where the RT viewport may be significantly smaller than the actual RT resolution due to resizing events).
+                // Note: When useScaling is false, this is the same as: new Vector4(0.5f / rasterizationWidth, 0.5f / rasterizationHeight, (rasterizationWidth - 0.5f) / rasterizationWidth, (rasterizationHeight - 0.5f) / rasterizationHeight);
+                Vector4 rasterizationRTScaledClampBoundsUV = new Vector4(0.5f / rasterizationRT.rt.width, 0.5f / rasterizationRT.rt.height, (rasterizationWidth - 0.5f) / rasterizationRT.rt.width, (rasterizationHeight - 0.5f) / rasterizationRT.rt.height);
+                cmd.SetGlobalVector(PSXShaderIDs._RasterizationRTScaledClampBoundsUV, rasterizationRTScaledClampBoundsUV);
+
+                Vector4 rasterizationRTScaledMaxSSAndUV = rasterizationRT.useScaling
+                    ? new Vector4(rasterizationWidth, rasterizationHeight, (float)rasterizationWidth / rasterizationRT.rt.width, (float)rasterizationHeight / rasterizationRT.rt.height)
+                    : new Vector4(rasterizationRT.rt.width, rasterizationRT.rt.height, 1.0f, 1.0f);
+                cmd.SetGlobalVector(PSXShaderIDs._RasterizationRTScaledMaxSSAndUV, rasterizationRTScaledMaxSSAndUV);
+
+
                 cmd.SetGlobalVector(PSXShaderIDs._WorldSpaceCameraPos, camera.transform.position);
                 
                 float time = GetAnimatedMaterialsTime(camera);
@@ -916,7 +931,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             }  
         }
 
-        static void PushGlobalPostProcessingParameters(Camera camera, CommandBuffer cmd, PSXRenderPipelineAsset asset, RenderTexture rasterizationRT, int rasterizationWidth, int rasterizationHeight, Vector4 cameraAspectModeUVScaleBias)
+        static void PushGlobalPostProcessingParameters(Camera camera, CommandBuffer cmd, PSXRenderPipelineAsset asset, RTHandle rasterizationRT, int rasterizationWidth, int rasterizationHeight, Vector4 cameraAspectModeUVScaleBias)
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushGlobalPostProcessingParameters))
             {
@@ -930,10 +945,22 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 else
                 {
                     flipY = false;
-                }                
+                }
 
+                // RTHandleSystem may allocate RTs that are larger than requested size (to improve performance of scaling RTs by minimizing reallocs).
+                // Need to apply and RTHandleSystem scaling to our cameraAspectModeUVScaleBias terms.
+                Vector4 cameraAspectModeUVScaleBiasWithRTScale = cameraAspectModeUVScaleBias;
+                if (rasterizationRT.useScaling)
+                {
+                    Vector2 scale = new Vector2((float)rasterizationWidth / rasterizationRT.rt.width, (float)rasterizationHeight / rasterizationRT.rt.height);
+                    cameraAspectModeUVScaleBiasWithRTScale.x *= scale.x;
+                    cameraAspectModeUVScaleBiasWithRTScale.y *= scale.y;
+                    cameraAspectModeUVScaleBiasWithRTScale.z *= scale.x;
+                    cameraAspectModeUVScaleBiasWithRTScale.w *= scale.y;
+                }
+                
                 cmd.SetGlobalInt(PSXShaderIDs._FlipY, flipY ? 1 : 0);
-                cmd.SetGlobalVector(PSXShaderIDs._CameraAspectModeUVScaleBias, cameraAspectModeUVScaleBias);
+                cmd.SetGlobalVector(PSXShaderIDs._CameraAspectModeUVScaleBias, cameraAspectModeUVScaleBiasWithRTScale);
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / (float)camera.pixelWidth, 1.0f / (float)camera.pixelHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSizeRasterization, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalTexture(PSXShaderIDs._FrameBufferTexture, rasterizationRT);
@@ -1255,6 +1282,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     // Switch the global bound render target back to the one we were rendering with before.
                     RTHandle rasterizationDepthStencilCurrentRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.RasterizationDepthStencil);
                     cmd.SetRenderTarget(rasterizationCurrentRT, rasterizationDepthStencilCurrentRT);
+                    PSXRenderPipeline.SetViewport(cmd, rasterizationCurrentRT);
                 }
             }
         }
@@ -1299,6 +1327,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     // This actually is necessary in the editor. It seems the final camera render target needs to be bound before the context is submitted,
                     // otherwise we get this error spilling: Dimensions of color surface does not match dimensions of depth surface.
                     cmd.SetRenderTarget(renderTargetCurrent);
+                    PSXRenderPipeline.SetViewport(cmd, psxCamera.camera, renderTargetCurrent);
                 }
             }
         }
@@ -1347,6 +1376,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             cmd.SetGlobalVector(PSXShaderIDs._CopyColorSourceRTSize, new Vector4(source.rt.width, source.rt.height, 1.0f / source.rt.width, 1.0f / source.rt.height));
             cmd.SetGlobalTexture(PSXShaderIDs._CopyColorSourceRT, source);
             cmd.SetRenderTarget(destination);
+            PSXRenderPipeline.SetViewport(cmd, destination);
             PSXRenderPipeline.DrawFullScreenQuad(cmd, copyColorRespectFlipYMaterial);
         }
 
@@ -1587,6 +1617,25 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             var drawSettings = new DrawingSettings(PSXShaderPassNames.s_SRPDefaultUnlit, sortingSettings);
             var filterSettings = FilteringSettings.defaultValue;
             context.DrawRenderers(cullingResults, ref drawSettings, ref filterSettings);
+        }
+
+        // Respects RTHandle scaling.
+        static void SetViewport(CommandBuffer cmd, RTHandle target)
+        {
+            CoreUtils.SetViewport(cmd, target);
+        }
+
+        static void SetViewport(CommandBuffer cmd, Camera camera, RenderTexture target)
+        {
+            int width = camera.pixelWidth;
+            int height = camera.pixelHeight;
+            if (target != null)
+            {
+                width = target.width;
+                height = target.height;
+            }
+            
+            cmd.SetViewport(new Rect(0.0f, 0.0f, width, height));
         }
 
         static Mesh s_FullscreenMesh = null;

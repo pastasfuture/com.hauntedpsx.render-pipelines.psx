@@ -51,7 +51,9 @@ Shader "Hidden/HauntedPS1/CopyColorRespectFlipY"
     {
         UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
-        return LOAD_TEXTURE2D_LOD(_CopyColorSourceRT, input.uv * _CopyColorSourceRTSize.xy, 0);
+        float2 uv = input.uv * _CopyColorSourceRTSize.xy;
+        uv = ComputeRasterizationRTUV(uv);
+        return LOAD_TEXTURE2D_LOD(_CopyColorSourceRT, uv, 0);
     }
 
     ENDHLSL

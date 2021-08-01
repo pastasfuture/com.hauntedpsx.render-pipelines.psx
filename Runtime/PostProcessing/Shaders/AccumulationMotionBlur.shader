@@ -86,8 +86,9 @@ Shader "Hidden/HauntedPS1/AccumulationMotionBlur"
         blurDirection.x *= 1.0f - saturate(-data.blurAnisotropy);
         blurDirection *= vignetteWeight;
         float blurSignedDistancePixels = data.blurSignedDistancePixels * lerp(1.0, zoomDither, data.dither);
+        historyUV = ComputeRasterizationRTUV(historyUV);
         historyUV -= blurDirection * _ScreenSizeRasterization.zw * blurSignedDistancePixels;
-        historyUV = saturate(historyUV);
+        historyUV = ClampRasterizationRTUV(historyUV);
         return historyUV;
     }
 

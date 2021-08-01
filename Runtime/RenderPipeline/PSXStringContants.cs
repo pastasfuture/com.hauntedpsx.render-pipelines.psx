@@ -115,6 +115,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
     {
         public static readonly int _ScreenSize = Shader.PropertyToID("_ScreenSize");
         public static readonly int _ScreenSizeRasterization = Shader.PropertyToID("_ScreenSizeRasterization");
+        public static readonly int _RasterizationRTScaledClampBoundsUV = Shader.PropertyToID("_RasterizationRTScaledClampBoundsUV");
+        public static readonly int _RasterizationRTScaledMaxSSAndUV = Shader.PropertyToID("_RasterizationRTScaledMaxSSAndUV");
         public static readonly int _FrameBufferTexture = Shader.PropertyToID("_FrameBufferTexture");
         public static readonly int _WhiteNoiseTexture = Shader.PropertyToID("_WhiteNoiseTexture");
         public static readonly int _WhiteNoiseSize = Shader.PropertyToID("_WhiteNoiseSize");
