@@ -1,8 +1,8 @@
 {
     "name": "com.hauntedpsx.render-pipelines.psx",
-    "version": "1.1.0",
-    "displayName": "HauntedPS1 Render Pipeline",
-    "description": "A scriptable render pipeline for emulating Playstation-1-style graphics on contemporary hardware.",
+    "version": "1.5.0",
+    "displayName": "HauntedPS1 Render Pipeline (HPSXRP)",
+    "description": "A scriptable render pipeline for emulating Playstation-1 and N64 style graphics on contemporary hardware.",
     "unity": "2019.3",
     "dependencies":
     {
@@ -22,7 +22,7 @@
     ],
     "author": 
     {
-        "name": "The HauntedPS1 Community",
+        "name": "Pastasfuture and the HauntedPS1 Community",
         "url": "https://twitter.com/HauntedPs1/"
     }
 }

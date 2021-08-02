@@ -89,7 +89,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
 
     float4 color = _MainColor * SampleTextureWithFilterMode(TEXTURE2D_ARGS(_MainTex, sampler_MainTex), uvColor, texelSizeLod, lod);
 
-    color = ApplyVertexColorPerPixelColor(color, i.color, interpolatorNormalization);
+    color = ApplyVertexColorPerPixelColor(color, i.color, interpolatorNormalization, _VertexColorBlendMode);
 
 #if _ALPHATEST_ON
     // Perform alpha cutoff transparency (i.e: discard pixels in the holes of a chain link fence texture, or in the negative space of a leaf texture).

@@ -1,4 +1,17 @@
 ---------------------------------------------------------------------------------------------------------------------------
+New Material Feature: **Vertex Color Blend Modes**
+---------------------------------------------------------------------------------------------------------------------------
+Controls how vertex colors are blended with MainColor|MainTex.
+**Multiply** The standard vertex color blend mode, the vertexColor.rgba channels are multiplied against the MainColor.rgba channels.
+**Additive** adds the vertexColor.rgb * vertexColor.a result to the MainColor.rgb channels. vertexColor.a is multiplied against MainColor.a to support alpha fade out.
+**Subtractive** subtracts the vertexColor.rgb * vertexColor.a result from the MainColor.rgb channels. vertexColor.a is multiplied against MainColor.a to support alpha fade out.
+
+---------------------------------------------------------------------------------------------------------------------------
+New Material Feature: **Vertex Color Mode: Split Color And Lighting**
+---------------------------------------------------------------------------------------------------------------------------
+**Split Color And Lighting**: A hybrid of VertexColorMode.Color and VertexColorMode.Lighting. Vertex colors >= 0.5 are rescaled and treated as VertexColorMode.Lighting. Vertex colors < 0.5 are rescaled and treated as VertexColorMode.Color. This mode is experimental. Looking for feedback from users. Expect potential modifications to the underlying implementation in future releases.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Precision Volume Feature: **Dither Size**
 ---------------------------------------------------------------------------------------------------------------------------
 **Dither Size**: Controls the size (in rasterization resolution pixels) of screen space dither.

@@ -26,6 +26,7 @@
         _UVAnimationMode("_UVAnimationMode", Float) = 0.0
         _UVAnimationParametersFrameLimit("_UVAnimationParametersFrameLimit", Vector) = (0, 60, 0, 0)
         _UVAnimationParameters("_UVAnimationParameters", Vector) = (1, 1, 0, 0)
+        _VertexColorBlendMode("_VertexColorBlendMode", Float) = 0.0
 
         // C# side material state tracking.
         [HideInInspector] _TextureFilterMode("__textureFilterMode", Float) = 0.0
@@ -79,7 +80,7 @@
             // -------------------------------------
             // Material Keywords
             #pragma shader_feature _TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS _TEXTURE_FILTER_MODE_POINT _TEXTURE_FILTER_MODE_POINT_MIPMAPS _TEXTURE_FILTER_MODE_N64 _TEXTURE_FILTER_MODE_N64_MIPMAPS
-            #pragma shader_feature _ _VERTEX_COLOR_MODE_COLOR _VERTEX_COLOR_MODE_LIGHTING _VERTEX_COLOR_MODE_COLOR_BACKGROUND _VERTEX_COLOR_MODE_ALPHA_ONLY _VERTEX_COLOR_MODE_EMISSION _VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY
+            #pragma shader_feature _ _VERTEX_COLOR_MODE_COLOR _VERTEX_COLOR_MODE_LIGHTING _VERTEX_COLOR_MODE_COLOR_BACKGROUND _VERTEX_COLOR_MODE_ALPHA_ONLY _VERTEX_COLOR_MODE_EMISSION _VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY _VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING
             #pragma shader_feature _LIGHTING_BAKED_ON
             #pragma shader_feature _LIGHTING_DYNAMIC_ON
             #pragma shader_feature _SHADING_EVALUATION_MODE_PER_VERTEX _SHADING_EVALUATION_MODE_PER_PIXEL _SHADING_EVALUATION_MODE_PER_OBJECT
@@ -126,7 +127,7 @@
 
             // -------------------------------------
             // Material Keywords
-            #pragma shader_feature _ _VERTEX_COLOR_MODE_COLOR _VERTEX_COLOR_MODE_LIGHTING _VERTEX_COLOR_MODE_COLOR_BACKGROUND _VERTEX_COLOR_MODE_ALPHA_ONLY
+            #pragma shader_feature _ _VERTEX_COLOR_MODE_COLOR _VERTEX_COLOR_MODE_LIGHTING _VERTEX_COLOR_MODE_COLOR_BACKGROUND _VERTEX_COLOR_MODE_ALPHA_ONLY _VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING
             #pragma shader_feature _EMISSION
             #pragma shader_feature _ALPHATEST_ON
             #pragma shader_feature _ _ALPHAPREMULTIPLY_ON _ALPHAMODULATE_ON

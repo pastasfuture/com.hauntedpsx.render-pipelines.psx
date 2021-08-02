@@ -61,7 +61,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             ColorBackground,
             AlphaOnly,
             Emission,
-            EmissionAndAlphaOnly
+            EmissionAndAlphaOnly,
+            SplitColorAndLighting
+        }
+
+        public enum VertexColorBlendMode
+        {
+            Multiply = 0,
+            Additive,
+            Subtractive
         }
 
         public enum RenderFace
@@ -137,6 +145,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         {
             public static readonly string _TextureFilterMode = "_TextureFilterMode";
             public static readonly string _VertexColorMode = "_VertexColorMode";
+            public static readonly string _VertexColorBlendMode = "_VertexColorBlendMode";
             public static readonly string _RenderQueueCategory = "_RenderQueueCategory";
             public static readonly string _LightingMode = "_LightingMode";
             public static readonly string _LightingBaked = "_LightingBaked";
@@ -186,6 +195,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         {
             public static readonly int _TextureFilterMode = Shader.PropertyToID(PropertyNames._TextureFilterMode);
             public static readonly int _VertexColorMode = Shader.PropertyToID(PropertyNames._VertexColorMode);
+            public static readonly int _VertexColorBlendMode = Shader.PropertyToID(PropertyNames._VertexColorBlendMode);
             public static readonly int _RenderQueueCategory = Shader.PropertyToID(PropertyNames._RenderQueueCategory);
             public static readonly int _LightingMode = Shader.PropertyToID(PropertyNames._LightingMode);
             public static readonly int _LightingBaked = Shader.PropertyToID(PropertyNames._LightingBaked);
@@ -257,6 +267,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _VERTEX_COLOR_MODE_ALPHA_ONLY = "_VERTEX_COLOR_MODE_ALPHA_ONLY";
             public static readonly string _VERTEX_COLOR_MODE_EMISSION = "_VERTEX_COLOR_MODE_EMISSION";
             public static readonly string _VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY = "_VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY";
+            public static readonly string _VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING = "_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING";
             public static readonly string _LIGHTING_BAKED_ON = "_LIGHTING_BAKED_ON";
             public static readonly string _LIGHTING_DYNAMIC_ON = "_LIGHTING_DYNAMIC_ON";
             public static readonly string _SHADING_EVALUATION_MODE_PER_VERTEX = "_SHADING_EVALUATION_MODE_PER_VERTEX";
@@ -291,7 +302,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 "Controls how MainTex and EmissionTex are filtered.\nTextureFilterMode.TextureImportSettings is the standard unity behavior. Textures will be filtered using the texture's import settings.\nTextureFilterMode.Point will force PSX era nearest neighbor point sampling, regardless of texture import settings.\nTextureFilterMode.PointMipmaps is the same as TextureFilterMode.Point but supports supports point sampled lods via the texture's mipmap chain.\nTextureFilterMode.N64 will force N64 era 3-point barycentric texture filtering.\nTextureFilterMode.N64MipMaps is the same as TextureFilterMode.N64 but supports N64 sampled lods via the texture's mipmap chain.");
 
             public static readonly GUIContent VertexColorMode = new GUIContent("Vertex Color Mode",
-                "Controls how vertex colors are interpreted by the shader. VertexColorMode.Color multiplies the vertex color data with the MainTex value. This is useful for adding variation to the MainTex color per vertex, such as in a particle sim. VertexColorMode.Lighting interprets the vertexColor data as per-vertex lighting. The result will be added to other lighting that may be present. VertexColorMode.ColorBackground blends between the vertex color data and the MainTex color based on the MainTex alpha. VertexColorMode.AlphaOnly multiplies only the alpha channel of the vertex color against the alpha of MainTex. VertexColorMode.Emission multiplies the vertex color with the Emission value. VertexColorMode.EmissionAndAlphaOnly multiplies the vertex color with the Emission value and multiplies the vertex color alpha channel with the MainTex alpha.");
+                "Controls how vertex colors are interpreted by the shader. VertexColorMode.Color multiplies the vertex color data with the MainTex value. This is useful for adding variation to the MainTex color per vertex, such as in a particle sim. VertexColorMode.Lighting interprets the vertexColor data as per-vertex lighting. The result will be added to other lighting that may be present. VertexColorMode.ColorBackground blends between the vertex color data and the MainTex color based on the MainTex alpha. VertexColorMode.AlphaOnly multiplies only the alpha channel of the vertex color against the alpha of MainTex. VertexColorMode.Emission multiplies the vertex color with the Emission value. VertexColorMode.EmissionAndAlphaOnly multiplies the vertex color with the Emission value and multiplies the vertex color alpha channel with the MainTex alpha.\nVertexColorMode.SplitColorAndLighting is a hybrid of VertexColorMode.Color and VertexColorMode.Lighting. Vertex colors >= 0.5 are rescaled and treated as VertexColorMode.Lighting. Vertex colors < 0.5 are rescaled and treated as VertexColorMode.Color.");
+
+            public static readonly GUIContent VertexColorBlendMode = new GUIContent("Vertex Color Blend Mode",
+                "Controls how vertex colors are blended with MainColor|MainTex.\nMultiply is the standard vertex color blend mode, the vertexColor.rgba channels are multiplied against the MainColor.rgba channels.\nAdditive adds the vertexColor.rgb * vertexColor.a result to the MainColor.rgb channels. vertexColor.a is multiplied against MainColor.a to support alpha fade out.\nSubtractive subtracts the vertexColor.rgb * vertexColor.a result from the MainColor.rgb channels. vertexColor.a is multiplied against MainColor.a to support alpha fade out.");
 
             public static readonly GUIContent RenderQueueCategory =
                 new GUIContent("Render Queue Category", "Controls when this object is rendered.\nMaterials set to Background are rendered first.\nMaterials set to Main are rendered second.\nMaterials set to UIOverlay are rendered last.\nThe CameraVolume override controls whether or not the depth buffer will be cleared between these stages.");
@@ -647,6 +661,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             else
             {
                 material.DisableKeyword(Keywords._VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY);
+            }
+
+            if (vertexColorMode == VertexColorMode.SplitColorAndLighting)
+            {
+                material.EnableKeyword(Keywords._VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING);
+            }
+            else
+            {
+                material.DisableKeyword(Keywords._VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING);
             }
 
             switch (lightingMode)
@@ -1083,9 +1106,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             DoPopup(Styles.TextureFilterMode, textureFilterModeProp, Enum.GetNames(typeof(TextureFilterMode)), materialEditor);
         }
 
-        public static void DrawVertexColorMode(MaterialEditor materialEditor, MaterialProperty vertexColorModeProp)
+        public static void DrawVertexColorMode(MaterialEditor materialEditor, MaterialProperty vertexColorModeProp, MaterialProperty vertexColorBlendModeProp)
         {
             DoPopup(Styles.VertexColorMode, vertexColorModeProp, Enum.GetNames(typeof(VertexColorMode)), materialEditor);
+
+            VertexColorMode vertexColorMode = (VertexColorMode)(int)vertexColorModeProp.floatValue;
+            if (vertexColorMode == VertexColorMode.Color)
+            {
+                DoPopup(Styles.VertexColorBlendMode, vertexColorBlendModeProp, Enum.GetNames(typeof(VertexColorBlendMode)), materialEditor);
+            }
         }
 
         public static void DrawLightingMode(Material material, MaterialEditor materialEditor, MaterialProperty lightingModeProp, MaterialProperty lightingBakedProp, MaterialProperty lightingDynamicProp)

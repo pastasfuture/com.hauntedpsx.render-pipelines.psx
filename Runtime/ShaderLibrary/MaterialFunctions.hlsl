@@ -185,7 +185,7 @@ float4 EvaluateVertexColorPerVertex(float4 vertexColor, float affineWarpingScale
 {
     float4 color = 0.0f;
 
-#if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND) || defined(_VERTEX_COLOR_MODE_ALPHA_ONLY) || defined(_VERTEX_COLOR_MODE_EMISSION) || defined(_VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY)
+#if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND) || defined(_VERTEX_COLOR_MODE_ALPHA_ONLY) || defined(_VERTEX_COLOR_MODE_EMISSION) || defined(_VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY) || defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING)
     // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
     color = vertexColor * affineWarpingScale;
 #endif
@@ -193,17 +193,61 @@ float4 EvaluateVertexColorPerVertex(float4 vertexColor, float affineWarpingScale
     return color;
 }
 
-float4 ApplyVertexColorPerPixelColor(float4 color, float4 vertexColor, float affineWarpingScaleInverse)
+float4 ApplyVertexColorPerPixelColorVertexColorModeColor(float4 color, float4 vertexColorNormalized, int vertexColorBlendMode)
 {
     float4 res = color;
 
+    if (vertexColorBlendMode == PSX_VERTEX_COLOR_BLEND_MODE_MULTIPLY)
+    {
+        res *= vertexColorNormalized;
+    }
+    else if (vertexColorBlendMode == PSX_VERTEX_COLOR_BLEND_MODE_ADDITIVE)
+    {
+        res.rgb = saturate(vertexColorNormalized.rgb * vertexColorNormalized.a + res.rgb);
+        res.a *= vertexColorNormalized.a;
+    }
+    else if (vertexColorBlendMode == PSX_VERTEX_COLOR_BLEND_MODE_SUBTRACTIVE)
+    {
+        res.rgb = saturate(vertexColorNormalized.rgb * -vertexColorNormalized.a + res.rgb);
+        res.a *= vertexColorNormalized.a;
+    }
+    else
+    {
+        // Encountered unsupported blend mode. Do not apply vertex color.
+        // This case should never happen.
+    }
+
+    return res;
+}
+
+bool ComputeVertexColorModeSplitColorAndLightingIsLighting(float4 vertexColorNormalized)
+{
+    return max(vertexColorNormalized.r, max(vertexColorNormalized.g, vertexColorNormalized.b)) >= 0.5f;
+}
+
+float4 ApplyVertexColorPerPixelColor(float4 color, float4 vertexColor, float affineWarpingScaleInverse, int vertexColorBlendMode)
+{
+    float4 res = color;
+    float4 vertexColorNormalized = vertexColor * affineWarpingScaleInverse;
+
 #if defined(_VERTEX_COLOR_MODE_COLOR)
-    res *= vertexColor * affineWarpingScaleInverse;
+    res = ApplyVertexColorPerPixelColorVertexColorModeColor(color, vertexColorNormalized, vertexColorBlendMode);
 #elif defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND)
-    res.rgb = lerp(vertexColor.rgb * affineWarpingScaleInverse, res.rgb, res.a);
+    res.rgb = lerp(vertexColorNormalized, res.rgb, res.a);
     res.a = 1.0f;
 #elif defined(_VERTEX_COLOR_MODE_ALPHA_ONLY) || defined(_VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY)
-    res.a *= vertexColor.a * affineWarpingScaleInverse;
+    res.a *= vertexColorNormalized.a;
+#elif defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING)
+    if (ComputeVertexColorModeSplitColorAndLightingIsLighting(vertexColorNormalized))
+    {
+        // Lighting mode, still need to apply alpha to support alpha fade.
+        res.a *= vertexColorNormalized.a;
+    }
+    else
+    {
+        vertexColorNormalized = float4(saturate(lerp(0.5f, vertexColorNormalized.rgb, vertexColorNormalized.a) * 2.0f), vertexColorNormalized.a);
+        res *= vertexColorNormalized;
+    }
 #endif
 
     return res;
@@ -263,7 +307,7 @@ float3 EvaluateLightingPerVertex(float3 objectPositionWS, float3 positionWS, flo
     float3 evaluationPositionWS = positionWS;
 #endif
 
-#if defined(_LIGHTING_BAKED_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_LIGHTING_DYNAMIC_ON)
+#if defined(_LIGHTING_BAKED_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING) || defined(_LIGHTING_DYNAMIC_ON)
     if (_IsPSXQualityEnabled)
     {
         lighting = 0.0f;
@@ -282,6 +326,10 @@ float3 EvaluateLightingPerVertex(float3 objectPositionWS, float3 positionWS, flo
         
 #if defined(_VERTEX_COLOR_MODE_LIGHTING)
         lighting += SRGBToLinear(vertexColor.rgb) * _VertexColorLightingMultiplier;
+#elif defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING)
+        lighting += ComputeVertexColorModeSplitColorAndLightingIsLighting(vertexColor)
+            ? SRGBToLinear(saturate(lerp(0.5f, vertexColor.rgb, vertexColor.a) * 2.0f - 1.0f)) * _VertexColorLightingMultiplier
+            : 0.0f;
 #endif
 
 #if defined(_LIGHTING_DYNAMIC_ON)
@@ -304,9 +352,17 @@ float3 EvaluateLightingPerVertex(float3 objectPositionWS, float3 positionWS, flo
 
 #else // defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
 
+#if defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING)
+
 #if defined(_VERTEX_COLOR_MODE_LIGHTING)
     // Still need to evaluate vertex color per vertex, even in per pixel overall evaluation mode.
     lighting = SRGBToLinear(vertexColor.rgb) * _VertexColorLightingMultiplier;
+#elif defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING)
+    lighting = ComputeVertexColorModeSplitColorAndLightingIsLighting(vertexColor)
+        ? SRGBToLinear(saturate(vertexColor.rgb * 2.0f - 1.0f)) * _VertexColorLightingMultiplier
+        : 0.0f;
+#endif
+
     // Premultiply UVs by W component to reverse the perspective divide that the hardware will automatically perform when interpolating varying attributes.
     lighting *= affineWarpingScale;
 #endif
@@ -321,14 +377,14 @@ float3 EvaluateLightingPerPixel(float3 positionWS, float3 normalWS, float3 verte
     float3 lighting = 0.0f;
 
 #if (defined(_SHADING_EVALUATION_MODE_PER_VERTEX) || defined(_SHADING_EVALUATION_MODE_PER_OBJECT))
-#if defined(_LIGHTING_BAKED_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_LIGHTING_DYNAMIC_ON)
+#if defined(_LIGHTING_BAKED_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING) || defined(_LIGHTING_DYNAMIC_ON)
     if (_LightingIsEnabled > 0.5f)
     {
         lighting = vertexLighting * affineWarpingScaleInverse;
     }
 #endif
 #elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
-#if defined(_LIGHTING_BAKED_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_LIGHTING_DYNAMIC_ON)
+#if defined(_LIGHTING_BAKED_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING) || defined(_LIGHTING_DYNAMIC_ON)
     if (_LightingIsEnabled > 0.5f)
     {
 
@@ -343,7 +399,7 @@ float3 EvaluateLightingPerPixel(float3 positionWS, float3 normalWS, float3 verte
         lighting *= _BakedLightingMultiplier;
 #endif
         
-#if defined(_VERTEX_COLOR_MODE_LIGHTING)
+#if defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING)
         lighting += vertexLighting * affineWarpingScaleInverse;
 #endif
 
@@ -364,7 +420,7 @@ float3 EvaluateLightingPerPixel(float3 positionWS, float3 normalWS, float3 verte
 
 float4 ApplyLightingToColor(float3 lighting, float4 color)
 {
-#if defined(_LIGHTING_BAKED_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_LIGHTING_DYNAMIC_ON)
+#if defined(_LIGHTING_BAKED_ON) || defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING) || defined(_LIGHTING_DYNAMIC_ON)
     if (_LightingIsEnabled > 0.5f)
     {
         color.rgb *= lighting;

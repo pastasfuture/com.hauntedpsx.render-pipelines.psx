@@ -52,6 +52,11 @@
 #define PSX_FOG_BLEND_MODE_SUBTRACTIVE (2)
 #define PSX_FOG_BLEND_MODE_MULTIPLY (3)
 
+// Warning: These definitions must stay in sync with VertexColorBlendMode enum.
+#define PSX_VERTEX_COLOR_BLEND_MODE_MULTIPLY (0)
+#define PSX_VERTEX_COLOR_BLEND_MODE_ADDITIVE (1)
+#define PSX_VERTEX_COLOR_BLEND_MODE_SUBTRACTIVE (2)
+
 // Globals:
 // Unity Standard:
 //

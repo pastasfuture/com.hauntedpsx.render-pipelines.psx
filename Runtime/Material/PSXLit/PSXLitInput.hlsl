@@ -34,6 +34,7 @@ float4 _DoubleSidedConstants;
 int _UVAnimationMode;
 float2 _UVAnimationParametersFrameLimit;
 float4 _UVAnimationParameters;
+int _VertexColorBlendMode;
 
 // Following two variables are feeded by the C++ Editor for Scene selection
 int _ObjectId;

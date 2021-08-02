@@ -3,6 +3,7 @@
 
 #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/ShaderVariables.hlsl"
 #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/ShaderFunctions.hlsl"
+#include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/MaterialFunctions.hlsl"
 #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/ShaderLibrary/BakedLighting.hlsl"
 
 CBUFFER_START(UnityMetaPass)
@@ -25,7 +26,7 @@ struct Attributes
     float2 uv0 : TEXCOORD0;
     float2 uv1 : TEXCOORD1;
     float2 uv2 : TEXCOORD2;
-#if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND)
+#if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND) || defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING)
     float4 color : COLOR;
 #endif
 };
@@ -34,7 +35,7 @@ struct Varyings
 {
     float4 positionCS : SV_POSITION;
     float2 uv : TEXCOORD0;
-#if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND)
+#if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND) || defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING)
     float4 color : TEXCOORD1;
 #endif
 };
@@ -110,10 +111,24 @@ half4 LitMetaPassFragment(Varyings i) : SV_Target
     half4 color = _MainColor * SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, colorUV);
 
 #if defined(_VERTEX_COLOR_MODE_COLOR)
-    color *= i.color;
+    float4 vertexColorNormalized = i.color;
+    color = ApplyVertexColorPerPixelColorVertexColorModeColor(color, vertexColorNormalized, vertexColorBlendMode);
 #elif defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND)
     color.rgb = lerp(i.color.rgb, color.rgb, color.a);
     color.a = 1.0f;
+#elif defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING)
+    if (ComputeVertexColorModeSplitColorAndLightingIsLighting(i.color))
+    {
+        // Lighting mode, still need to apply alpha to support alpha fade.
+        color.a *= i.color.a;
+    }
+    else
+    {
+        float4 vertexColorNormalized = i.color;
+        vertexColorNormalized.rgb = saturate(lerp(0.5f, vertexColorNormalized.rgb, vertexColorNormalized.a) * 2.0f);
+        color *= vertexColorNormalized;
+    }
+
 #endif
     
 #if _ALPHATEST_ON
