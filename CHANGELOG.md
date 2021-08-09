@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **CRT Shader Vertical Flip Logic**
+---------------------------------------------------------------------------------------------------------------------------
+Fixed bug where some CameraVolume aspect modes did not render correctly on hardware that requires flipped Y in the CRT shader.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Material Feature: **Vertex Color Blend Modes**
 ---------------------------------------------------------------------------------------------------------------------------
 Controls how vertex colors are blended with MainColor|MainTex.

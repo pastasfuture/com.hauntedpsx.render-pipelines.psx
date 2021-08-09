@@ -495,4 +495,24 @@ bool ComputeRasterizationRTPositionSSIsInBounds(float2 positionSS)
         && (positionSS.y <= _RasterizationRTScaledMaxSSAndUV.y);
 }
 
+float2 ComputeRasterizationRTUVFlipVerticallyInBounds(float2 uv)
+{
+    return ComputeRasterizationRTUVIsInBounds(uv)
+        ? float2(
+            uv.x,
+            _RasterizationRTScaledMaxSSAndUV.w - uv.y
+        )
+        : uv;
+}
+
+float2 ComputeRasterizationRTPositionSSFlipVerticallyInBounds(float2 positionSS)
+{
+    return ComputeRasterizationRTPositionSSIsInBounds(positionSS)
+        ? float2(
+            positionSS.x,
+            _RasterizationRTScaledMaxSSAndUV.y - positionSS.y
+        )
+        : positionSS;
+}
+
 #endif

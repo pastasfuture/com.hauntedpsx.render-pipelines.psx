@@ -475,25 +475,21 @@ Shader "Hidden/HauntedPS1/CRT"
         UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
         float2 positionFramebufferNDC = input.uvFramebuffer;
-        float2 positionFramebufferSS = input.uvFramebuffer * _ScreenSize.xy;
-
         float2 positionScreenNDC = input.uvScreen;
-        float2 positionScreenSS = input.uvScreen * _ScreenSize.xy;
-
+        
     #if UNITY_SINGLE_PASS_STEREO
         positionFramebufferNDC.x = (positionFramebufferNDC.x + unity_StereoEyeIndex) * 0.5;
         positionScreenNDC.x = (positionScreenNDC.x + unity_StereoEyeIndex) * 0.5;
     #endif
 
-        // Flip logic
         if (ShouldFlipY())
         {
-            positionFramebufferSS.y = _ScreenSize.y - 1.0 - positionFramebufferSS.y;
-            positionFramebufferNDC.y = 1.0 - positionFramebufferNDC.y;
-
-            positionScreenSS.y = _ScreenSize.y - 1.0 - positionScreenSS.y;
+            positionFramebufferNDC = ComputeRasterizationRTUVFlipVerticallyInBounds(positionFramebufferNDC);
             positionScreenNDC.y = 1.0 - positionScreenNDC.y;
         }
+
+        float2 positionFramebufferSS = input.uvFramebuffer * _ScreenSize.xy;
+        float2 positionScreenSS = input.uvScreen * _ScreenSize.xy;
 
         if (!_IsPSXQualityEnabled || !_CRTIsEnabled)
         {
