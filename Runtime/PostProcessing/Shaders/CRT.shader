@@ -488,8 +488,8 @@ Shader "Hidden/HauntedPS1/CRT"
             positionScreenNDC.y = 1.0 - positionScreenNDC.y;
         }
 
-        float2 positionFramebufferSS = input.uvFramebuffer * _ScreenSize.xy;
-        float2 positionScreenSS = input.uvScreen * _ScreenSize.xy;
+        float2 positionFramebufferSS = positionFramebufferNDC * _ScreenSize.xy;
+        float2 positionScreenSS = positionScreenNDC * _ScreenSize.xy;
 
         if (!_IsPSXQualityEnabled || !_CRTIsEnabled)
         {
