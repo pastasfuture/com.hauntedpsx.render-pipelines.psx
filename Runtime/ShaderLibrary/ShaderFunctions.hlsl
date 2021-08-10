@@ -515,4 +515,16 @@ float2 ComputeRasterizationRTPositionSSFlipVerticallyInBounds(float2 positionSS)
         : positionSS;
 }
 
+float2 ComputeRasterizationRTUVNormalizedFromAbsolute(float2 uvAbsolute)
+{
+    return uvAbsolute / _RasterizationRTScaledMaxSSAndUV.zw;
+}
+
+float2 ComputeRasterizationRTUVAbsoluteFromNormalized(float2 uvNormalized)
+{
+    return uvNormalized * _RasterizationRTScaledMaxSSAndUV.xy * _ScreenSizeRasterizationRTScaled.zw;
+}
+
+
+
 #endif

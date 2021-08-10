@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **CRT Shader Scanline Size and Vignette**
+---------------------------------------------------------------------------------------------------------------------------
+Fixed bug where scanline size and vignette was incorrect when scaled render targets were encountered.
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix: **CRT Shader Vertical Flip Logic**
 ---------------------------------------------------------------------------------------------------------------------------
 Fixed bug where some CameraVolume aspect modes did not render correctly on hardware that requires flipped Y in the CRT shader.

@@ -888,6 +888,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.ClearRenderTarget(clearDepth: true, clearColor: false, backgroundColor: clearColorUnused);
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSizeRasterization, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
+                cmd.SetGlobalVector(PSXShaderIDs._ScreenSizeRasterizationRTScaled, new Vector4(rasterizationRT.rt.width, rasterizationRT.rt.height, 1.0f / (float)rasterizationRT.rt.width, 1.0f / (float)rasterizationRT.rt.height));
 
                 // Clamp our uv to software emulate a clamped wrap mode within the context of our potentially scaled RT
                 // (where the RT viewport may be significantly smaller than the actual RT resolution due to resizing events).
@@ -964,6 +965,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetGlobalVector(PSXShaderIDs._CameraAspectModeUVScaleBias, cameraAspectModeUVScaleBiasWithRTScale);
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSize, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / (float)camera.pixelWidth, 1.0f / (float)camera.pixelHeight));
                 cmd.SetGlobalVector(PSXShaderIDs._ScreenSizeRasterization, new Vector4(rasterizationWidth, rasterizationHeight, 1.0f / (float)rasterizationWidth, 1.0f / (float)rasterizationHeight));
+                cmd.SetGlobalVector(PSXShaderIDs._ScreenSizeRasterizationRTScaled, new Vector4(rasterizationRT.rt.width, rasterizationRT.rt.height, 1.0f / (float)rasterizationRT.rt.width, 1.0f / (float)rasterizationRT.rt.height));
                 cmd.SetGlobalTexture(PSXShaderIDs._FrameBufferTexture, rasterizationRT);
 
                 Texture2D whiteNoiseTexture = GetWhiteNoise1024RGBTexFromAssetAndFrame(asset, (uint)Time.frameCount);
