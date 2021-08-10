@@ -1,6 +1,6 @@
 {
     "name": "com.hauntedpsx.render-pipelines.psx",
-    "version": "1.5.0",
+    "version": "1.5.3",
     "displayName": "HauntedPS1 Render Pipeline (HPSXRP)",
     "description": "A scriptable render pipeline for emulating Playstation-1 and N64 style graphics on contemporary hardware.",
     "unity": "2019.3",
