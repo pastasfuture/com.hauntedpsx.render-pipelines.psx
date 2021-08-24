@@ -226,5 +226,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _AccumulationMotionBlurParameters = Shader.PropertyToID("_AccumulationMotionBlurParameters");
         public static readonly int _CopyColorSourceRT = Shader.PropertyToID("_CopyColorSourceRT");
         public static readonly int _CopyColorSourceRTSize = Shader.PropertyToID("_CopyColorSourceRTSize");
+        public static readonly int _analogSignalIsEnabled = Shader.PropertyToID("_analogSignalIsEnabled");
+        public static readonly int _analogSignalBlurStrength = Shader.PropertyToID("_analogSignalBlurStrength");
+        public static readonly int _analogSignalKernelWidth = Shader.PropertyToID("_analogSignalKernelWidth");
+        public static readonly int _analogSignalSharpenPercent = Shader.PropertyToID("_analogSignalSharpenPercent");
+        public static readonly int _analogSignalHorizontalCarrierFrequency = Shader.PropertyToID("_analogSignalHorizontalCarrierFrequency");
+        public static readonly int _analogSignalLinePhaseShift = Shader.PropertyToID("_analogSignalLinePhaseShift");
     }
 }

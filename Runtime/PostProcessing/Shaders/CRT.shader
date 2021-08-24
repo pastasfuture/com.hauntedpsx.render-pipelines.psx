@@ -36,10 +36,18 @@ Shader "Hidden/HauntedPS1/CRT"
     float2 _CRTGrateMaskIntensityMinMax;
     float2 _CRTBarrelDistortion;
     float _CRTVignetteSquared;
+    int _analogSignalIsEnabled;
+    int _analogSignalBlurStrength;
+    float _analogSignalKernelWidth;
+    float _analogSignalSharpenPercent;
+    float _analogSignalHorizontalCarrierFrequency;
+    float _analogSignalLinePhaseShift;
     TEXTURE2D(_FrameBufferTexture);
     TEXTURE2D(_WhiteNoiseTexture);
     TEXTURE2D(_BlueNoiseTexture);
     TEXTURE2D(_CRTGrateMaskTexture);
+
+    static const float E = 2.71828;
 
     // Emulated input resolution.
 #if 1
@@ -474,6 +482,86 @@ Shader "Hidden/HauntedPS1/CRT"
 
     }
 
+    float3 QuadratureAmplitudeModulation(float3 colorYIQ, float2 positionRasterized)
+    {
+        float Y = colorYIQ.r;
+        float I = colorYIQ.g;
+        float Q = colorYIQ.b;
+
+        float lineNumber = floor(positionRasterized.y * ComputeRasterizationRTUVNormalizedFromAbsolute(positionRasterized));
+        float carrier_phase =
+            _analogSignalHorizontalCarrierFrequency * positionRasterized.x +
+            _analogSignalLinePhaseShift * lineNumber;
+        float s = sin(carrier_phase);
+        float c = cos(carrier_phase);
+
+        float modulated = I * s + Q * c;
+        float3 premultiplied = float3(Y, 2 * s * modulated, 2 * c * modulated);
+        
+        return premultiplied;
+    }
+
+    float Gaussian(int positionX)
+    {
+        float kernels[7] = {
+            0.006,
+            0.061,
+            0.242,
+            0.383,
+            0.242,
+            0.061,
+            0.006,
+        };
+        
+        return kernels[positionX + 3];
+    }
+
+    float3 ComputeGaussianInYIQ(float2 positionScreen)
+    {
+        float3 colorTotal = 0;
+        float weightTotal = 0.0;
+
+        
+        
+        for (int x = -3; x <= 3; ++x)
+        {
+            float2 posWithBlurOffset = positionScreen + float2(x * _analogSignalKernelWidth, 0);
+            float3 colorCurrent = FCCYIQFromSRGB(FetchFrameBuffer(posWithBlurOffset));
+            float weightCurrent = Gaussian(x);
+
+            colorTotal += colorCurrent * weightCurrent;
+            weightTotal += weightCurrent;
+        }
+
+        // After loop.
+        colorTotal /= weightTotal;
+        
+        return colorTotal;
+    }
+    
+    float3 ComputeAnalogSignal(float2 framebufferUVAbsolute, float2 positionScreenSS)
+    {
+        float3 color = FetchFrameBuffer(framebufferUVAbsolute);
+        if (_analogSignalIsEnabled == 0) return color;
+
+        // Convert color space to FCCYIQ
+        color = FCCYIQFromSRGB(color);
+
+        color = QuadratureAmplitudeModulation(color, framebufferUVAbsolute);
+
+        float oldY = color.r;
+        
+        // Compute the Gaussian effect
+        color = ComputeGaussianInYIQ(framebufferUVAbsolute);
+
+        color.r = oldY + (_analogSignalSharpenPercent * (oldY - color.r));
+
+        // Convert back to SRGB
+        color = SRGBFromFCCYIQ(color);
+
+        return color;
+    }
+
     float4 Fragment(Varyings input) : SV_Target0
     {
         UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
@@ -491,14 +579,18 @@ Shader "Hidden/HauntedPS1/CRT"
 
         if (!_IsPSXQualityEnabled || !_CRTIsEnabled)
         {
+            float4 sampleTex = SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0);
+            sampleTex.rgb = ComputeAnalogSignal(positionFramebufferNDC, positionScreenSS);
+            
             return ComputeRasterizationRTUVIsInBounds(positionFramebufferNDC.xy)
-                ? SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0)
+                ? sampleTex
                 : float4(0.0, 0.0, 0.0, 1.0);
         }
 
         float4 outColor = EvaluateCRT(positionFramebufferNDC, positionScreenSS);
         outColor.rgb = saturate(outColor.rgb);
         outColor.rgb = LinearToSRGB(outColor.rgb);
+        //outColor.rgb = ComputeAnalogSignal(positionFramebufferNDC, positionScreenSS);
 
         return float4(outColor.rgb, outColor.a);
     }

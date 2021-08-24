@@ -291,6 +291,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     PushGlobalRasterizationParameters(camera, cmd, rasterizationRT, rasterizationWidth, rasterizationHeight, hdrIsSupported);
                     PushQualityOverrideParameters(camera, cmd, isPSXQualityEnabled);
                     PushPrecisionParameters(camera, cmd, m_Asset);
+                    PushAnalogSignalParameters(camera, cmd, m_Asset);
                     PushFogParameters(camera, cmd);
                     PushLightingParameters(camera, cmd);
                     PushTonemapperParameters(camera, cmd);
@@ -877,6 +878,26 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     cmd.SetGlobalVector(PSXShaderIDs._FogDistanceScaleBiasLayer1, fogDistanceScaleBiasLayer1);
                     cmd.SetGlobalFloat(PSXShaderIDs._FogFalloffCurvePowerLayer1, fogFalloffCurvePowerLayer1);
                 }
+            }
+        }
+        
+        static void PushAnalogSignalParameters(Camera camera, CommandBuffer cmd, PSXRenderPipelineAsset asset)
+        {
+            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushPrecisionParameters))
+            {
+                var volumeSettings = VolumeManager.instance.stack.GetComponent<AnalogSignalVolume>();
+                if (!volumeSettings) volumeSettings = AnalogSignalVolume.@default;
+                
+                cmd.SetGlobalInt(PSXShaderIDs._analogSignalIsEnabled,
+                    volumeSettings.analogSignalEnabled.value ? 1 : 0);
+                cmd.SetGlobalInt(PSXShaderIDs._analogSignalBlurStrength, volumeSettings.analogSignalBlurStrength.value);
+                cmd.SetGlobalFloat(PSXShaderIDs._analogSignalKernelWidth, volumeSettings.analogSignalKernelWidth.value);
+                cmd.SetGlobalFloat(PSXShaderIDs._analogSignalSharpenPercent,
+                    volumeSettings.analogSignalSharpenPercent.value);
+                cmd.SetGlobalFloat(PSXShaderIDs._analogSignalHorizontalCarrierFrequency,
+                    volumeSettings.analogSignalHorizontalCarrierFrequency.value);
+                cmd.SetGlobalFloat(PSXShaderIDs._analogSignalLinePhaseShift,
+                    volumeSettings.analogSignalLinePhaseShift.value);
             }
         }
 
