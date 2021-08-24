@@ -23,7 +23,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         {
             var o = new PropertyFetcher<AnalogSignalVolume>(serializedObject);
             m_AnalogSignalEnabled = Unpack(o.Find(x => x.analogSignalEnabled));
-            m_AnalogSignalBlurStrength = Unpack(o.Find(x => x.analogSignalBlurStrength));
             m_AnalogSignalKernelWidth = Unpack(o.Find(x => x.analogSignalKernelWidth));
             m_AnalogSignalSharpenPercent = Unpack(o.Find(x => x.analogSignalSharpenPercent));
             m_AnalogSignalHorizontalCarrierFrequency = Unpack(o.Find(x => x.analogSignalHorizontalCarrierFrequency));
@@ -32,12 +31,18 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         
         public override void OnInspectorGUI()
         {
-            PropertyField(m_AnalogSignalEnabled, EditorGUIUtility.TrTextContent("Enable Analog Signal", "Controls whether the analog signal effect is active, which creates color bleeding and a natural blurriness."));
-            PropertyField(m_AnalogSignalBlurStrength, EditorGUIUtility.TrTextContent("Blur Strength", "Controls the strength of the Gaussian blur used in the Analog Signal effect."));
+            PropertyField(m_AnalogSignalEnabled, EditorGUIUtility.TrTextContent("Enabled", "Controls whether the analog signal effect is active, which creates color bleeding and a natural blurriness."));
             PropertyField(m_AnalogSignalKernelWidth, EditorGUIUtility.TrTextContent("Kernel Width", "Controls the scale of the horizontal blur."));
             PropertyField(m_AnalogSignalSharpenPercent, EditorGUIUtility.TrTextContent("Sharpen", "How much to apply sharpening after blurring."));
-            PropertyField(m_AnalogSignalHorizontalCarrierFrequency, EditorGUIUtility.TrTextContent("Horizontal Carrier Frequency", "."));
-            PropertyField(m_AnalogSignalLinePhaseShift, EditorGUIUtility.TrTextContent("Line Phase Shift", "."));
+            PropertyField(m_AnalogSignalHorizontalCarrierFrequency, EditorGUIUtility.TrTextContent("Horizontal Carrier Frequency", 
+                "The carrier wave is driven by a very fast oscillator at a fixed frequency. Since the beam is travelling, " +
+                "the phase of the carrier is linear both in time but also in horizontal distance over a scanline. This value " +
+                "determines the frequency of the wave of the horizontal carrier. " +
+                "\n\nIdeally, this should be set to a value which " +
+                "makes the scanlines as hidden as possible. Doing it this way will create a \"rainbowing\" effect along edges, " +
+                "directly related to the scanline frequency produced by this value."));
+            PropertyField(m_AnalogSignalLinePhaseShift, EditorGUIUtility.TrTextContent("Line Phase Shift", 
+                ""));
         }
         
     }

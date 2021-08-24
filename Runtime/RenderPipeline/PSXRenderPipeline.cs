@@ -890,7 +890,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 
                 cmd.SetGlobalInt(PSXShaderIDs._analogSignalIsEnabled,
                     volumeSettings.analogSignalEnabled.value ? 1 : 0);
-                cmd.SetGlobalInt(PSXShaderIDs._analogSignalBlurStrength, volumeSettings.analogSignalBlurStrength.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._analogSignalKernelWidth, volumeSettings.analogSignalKernelWidth.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._analogSignalSharpenPercent,
                     volumeSettings.analogSignalSharpenPercent.value);

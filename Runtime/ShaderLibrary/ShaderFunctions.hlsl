@@ -525,6 +525,15 @@ float2 ComputeRasterizationRTUVAbsoluteFromNormalized(float2 uvNormalized)
     return uvNormalized * _RasterizationRTScaledMaxSSAndUV.xy * _ScreenSizeRasterizationRTScaled.zw;
 }
 
+float2 ComputeRasterizationRTUVFromUV(float2 positionFramebufferNDC)
+{
+    float2 positionFramebufferCenterPixels = positionFramebufferNDC * _ScreenSizeRasterizationRTScaled.xy;
+    float2 positionFramebufferCurrentNDC = positionFramebufferCenterPixels * _ScreenSizeRasterizationRTScaled.zw;
+    positionFramebufferCurrentNDC = ClampRasterizationRTUV(positionFramebufferCurrentNDC);
+
+    return positionFramebufferCurrentNDC;
+}
+
 
 
 #endif
