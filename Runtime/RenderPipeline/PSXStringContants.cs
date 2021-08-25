@@ -227,12 +227,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _CopyColorSourceRT = Shader.PropertyToID("_CopyColorSourceRT");
         public static readonly int _CopyColorSourceRTSize = Shader.PropertyToID("_CopyColorSourceRTSize");
         public static readonly int _NTSCIsEnabled = Shader.PropertyToID("_NTSCIsEnabled");
-        public static readonly int _NTSCBlurStrength = Shader.PropertyToID("_NTSCBlurStrength");
-        public static readonly int _NTSCKernelWidth = Shader.PropertyToID("_NTSCKernelWidth");
-        public static readonly int _NTSCSharpenPercent = Shader.PropertyToID("_NTSCSharpenPercent");
         public static readonly int _NTSCHorizontalCarrierFrequency = Shader.PropertyToID("_NTSCHorizontalCarrierFrequency");
+        public static readonly int _NTSCKernelWidthRatio = Shader.PropertyToID("_NTSCKernelWidthRatio");
+        public static readonly int _NTSCSharpenPercent = Shader.PropertyToID("_NTSCSharpenPercent");
         public static readonly int _NTSCLinePhaseShift = Shader.PropertyToID("_NTSCLinePhaseShift");
-        public static readonly int _NTSCKernelArray = Shader.PropertyToID("_NTSCKernelArray");
-        public static readonly int _NTSCKernelArraySizeHalf = Shader.PropertyToID("_NTSCKernelArraySizeHalf");
+        public static readonly int _NTSCFlickerPercent = Shader.PropertyToID("_NTSCFlickerPercent");
+        public static readonly int _NTSCFlickerScaleX = Shader.PropertyToID("_NTSCFlickerScaleX");
+        public static readonly int _NTSCFlickerScaleY = Shader.PropertyToID("_NTSCFlickerScaleY");
     }
 }
