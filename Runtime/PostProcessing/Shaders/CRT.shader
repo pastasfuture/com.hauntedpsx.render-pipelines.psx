@@ -504,7 +504,7 @@ Shader "Hidden/HauntedPS1/CRT"
 
     float Gaussian(int positionX)
     {
-        return _NTSCKernelArray[positionX + 3];
+        return exp2(-2.2 * (positionX / 3 * positionX / 3));
     }
 
     float3 ComputeGaussianInYIQ(float2 positionFramebufferNDC)
@@ -513,7 +513,7 @@ Shader "Hidden/HauntedPS1/CRT"
         float weightTotal = 0.0;
         
         float2 positionFramebufferCenterPixels = positionFramebufferNDC * _ScreenSizeRasterizationRTScaled.xy;
-        for (int x = -_NTSCKernelArraySizeHalf; x <= _NTSCKernelArraySizeHalf; ++x)
+        for (int x = -3; x <= 3; ++x)
         {
             // Convert from framebuffer normalized position to pixel position
             float2 positionFramebufferCurrentPixels = positionFramebufferCenterPixels + float2(x * _NTSCKernelWidth, 0);
