@@ -226,11 +226,13 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _AccumulationMotionBlurParameters = Shader.PropertyToID("_AccumulationMotionBlurParameters");
         public static readonly int _CopyColorSourceRT = Shader.PropertyToID("_CopyColorSourceRT");
         public static readonly int _CopyColorSourceRTSize = Shader.PropertyToID("_CopyColorSourceRTSize");
-        public static readonly int _analogSignalIsEnabled = Shader.PropertyToID("_analogSignalIsEnabled");
-        public static readonly int _analogSignalBlurStrength = Shader.PropertyToID("_analogSignalBlurStrength");
-        public static readonly int _analogSignalKernelWidth = Shader.PropertyToID("_analogSignalKernelWidth");
-        public static readonly int _analogSignalSharpenPercent = Shader.PropertyToID("_analogSignalSharpenPercent");
-        public static readonly int _analogSignalHorizontalCarrierFrequency = Shader.PropertyToID("_analogSignalHorizontalCarrierFrequency");
-        public static readonly int _analogSignalLinePhaseShift = Shader.PropertyToID("_analogSignalLinePhaseShift");
+        public static readonly int _NTSCIsEnabled = Shader.PropertyToID("_NTSCIsEnabled");
+        public static readonly int _NTSCBlurStrength = Shader.PropertyToID("_NTSCBlurStrength");
+        public static readonly int _NTSCKernelWidth = Shader.PropertyToID("_NTSCKernelWidth");
+        public static readonly int _NTSCSharpenPercent = Shader.PropertyToID("_NTSCSharpenPercent");
+        public static readonly int _NTSCHorizontalCarrierFrequency = Shader.PropertyToID("_NTSCHorizontalCarrierFrequency");
+        public static readonly int _NTSCLinePhaseShift = Shader.PropertyToID("_NTSCLinePhaseShift");
+        public static readonly int _NTSCKernelArray = Shader.PropertyToID("_NTSCKernelArray");
+        public static readonly int _NTSCKernelArraySizeHalf = Shader.PropertyToID("_NTSCKernelArraySizeHalf");
     }
 }

@@ -885,18 +885,20 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushPrecisionParameters))
             {
-                var volumeSettings = VolumeManager.instance.stack.GetComponent<AnalogSignalVolume>();
-                if (!volumeSettings) volumeSettings = AnalogSignalVolume.@default;
+                var volumeSettings = VolumeManager.instance.stack.GetComponent<NTSCVolume>();
+                if (!volumeSettings) volumeSettings = NTSCVolume.@default;
                 
-                cmd.SetGlobalInt(PSXShaderIDs._analogSignalIsEnabled,
-                    volumeSettings.analogSignalEnabled.value ? 1 : 0);
-                cmd.SetGlobalFloat(PSXShaderIDs._analogSignalKernelWidth, volumeSettings.analogSignalKernelWidth.value);
-                cmd.SetGlobalFloat(PSXShaderIDs._analogSignalSharpenPercent,
-                    volumeSettings.analogSignalSharpenPercent.value);
-                cmd.SetGlobalFloat(PSXShaderIDs._analogSignalHorizontalCarrierFrequency,
-                    volumeSettings.analogSignalHorizontalCarrierFrequency.value);
-                cmd.SetGlobalFloat(PSXShaderIDs._analogSignalLinePhaseShift,
-                    volumeSettings.analogSignalLinePhaseShift.value);
+                cmd.SetGlobalInt(PSXShaderIDs._NTSCIsEnabled,
+                    volumeSettings.isEnabled.value ? 1 : 0);
+                cmd.SetGlobalFloat(PSXShaderIDs._NTSCKernelWidth, volumeSettings.kernelWidth.value);
+                cmd.SetGlobalFloat(PSXShaderIDs._NTSCSharpenPercent,
+                    volumeSettings.sharpenPercent.value);
+                cmd.SetGlobalFloat(PSXShaderIDs._NTSCHorizontalCarrierFrequency,
+                    volumeSettings.horizontalCarrierFrequency.value);
+                cmd.SetGlobalFloat(PSXShaderIDs._NTSCLinePhaseShift,
+                    volumeSettings.linePhaseShift.value);
+                cmd.SetGlobalFloatArray(PSXShaderIDs._NTSCKernelArray, volumeSettings.kernelArray);
+                cmd.SetGlobalInt(PSXShaderIDs._NTSCKernelArraySizeHalf, volumeSettings.kernelArraySizeHalf);
             }
         }
 

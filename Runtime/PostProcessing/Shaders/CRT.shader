@@ -36,11 +36,13 @@ Shader "Hidden/HauntedPS1/CRT"
     float2 _CRTGrateMaskIntensityMinMax;
     float2 _CRTBarrelDistortion;
     float _CRTVignetteSquared;
-    int _analogSignalIsEnabled;
-    float _analogSignalKernelWidth;
-    float _analogSignalSharpenPercent;
-    float _analogSignalHorizontalCarrierFrequency;
-    float _analogSignalLinePhaseShift;
+    int _NTSCIsEnabled;
+    float _NTSCKernelWidth;
+    float _NTSCSharpenPercent;
+    float _NTSCHorizontalCarrierFrequency;
+    float _NTSCLinePhaseShift;
+    float _NTSCKernelArray[32];
+    float _NTSCKernelArraySizeHalf = 16;
     TEXTURE2D(_FrameBufferTexture);
     TEXTURE2D(_WhiteNoiseTexture);
     TEXTURE2D(_BlueNoiseTexture);
@@ -489,8 +491,8 @@ Shader "Hidden/HauntedPS1/CRT"
 
         float lineNumber = 1;//positionFramebufferNDC.y;
         float carrier_phase =
-            _analogSignalHorizontalCarrierFrequency * positionFramebufferNDC.x +
-            _analogSignalLinePhaseShift * lineNumber;
+            _NTSCHorizontalCarrierFrequency * positionFramebufferNDC.x +
+            _NTSCLinePhaseShift * lineNumber;
         float s = sin(carrier_phase);
         float c = cos(carrier_phase);
 
@@ -502,17 +504,7 @@ Shader "Hidden/HauntedPS1/CRT"
 
     float Gaussian(int positionX)
     {
-        float kernels[7] = {
-            0.006,
-            0.061,
-            0.242,
-            0.383,
-            0.242,
-            0.061,
-            0.006,
-        };
-        
-        return kernels[positionX + 3];
+        return _NTSCKernelArray[positionX + 3];
     }
 
     float3 ComputeGaussianInYIQ(float2 positionFramebufferNDC)
@@ -521,10 +513,10 @@ Shader "Hidden/HauntedPS1/CRT"
         float weightTotal = 0.0;
         
         float2 positionFramebufferCenterPixels = positionFramebufferNDC * _ScreenSizeRasterizationRTScaled.xy;
-        for (int x = -3; x <= 3; ++x)
+        for (int x = -_NTSCKernelArraySizeHalf; x <= _NTSCKernelArraySizeHalf; ++x)
         {
             // Convert from framebuffer normalized position to pixel position
-            float2 positionFramebufferCurrentPixels = positionFramebufferCenterPixels + float2(x * _analogSignalKernelWidth, 0);
+            float2 positionFramebufferCurrentPixels = positionFramebufferCenterPixels + float2(x * _NTSCKernelWidth, 0);
             float2 positionFramebufferCurrentNDC = positionFramebufferCurrentPixels * _ScreenSizeRasterizationRTScaled.zw;
             positionFramebufferCurrentNDC = ClampRasterizationRTUV(positionFramebufferCurrentNDC);
             float3 colorCurrent = FCCYIQFromSRGB(FetchFrameBuffer(positionFramebufferCurrentNDC));
@@ -548,7 +540,7 @@ Shader "Hidden/HauntedPS1/CRT"
     float3 ComputeAnalogSignal(float2 positionFramebufferNDC)
     {
         float3 color = FetchFrameBuffer(positionFramebufferNDC);
-        if (_analogSignalIsEnabled == 0) return color;
+        if (_NTSCIsEnabled == 0) return color;
 
         // Convert color space to FCCYIQ
         color = FCCYIQFromSRGB(color);
@@ -560,7 +552,7 @@ Shader "Hidden/HauntedPS1/CRT"
         // Compute the Gaussian effect
         color = ComputeGaussianInYIQ(positionFramebufferNDC);
 
-        color.r = oldY + (_analogSignalSharpenPercent * (oldY - color.r));
+        color.r = oldY + (_NTSCSharpenPercent * (oldY - color.r));
 
         // Convert back to SRGB
         color = SRGBFromFCCYIQ(color);
