@@ -929,6 +929,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 
                 float time = GetAnimatedMaterialsTime(camera);
                 cmd.SetGlobalVector(PSXShaderIDs._Time, new Vector4(time / 20.0f, time, time * 2.0f, time * 3.0f));
+                
+                float timeUnscaled = GetAnimatedMaterialsTimeUnscaled(camera);
+                cmd.SetGlobalVector(PSXShaderIDs._TimeUnscaled, new Vector4(timeUnscaled / 20.0f, timeUnscaled, timeUnscaled * 2.0f, timeUnscaled * 3.0f));
             
                 Texture2D alphaClippingDitherTex = GetAlphaClippingDitherTexFromAssetAndFrame(asset, (uint)Time.frameCount);
                 cmd.SetGlobalTexture(PSXShaderIDs._AlphaClippingDitherTexture, alphaClippingDitherTex);
@@ -1886,6 +1889,26 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 time = Application.isPlaying ? Time.timeSinceLevelLoad : Time.realtimeSinceStartup;
 #else
             time = Time.timeSinceLevelLoad;
+#endif
+            }
+            else
+            {
+                time = 0;
+            }
+
+            return time;
+        }
+        
+        static float GetAnimatedMaterialsTimeUnscaled(Camera camera)
+        {
+            float time = 0.0f;
+            bool animateMaterials = CoreUtils.AreAnimatedMaterialsEnabled(camera);
+            if (animateMaterials)
+            {
+#if UNITY_EDITOR
+                time = Application.isPlaying ? Time.unscaledTime : Time.realtimeSinceStartup;
+#else
+            time = Time.unscaledTime;
 #endif
             }
             else

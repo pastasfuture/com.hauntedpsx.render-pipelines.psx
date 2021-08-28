@@ -44,13 +44,14 @@ Shader "Hidden/HauntedPS1/CRT"
     float _NTSCFlickerPercent;
     float _NTSCFlickerScaleX;
     float _NTSCFlickerScaleY;
+    int _NTSCFlickerUseScaledTime;
     TEXTURE2D(_FrameBufferTexture);
     TEXTURE2D(_WhiteNoiseTexture);
     TEXTURE2D(_BlueNoiseTexture);
     TEXTURE2D(_CRTGrateMaskTexture);
 
     static const float E = 2.71828;
-
+    
     // Emulated input resolution.
 #if 1
     // Fix resolution to set amount.
@@ -149,6 +150,93 @@ Shader "Hidden/HauntedPS1/CRT"
         return color;
     }
 
+    float3 QuadratureAmplitudeModulation(float3 colorYIQ, float2 positionFramebufferNDC)
+    {
+        float Y = colorYIQ.r;
+        float I = colorYIQ.g;
+        float Q = colorYIQ.b;
+
+        float lineNumber = 1;
+        float carrier_phase =
+            _NTSCHorizontalCarrierFrequency * positionFramebufferNDC.x +
+            _NTSCLinePhaseShift * lineNumber;
+        float s = sin(carrier_phase);
+        float c = cos(carrier_phase);
+
+        float modulated = I * s + Q * c;
+        float3 premultiplied = float3(Y, 2 * s * modulated, 2 * c * modulated);
+        
+        return premultiplied;
+    }
+
+    float Gaussian(int positionX, int halfRange)
+    {
+        return exp2(-.5 * (positionX / halfRange * positionX / halfRange));
+    }
+
+    float3 ComputeGaussianInYIQ(float2 positionFramebufferNDC)
+    {
+        float3 colorTotal = 0;
+        float weightTotal = 0.0;
+        
+        float2 positionFramebufferCenterPixels = positionFramebufferNDC * _ScreenSizeRasterizationRTScaled.xy;
+        int halfRange = 3;
+        for (int x = -halfRange; x <= halfRange; ++x)
+        {
+            // Convert from framebuffer normalized position to pixel position
+            float2 positionFramebufferCurrentPixels = positionFramebufferCenterPixels + float2(x * (_NTSCKernelWidthRatio * _NTSCHorizontalCarrierFrequency), 0);
+            float2 positionFramebufferCurrentNDC = positionFramebufferCurrentPixels * _ScreenSizeRasterizationRTScaled.zw;
+            
+            positionFramebufferCurrentNDC = ClampRasterizationRTUV(positionFramebufferCurrentNDC);
+            float3 colorCurrent = FCCYIQFromSRGB(FetchFrameBuffer(positionFramebufferCurrentNDC));
+
+            // Use the original offset value in order to keep it the same distance across resolutions
+            colorCurrent = QuadratureAmplitudeModulation(colorCurrent, positionFramebufferCurrentPixels);
+
+            // Fetch the Gauss weight at the current x offset position
+            float weightCurrent = Gaussian(x, halfRange);
+
+            colorTotal += colorCurrent * weightCurrent;
+            weightTotal += weightCurrent;
+        }
+
+        // After loop.
+        colorTotal /= weightTotal;        
+        
+        return colorTotal;
+    }
+    
+    float3 ComputeAnalogSignal(float2 positionFramebufferNDC)
+    {
+        if (_NTSCIsEnabled == 0) return FetchFrameBuffer(positionFramebufferNDC);
+
+        float4 time = _TimeUnscaled;
+        if (_NTSCFlickerUseScaledTime == 0) time = _Time;
+        float2 offsetFlicker = (_NTSCFlickerScaleX * float2(sign(sin(time.y * (60 * _NTSCFlickerPercent)) * sign(sin(positionFramebufferNDC.y * _ScreenSizeRasterizationRTScaled.y * _NTSCFlickerScaleY))), 0))
+            * _ScreenSizeRasterizationRTScaled.zw;
+        positionFramebufferNDC += offsetFlicker;
+        
+        positionFramebufferNDC = ClampRasterizationRTUV(positionFramebufferNDC);
+        float3 color = FetchFrameBuffer(positionFramebufferNDC);
+
+        // Convert color space to FCCYIQ
+        color = FCCYIQFromSRGB(color);
+
+        // color = QuadratureAmplitudeModulation(color, positionFB, positionSS);
+
+        float oldY = color.r;
+        
+        // Compute the Gaussian effect
+        color = ComputeGaussianInYIQ(positionFramebufferNDC);
+
+        color.r = oldY + (_NTSCSharpenPercent * (oldY - color.r));
+
+        // Convert back to SRGB
+        color = SRGBFromFCCYIQ(color);
+
+        return color;
+    }
+
     // Nearest emulated sample given floating point position and texel offset.
     // Also zero's off screen.
     float4 Fetch(float2 pos, float2 off, TEXTURE2D(noiseTextureSampler), float4 noiseTextureSize)
@@ -158,6 +246,12 @@ Shader "Hidden/HauntedPS1/CRT"
         pos = (floor(pos * res + off) + 0.5) / res;
         if (!ComputeRasterizationRTUVIsInBounds(pos)) { return float4(0.0, 0.0, 0.0, 0.0f); }
         float4 value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, FetchFrameBuffer(pos));
+
+        if (_NTSCIsEnabled)
+        {
+            value = float4(ComputeAnalogSignal(pos), 1);
+        }
+        
         value.rgb = SRGBToLinear(value.rgb);
         return value;
     }
@@ -410,13 +504,13 @@ Shader "Hidden/HauntedPS1/CRT"
     float4 EvaluateCRT(float2 framebufferUVAbsolute, float2 positionScreenSS)
     {
         float4 crt = 0.0;
-
+        
         // Carefully handle potentially scaled RT here:
         // Need the normalized aka viewport bounds UV here for converting the warp.
         float2 framebufferUVNormalized = ComputeRasterizationRTUVNormalizedFromAbsolute(framebufferUVAbsolute);
         float2 crtUVNormalized = Warp(framebufferUVNormalized);
         float2 crtUVAbsolute = ComputeRasterizationRTUVAbsoluteFromNormalized(crtUVNormalized);
-
+        
         // Note: if we use the pure NDC coordinates, our vignette will be an ellipse, since we do not take into account physical distance differences from the aspect ratio.
         // Apply aspect ratio to get circular, physically based vignette:
         float2 crtNDCNormalized = crtUVNormalized * 2.0 - 1.0;
@@ -434,7 +528,6 @@ Shader "Hidden/HauntedPS1/CRT"
         float vignette = EvaluatePBRVignette(distanceFromCenterSquaredNDC, _CRTVignetteSquared);
 
         crt = float4(CRTMask(positionScreenSS * _CRTGrateMaskScale.y), 1.0f) * Tri(crtUVAbsolute);
-
         #if 1
         // Energy conserving normalized bloom.
         crt = lerp(crt, Bloom(crtUVAbsolute), _CRTBloom);    
@@ -484,90 +577,6 @@ Shader "Hidden/HauntedPS1/CRT"
 
     }
 
-    float3 QuadratureAmplitudeModulation(float3 colorYIQ, float2 positionFramebufferNDC)
-    {
-        float Y = colorYIQ.r;
-        float I = colorYIQ.g;
-        float Q = colorYIQ.b;
-
-        float lineNumber = 1;//positionFramebufferNDC.y;
-        float carrier_phase =
-            _NTSCHorizontalCarrierFrequency * positionFramebufferNDC.x +
-            _NTSCLinePhaseShift * lineNumber;
-        float s = sin(carrier_phase);
-        float c = cos(carrier_phase);
-
-        float modulated = I * s + Q * c;
-        float3 premultiplied = float3(Y, 2 * s * modulated, 2 * c * modulated);
-        
-        return premultiplied;
-    }
-
-    float Gaussian(int positionX, int halfRange)
-    {
-        return exp2(-.5 * (positionX / halfRange * positionX / halfRange));
-    }
-
-    float3 ComputeGaussianInYIQ(float2 positionFramebufferNDC)
-    {
-        float3 colorTotal = 0;
-        float weightTotal = 0.0;
-        
-        float2 positionFramebufferCenterPixels = positionFramebufferNDC * _ScreenSizeRasterizationRTScaled.xy;
-        int halfRange = 3;
-        for (int x = -halfRange; x <= halfRange; ++x)
-        {
-            // Convert from framebuffer normalized position to pixel position
-            float2 positionFramebufferCurrentPixels = positionFramebufferCenterPixels + float2(x * (_NTSCKernelWidthRatio * _NTSCHorizontalCarrierFrequency), 0);
-            float2 positionFramebufferCurrentNDC = positionFramebufferCurrentPixels * _ScreenSizeRasterizationRTScaled.zw;
-            
-            positionFramebufferCurrentNDC = ClampRasterizationRTUV(positionFramebufferCurrentNDC);
-            float3 colorCurrent = FCCYIQFromSRGB(FetchFrameBuffer(positionFramebufferCurrentNDC));
-
-            // Use the original offset value in order to keep it the same distance across resolutions
-            colorCurrent = QuadratureAmplitudeModulation(colorCurrent, positionFramebufferCurrentPixels);
-
-            // Fetch the Gauss weight at the current x offset position
-            float weightCurrent = Gaussian(x, halfRange);
-
-            colorTotal += colorCurrent * weightCurrent;
-            weightTotal += weightCurrent;
-        }
-
-        // After loop.
-        colorTotal /= weightTotal;        
-        
-        return colorTotal;
-    }
-    
-    float3 ComputeAnalogSignal(float2 positionFramebufferNDC)
-    {
-        if (_NTSCIsEnabled == 0) return FetchFrameBuffer(positionFramebufferNDC);
-
-        float2 offsetFlicker = (_NTSCFlickerScaleX * float2(sign(sin(_Time.y * (60 * _NTSCFlickerPercent)) * sign(sin(positionFramebufferNDC.y * _ScreenSizeRasterizationRTScaled.y * _NTSCFlickerScaleY))), 0))
-            * _ScreenSizeRasterizationRTScaled.zw;
-        positionFramebufferNDC += offsetFlicker;
-        positionFramebufferNDC = ClampRasterizationRTUV(positionFramebufferNDC);
-        float3 color = FetchFrameBuffer(positionFramebufferNDC);
-
-        // Convert color space to FCCYIQ
-        color = FCCYIQFromSRGB(color);
-
-        // color = QuadratureAmplitudeModulation(color, positionFB, positionSS);
-
-        float oldY = color.r;
-        
-        // Compute the Gaussian effect
-        color = ComputeGaussianInYIQ(positionFramebufferNDC);
-
-        color.r = oldY + (_NTSCSharpenPercent * (oldY - color.r));
-
-        // Convert back to SRGB
-        color = SRGBFromFCCYIQ(color);
-
-        return color;
-    }
-
     float4 Fragment(Varyings input) : SV_Target0
     {
         UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
@@ -596,7 +605,6 @@ Shader "Hidden/HauntedPS1/CRT"
         float4 outColor = EvaluateCRT(positionFramebufferNDC, positionScreenSS);
         outColor.rgb = saturate(outColor.rgb);
         outColor.rgb = LinearToSRGB(outColor.rgb);
-        //outColor.rgb = ComputeAnalogSignal(positionFramebufferNDC, positionScreenSS);
 
         return float4(outColor.rgb, outColor.a);
     }

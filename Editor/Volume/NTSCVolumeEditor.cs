@@ -20,6 +20,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         SerializedDataParameter m_FlickerPercent;
         SerializedDataParameter m_FlickerScaleX;
         SerializedDataParameter m_FlickerScaleY;
+        SerializedDataParameter m_UseTimeScale;
 
         public override void OnEnable()
         {
@@ -32,6 +33,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             m_FlickerPercent = Unpack(o.Find(x => x.flickerPercent));
             m_FlickerScaleX = Unpack(o.Find(x => x.flickerScaleX));
             m_FlickerScaleY = Unpack(o.Find(x => x.flickerScaleY));
+            m_UseTimeScale = Unpack(o.Find(x => x.useTimeScale));
         }
         
         public override void OnInspectorGUI()
@@ -51,6 +53,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PropertyField(m_FlickerPercent, EditorGUIUtility.TrTextContent("Flicker Percent", "Represents how fast the flicker effect animates relative to the current FPS."));
             PropertyField(m_FlickerScaleX, EditorGUIUtility.TrTextContent("Flicker Scale X", "How much to scale the flicker effect horizontally (default 0.1)."));
             PropertyField(m_FlickerScaleY, EditorGUIUtility.TrTextContent("Flicker Scale Y", "How much to scale the flicker effect vertically (default 4)."));
+            PropertyField(m_UseTimeScale, EditorGUIUtility.TrTextContent("Use Time Scale", "Setting this to true will cause the flicker effect to be effected by Time.timeScale."));
         }
         
     }

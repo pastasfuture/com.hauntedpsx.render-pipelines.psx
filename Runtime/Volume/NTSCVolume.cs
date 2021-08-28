@@ -17,7 +17,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public ClampedFloatParameter linePhaseShift = new ClampedFloatParameter(3.14f, 0, 6.28f);
         public ClampedFloatParameter flickerPercent = new ClampedFloatParameter(1f, 0f, 1f);
         public ClampedFloatParameter flickerScaleX = new ClampedFloatParameter(0.1f, 0f, 5f);
-        public ClampedFloatParameter flickerScaleY = new ClampedFloatParameter(4f, 1f, 5f);
+        public ClampedFloatParameter flickerScaleY = new ClampedFloatParameter(3f, 1f, 5f);
+        public BoolParameter useTimeScale = new BoolParameter(false);
         
         
         static NTSCVolume s_Default = null;
