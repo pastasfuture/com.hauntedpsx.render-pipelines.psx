@@ -900,6 +900,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetGlobalFloat(PSXShaderIDs._NTSCFlickerPercent, volumeSettings.flickerPercent.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._NTSCFlickerScaleX, volumeSettings.flickerScaleX.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._NTSCFlickerScaleY, volumeSettings.flickerScaleY.value);
+                cmd.SetGlobalInt(PSXShaderIDs._NTSCFlickerUseTimeScale, 
+                    volumeSettings.flickerUseTimeScale.value ? 1 : 0);
             }
         }
 
@@ -1906,8 +1908,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             if (animateMaterials)
             {
 #if UNITY_EDITOR
+                //time = Application.isPlaying ? Time.timeSinceLevelLoad : Time.realtimeSinceStartup;
                 time = Application.isPlaying ? Time.unscaledTime : Time.realtimeSinceStartup;
 #else
+            //time = Time.timeSinceLevelLoad;          
             time = Time.unscaledTime;
 #endif
             }

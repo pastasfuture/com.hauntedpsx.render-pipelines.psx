@@ -44,7 +44,7 @@ Shader "Hidden/HauntedPS1/CRT"
     float _NTSCFlickerPercent;
     float _NTSCFlickerScaleX;
     float _NTSCFlickerScaleY;
-    int _NTSCFlickerUseScaledTime;
+    int _NTSCFlickerUseTimeScale;
     TEXTURE2D(_FrameBufferTexture);
     TEXTURE2D(_WhiteNoiseTexture);
     TEXTURE2D(_BlueNoiseTexture);
@@ -171,7 +171,7 @@ Shader "Hidden/HauntedPS1/CRT"
 
     float Gaussian(int positionX, int halfRange)
     {
-        return exp2(-.5 * (positionX / halfRange * positionX / halfRange));
+        return exp2(-.5 * ((float)positionX / halfRange * (float)positionX / halfRange));
     }
 
     float3 ComputeGaussianInYIQ(float2 positionFramebufferNDC)
@@ -188,7 +188,7 @@ Shader "Hidden/HauntedPS1/CRT"
             float2 positionFramebufferCurrentNDC = positionFramebufferCurrentPixels * _ScreenSizeRasterizationRTScaled.zw;
             
             positionFramebufferCurrentNDC = ClampRasterizationRTUV(positionFramebufferCurrentNDC);
-            float3 colorCurrent = FCCYIQFromSRGB(FetchFrameBuffer(positionFramebufferCurrentNDC));
+            float3 colorCurrent = FCCYIQFromSRGB(FetchFrameBuffer(positionFramebufferCurrentNDC).rgb);
 
             // Use the original offset value in order to keep it the same distance across resolutions
             colorCurrent = QuadratureAmplitudeModulation(colorCurrent, positionFramebufferCurrentPixels);
@@ -206,33 +206,31 @@ Shader "Hidden/HauntedPS1/CRT"
         return colorTotal;
     }
     
-    float3 ComputeAnalogSignal(float2 positionFramebufferNDC)
+    float4 ComputeAnalogSignal(float2 positionFramebufferNDC)
     {
-        if (_NTSCIsEnabled == 0) return FetchFrameBuffer(positionFramebufferNDC);
-
         float4 time = _TimeUnscaled;
-        if (_NTSCFlickerUseScaledTime == 0) time = _Time;
+        if (_NTSCFlickerUseTimeScale == 1) time = _Time;
         float2 offsetFlicker = (_NTSCFlickerScaleX * float2(sign(sin(time.y * (60 * _NTSCFlickerPercent)) * sign(sin(positionFramebufferNDC.y * _ScreenSizeRasterizationRTScaled.y * _NTSCFlickerScaleY))), 0))
             * _ScreenSizeRasterizationRTScaled.zw;
         positionFramebufferNDC += offsetFlicker;
         
         positionFramebufferNDC = ClampRasterizationRTUV(positionFramebufferNDC);
-        float3 color = FetchFrameBuffer(positionFramebufferNDC);
+        float4 color = FetchFrameBuffer(positionFramebufferNDC);
 
         // Convert color space to FCCYIQ
-        color = FCCYIQFromSRGB(color);
+        color.rgb = FCCYIQFromSRGB(color.rgb);
 
         // color = QuadratureAmplitudeModulation(color, positionFB, positionSS);
 
         float oldY = color.r;
         
         // Compute the Gaussian effect
-        color = ComputeGaussianInYIQ(positionFramebufferNDC);
+        color.rgb = ComputeGaussianInYIQ(positionFramebufferNDC);
 
         color.r = oldY + (_NTSCSharpenPercent * (oldY - color.r));
 
         // Convert back to SRGB
-        color = SRGBFromFCCYIQ(color);
+        color.rgb = SRGBFromFCCYIQ(color.rgb);
 
         return color;
     }
@@ -247,9 +245,9 @@ Shader "Hidden/HauntedPS1/CRT"
         if (!ComputeRasterizationRTUVIsInBounds(pos)) { return float4(0.0, 0.0, 0.0, 0.0f); }
         float4 value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, FetchFrameBuffer(pos));
 
-        if (_NTSCIsEnabled)
+        if (_NTSCIsEnabled && _IsPSXQualityEnabled)
         {
-            value = float4(ComputeAnalogSignal(pos), 1);
+            value = float4(ComputeAnalogSignal(pos).rgb, 1);
         }
         
         value.rgb = SRGBToLinear(value.rgb);
@@ -595,7 +593,7 @@ Shader "Hidden/HauntedPS1/CRT"
         if (!_IsPSXQualityEnabled || !_CRTIsEnabled)
         {
             float4 sampleTex = SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0);
-            sampleTex.rgb = ComputeAnalogSignal(positionFramebufferNDC);
+            if (_NTSCIsEnabled == 1) sampleTex.rgb = ComputeAnalogSignal(positionFramebufferNDC);
             
             return ComputeRasterizationRTUVIsInBounds(positionFramebufferNDC.xy)
                 ? sampleTex

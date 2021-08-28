@@ -9,7 +9,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
     [Serializable, VolumeComponentMenu("HauntedPS1/NTSCVolume")]
     public class NTSCVolume : VolumeComponent
     {
-        public BoolParameter isEnabled = new BoolParameter(true);
+        public BoolParameter isEnabled = new BoolParameter(false);
         public ClampedFloatParameter horizontalCarrierFrequency = new ClampedFloatParameter(2.06f, 0.1f, 3f);
         public ClampedFloatParameter kernelWidthRatio = new ClampedFloatParameter(0.42f, 0.1f, 2f);
         //public ClampedFloatParameter kernelWidth = new ClampedFloatParameter(1f, 1f, 5f);
@@ -18,7 +18,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public ClampedFloatParameter flickerPercent = new ClampedFloatParameter(1f, 0f, 1f);
         public ClampedFloatParameter flickerScaleX = new ClampedFloatParameter(0.1f, 0f, 5f);
         public ClampedFloatParameter flickerScaleY = new ClampedFloatParameter(3f, 1f, 5f);
-        public BoolParameter useTimeScale = new BoolParameter(false);
+        public BoolParameter flickerUseTimeScale = new BoolParameter(false);
         
         
         static NTSCVolume s_Default = null;
