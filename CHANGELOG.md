@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Failed to present D3D11 swapchain due to device reset/removed.**
+---------------------------------------------------------------------------------------------------------------------------
+Fixed bug where editor crashed for some users when editor was setup with multiple viewports (i.e: scene view, game view, material preview).
+The bug turned out to be a bug within the SRP Batcher, triggered (but not directly caused) by some UnityPerMaterial layout changes in PSXLitInputs.hlsl.
+The SRP Batcher has been manually disabled in HPSXRP until the Unity engine bug is tracked down / resolved. 
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix: **CRT Shader Scanline Size and Vignette**
 ---------------------------------------------------------------------------------------------------------------------------
 Fixed bug where scanline size and vignette was incorrect when scaled render targets were encountered.

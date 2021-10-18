@@ -51,10 +51,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
         static void ConfigureSRPBatcherFromAsset(PSXRenderPipelineAsset asset)
         {
-            if (asset.isSRPBatcherEnabled)
-            {
-                GraphicsSettings.useScriptableRenderPipelineBatching = true;
-            }
+            // TODO: Re-enable SRP Batcher support once PSXLit materials are SRP Batcher compatible.
+            // Currently they are incompatible due to different variants sampling lightmap textures in the vertex shader and others sampling in the fragment shader.
+            // GraphicsSettings.useScriptableRenderPipelineBatching = asset.isSRPBatcherEnabled;
+            GraphicsSettings.useScriptableRenderPipelineBatching = false;
         }
 
         void FindComputeKernels()
