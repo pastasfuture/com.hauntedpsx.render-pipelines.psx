@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Lightmap baking errors when using vertex colors and per-pixel lighting**
+---------------------------------------------------------------------------------------------------------------------------
+Fixed bug where meta pass failed to compile with PSXLit variant where vertex colors were enabled, and per-pixel lighting was in use.
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix: **Canvas order is not considered for legacy Canvas UI**
 ---------------------------------------------------------------------------------------------------------------------------
 When rendering legacy canvas UI geometry, the sorting criteria was not set, so transparent UI was not sorted correctly. Additionally, the current cameras layer mask was not taken into consideration, so canvas UI geometry that was requested to be excluded from rendering from specific cameras was still rendered. Thanks for the tip Mika Notarnicola @thebeardphantom !
