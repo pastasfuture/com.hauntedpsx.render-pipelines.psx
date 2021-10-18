@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Canvas order is not considered for legacy Canvas UI**
+---------------------------------------------------------------------------------------------------------------------------
+When rendering legacy canvas UI geometry, the sorting criteria was not set, so transparent UI was not sorted correctly. Additionally, the current cameras layer mask was not taken into consideration, so canvas UI geometry that was requested to be excluded from rendering from specific cameras was still rendered. Thanks for the tip Mika Notarnicola @thebeardphantom !
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix: **Failed to present D3D11 swapchain due to device reset/removed.**
 ---------------------------------------------------------------------------------------------------------------------------
 Fixed bug where editor crashed for some users when editor was setup with multiple viewports (i.e: scene view, game view, material preview).

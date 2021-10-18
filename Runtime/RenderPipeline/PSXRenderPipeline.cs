@@ -1616,9 +1616,17 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         static void DrawLegacyCanvasUI(ScriptableRenderContext context, Camera camera, ref CullingResults cullingResults)
         {
             // Draw legacy Canvas UI meshes.
-            var sortingSettings = new SortingSettings(camera);
+            var sortingSettings = new SortingSettings(camera)
+            {
+                criteria = SortingCriteria.CommonTransparent
+            };
             var drawSettings = new DrawingSettings(PSXShaderPassNames.s_SRPDefaultUnlit, sortingSettings);
-            var filterSettings = FilteringSettings.defaultValue;
+            var filterSettings = new FilteringSettings()
+            {
+                layerMask = camera.cullingMask, // Respect the culling mask specified on the camera so that users can selectively omit specific layers from rendering to this camera.
+                renderingLayerMask = UInt32.MaxValue, // Everything
+                excludeMotionVectorObjects = false
+            };
             context.DrawRenderers(cullingResults, ref drawSettings, ref filterSettings);
         }
 
