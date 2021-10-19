@@ -691,16 +691,25 @@ float2 ApplyUVAnimationVertex(float2 uv, int uvAnimationMode, float2 uvAnimation
 
         if (uvAnimationMode == PSX_UV_ANIMATION_MODE_PAN_LINEAR)
         {
-            uvAnimated = uvAnimationParameters.xy * timeSeconds + uv; 
+            // frac() to limit range of pan to avoid texture sampler precision issues with large values.
+            uvAnimated = frac(uvAnimationParameters.xy * timeSeconds) + uv; 
         }
         else if (uvAnimationMode == PSX_UV_ANIMATION_MODE_PAN_SIN)
         {
             float2 frequency = uvAnimationParameters.xy;
             float2 scale = uvAnimationParameters.zw;
-            uvAnimated = float2(
+            float2 uvPannedBase = float2(
                 sin(timeSeconds * frequency.x),
                 sin(timeSeconds * frequency.y)
-            ) * scale + uv;
+            ) * scale;
+            float2 uvPannedBaseSign = float2(
+                (uvPannedBase.x >= 0.0f) ? 1.0f : -1.0f,
+                (uvPannedBase.y >= 0.0f) ? 1.0f : -1.0f
+            );
+            // frac() to limit range of pan to avoid texture sampler precision issues with large values.
+            uvPannedBase = frac(abs(uvPannedBase)) * uvPannedBaseSign;
+
+            uvAnimated = uvPannedBase + uv;
         }
         else if (uvAnimationMode == PSX_UV_ANIMATION_MODE_FLIPBOOK)
         {
