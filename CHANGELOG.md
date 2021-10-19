@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Grass is unaffected by realtime lights**
+---------------------------------------------------------------------------------------------------------------------------
+Terrain-based grass details did not receive light due to undefined _BRDF_MODE_LAMBERT keyword - which is now statically defined for grass. Thanks for the tip Mika Notarnicola @thebeardphantom !
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix: **Lightmap baking errors when using vertex colors and per-pixel lighting**
 ---------------------------------------------------------------------------------------------------------------------------
 Fixed bug where meta pass failed to compile with PSXLit variant where vertex colors were enabled, and per-pixel lighting was in use.

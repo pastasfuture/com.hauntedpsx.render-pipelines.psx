@@ -60,7 +60,13 @@ Shader "Hidden/TerrainEngine/Details/PSX/WavingDoublePass"
 
             #pragma vertex WavingGrassVert
             #pragma fragment LitPassFragmentGrass
+
+            // Force Enabled Material Keywords
+            // Grass shader has no method of assigning a material for toggling the keywords that would normally be user
+            // exposed such as in the PSXLit material.
+            // For now, simply enable all features we believe are relevant (at a performance cost).
             #define _ALPHATEST_ON
+            #define _BRDF_MODE_LAMBERT
 
             #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/Material/PSXTerrain/PSXWavingGrassInput.hlsl"
             #include "Packages/com.hauntedpsx.render-pipelines.psx/Runtime/Material/PSXTerrain/PSXWavingGrassPasses.hlsl"
@@ -108,6 +114,7 @@ Shader "Hidden/TerrainEngine/Details/PSX/WavingDoublePass"
             // -------------------------------------
             // Material Keywords
             #define _ALPHATEST_ON
+            #define _BRDF_MODE_LAMBERT
             // #pragma shader_feature _GLOSSINESS_FROM_BASE_ALPHA
 
             //--------------------------------------
