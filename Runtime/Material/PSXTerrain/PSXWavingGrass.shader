@@ -38,6 +38,7 @@ Shader "Hidden/TerrainEngine/Details/PSX/WavingDoublePass"
             // exposed such as in the PSXLit material.
             // For now, simply enable all features we believe are relevant (at a performance cost).
             // #pragma shader_feature _ _VERTEX_COLOR_MODE_COLOR _VERTEX_COLOR_MODE_LIGHTING
+            #pragma shader_feature _BRDF_MODE_LAMBERT _BRDF_MODE_WRAPPED_LIGHTING
             #define _LIGHTING_BAKED_ON
             #define _LIGHTING_DYNAMIC_ON
             // #define _SHADING_EVALUATION_MODE_PER_VERTEX
