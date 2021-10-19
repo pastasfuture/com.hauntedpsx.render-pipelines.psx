@@ -1,4 +1,53 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Fix Precision issues with UV Animation Pan Linear and Pan Sin Modes**
+---------------------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------------------------------
+new Material Feature: **Reflection Direction Mode**
+---------------------------------------------------------------------------------------------------------------------------
+Controls the direction reflections are sampled from.
+**Reflection** is the standard, physically-based (for fully smooth materials) approach.
+**Normal** simply uses the surface normal as the reflection sample direction. Useful for emulating old school "MatCap" materials.
+**View** uses the direction from the camera to the surface as the reflection sample direction. Useful for rendering portals.
+
+---------------------------------------------------------------------------------------------------------------------------
+Feature: **Dynamic Lights respect Camera Culling Mask**
+---------------------------------------------------------------------------------------------------------------------------
+If a dynamic light's layer is not included in a camera's culling mask, that light will be correctly ignored / hidden.
+
+---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Errors when using any other color LUT modes in the fog volume**
+---------------------------------------------------------------------------------------------------------------------------
+Fixed Per-Vertex Shading variant of Color LUT modes to correctly sample LOD 0 in the vertex shader (where gradients do not exist).
+Also fixed a few misc shader warnings.
+
+---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Do not compile Compression.compute on platforms that do not support it**
+---------------------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Grass is unaffected by realtime lights**
+---------------------------------------------------------------------------------------------------------------------------
+Terrain-based grass details did not receive light due to undefined _BRDF_MODE_LAMBERT keyword - which is now statically defined for grass. Thanks for the tip Mika Notarnicola @thebeardphantom !
+
+---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Lightmap baking errors when using vertex colors and per-pixel lighting**
+---------------------------------------------------------------------------------------------------------------------------
+Fixed bug where meta pass failed to compile with PSXLit variant where vertex colors were enabled, and per-pixel lighting was in use.
+
+---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Canvas order is not considered for legacy Canvas UI**
+---------------------------------------------------------------------------------------------------------------------------
+When rendering legacy canvas UI geometry, the sorting criteria was not set, so transparent UI was not sorted correctly. Additionally, the current cameras layer mask was not taken into consideration, so canvas UI geometry that was requested to be excluded from rendering from specific cameras was still rendered. Thanks for the tip Mika Notarnicola @thebeardphantom !
+
+---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Failed to present D3D11 swapchain due to device reset/removed.**
+---------------------------------------------------------------------------------------------------------------------------
+Fixed bug where editor crashed for some users when editor was setup with multiple viewports (i.e: scene view, game view, material preview).
+The bug turned out to be a bug within the SRP Batcher, triggered (but not directly caused) by some UnityPerMaterial layout changes in PSXLitInputs.hlsl.
+The SRP Batcher has been manually disabled in HPSXRP until the Unity engine bug is tracked down / resolved. 
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix: **CRT Shader Scanline Size and Vignette**
 ---------------------------------------------------------------------------------------------------------------------------
 Fixed bug where scanline size and vignette was incorrect when scaled render targets were encountered.

@@ -112,7 +112,7 @@ half4 LitMetaPassFragment(Varyings i) : SV_Target
 
 #if defined(_VERTEX_COLOR_MODE_COLOR)
     float4 vertexColorNormalized = i.color;
-    color = ApplyVertexColorPerPixelColorVertexColorModeColor(color, vertexColorNormalized, vertexColorBlendMode);
+    color = ApplyVertexColorPerPixelColorVertexColorModeColor(color, vertexColorNormalized, _VertexColorBlendMode);
 #elif defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND)
     color.rgb = lerp(i.color.rgb, color.rgb, color.a);
     color.a = 1.0f;

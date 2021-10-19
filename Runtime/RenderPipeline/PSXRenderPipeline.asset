@@ -14,8 +14,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   renderPipelineResources: {fileID: 11400000, guid: 444c631dc9ea6f5469b4e8f4cff2133b,
     type: 2}
-  targetRasterizationResolutionWidth: 256
-  targetRasterizationResolutionHeight: 224
-  isFrameLimitEnabled: 0
-  frameLimit: 24
-  isSRPBatcherEnabled: 1

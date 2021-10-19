@@ -47,6 +47,7 @@ Shader "Hidden/TerrainEngine/Details/PSX/BillboardWavingDoublePass"
             // #pragma shader_feature _ _ALPHAPREMULTIPLY_ON _ALPHAMODULATE_ON
             // #pragma shader_feature _REFLECTION_ON
             #define _FOG_ON
+            #define _BRDF_MODE_LAMBERT
 
             // -------------------------------------
             // Unity defined keywords
@@ -99,6 +100,7 @@ Shader "Hidden/TerrainEngine/Details/PSX/BillboardWavingDoublePass"
             // #pragma shader_feature _ _ALPHAPREMULTIPLY_ON _ALPHAMODULATE_ON
             // #pragma shader_feature _REFLECTION_ON
             // #define _FOG_ON
+            #define _BRDF_MODE_LAMBERT
 
             #pragma vertex DepthOnlyVertex
             #pragma fragment DepthOnlyFragment
