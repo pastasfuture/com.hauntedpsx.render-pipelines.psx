@@ -1651,6 +1651,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             var drawSettings = new DrawingSettings(PSXShaderPassNames.s_SRPDefaultUnlit, sortingSettings);
             var filterSettings = new FilteringSettings()
             {
+                renderQueueRange = RenderQueueRange.all,
                 layerMask = camera.cullingMask, // Respect the culling mask specified on the camera so that users can selectively omit specific layers from rendering to this camera.
                 renderingLayerMask = UInt32.MaxValue, // Everything
                 excludeMotionVectorObjects = false
