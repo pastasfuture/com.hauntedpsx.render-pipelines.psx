@@ -85,6 +85,13 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             Flip
         }
 
+        public enum ReflectionDirectionMode
+        {
+            Reflection = 0,
+            Normal,
+            View
+        }
+
         public enum ReflectionBlendMode
         {
             Additive = 0,
@@ -185,6 +192,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly string _ReflectionCubemap = "_ReflectionCubemap";
             public static readonly string _ReflectionTexture = "_ReflectionTexture";
             public static readonly string _ReflectionColor = "_ReflectionColor";
+            public static readonly string _ReflectionDirectionMode = "_ReflectionDirectionMode";
             public static readonly string _ReflectionBlendMode = "_ReflectionBlendMode";
             public static readonly string _DoubleSidedConstants = "_DoubleSidedConstants";
             public static readonly string _DoubleSidedNormalMode = "_DoubleSidedNormalMode";
@@ -235,6 +243,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             public static readonly int _ReflectionCubemap = Shader.PropertyToID(PropertyNames._ReflectionCubemap);
             public static readonly int _ReflectionTexture = Shader.PropertyToID(PropertyNames._ReflectionTexture);
             public static readonly int _ReflectionColor = Shader.PropertyToID(PropertyNames._ReflectionColor);
+            public static readonly int _ReflectionDirectionMode = Shader.PropertyToID(PropertyNames._ReflectionDirectionMode);
             public static readonly int _ReflectionBlendMode = Shader.PropertyToID(PropertyNames._ReflectionBlendMode);
             public static readonly int _DoubleSidedConstants = Shader.PropertyToID(PropertyNames._DoubleSidedConstants);
             public static readonly int _DoubleSidedNormalMode = Shader.PropertyToID(PropertyNames._DoubleSidedNormalMode);
@@ -415,6 +424,9 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             public static readonly GUIContent reflectionTexture = new GUIContent("Reflection Map",
                 "Sets a Texture map to use for controlling how reflective the surface is. You can also select a color with the color picker. Colors are multiplied over the Texture.");
+
+            public static readonly GUIContent reflectionDirectionMode = new GUIContent("Reflection Direction Mode",
+                "Controls the direction reflections are sampled from.\nReflection is the standard, physically-based (for fully smooth materials) approach.\nNormal simply uses the surface normal as the reflection sample direction. Useful for emulating old school \"MatCap\" materials.\n View uses the direction from the camera to the surface as the reflection sample direction. Useful for rendering portals.");
 
             public static readonly GUIContent reflectionBlendMode = new GUIContent("Reflection Blend Mode",
                 "Controls how reflections are blending with other incoming light at the surface. Additive is the standard, physically-based approach. Subtractive and Multiply blend modes are for special effects.");
@@ -893,8 +905,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             {
                 material.DisableKeyword(Keywords._REFLECTION_ON);
             }
-
-            ReflectionBlendMode reflectionBlendMode = (ReflectionBlendMode)material.GetInt(PropertyIDs._ReflectionBlendMode);
         }
 
         public static void SetupMaterialBRDFModeKeyword(Material material)
@@ -1061,6 +1071,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             Material material,
             MaterialEditor materialEditor,
             MaterialProperty reflectionProp,
+            MaterialProperty reflectionDirectionModeProp,
             MaterialProperty reflectionBlendModeProp,
             MaterialProperty reflectionCubemapProp,
             MaterialProperty reflectionTextureProp,
@@ -1076,6 +1087,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
             EditorGUI.BeginDisabledGroup(!reflection);
             {
+                DoPopup(Styles.reflectionDirectionMode, reflectionDirectionModeProp, Enum.GetNames(typeof(ReflectionDirectionMode)), materialEditor);
                 DoPopup(Styles.reflectionBlendMode, reflectionBlendModeProp, Enum.GetNames(typeof(ReflectionBlendMode)), materialEditor);
 
                 materialEditor.TexturePropertySingleLine(Styles.reflectionCubemap, reflectionCubemapProp);
