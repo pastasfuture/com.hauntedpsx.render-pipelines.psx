@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------------------------------
+new Material Feature: **Reflection Direction Mode**
+---------------------------------------------------------------------------------------------------------------------------
+Controls the direction reflections are sampled from.
+**Reflection** is the standard, physically-based (for fully smooth materials) approach.
+**Normal** simply uses the surface normal as the reflection sample direction. Useful for emulating old school "MatCap" materials.
+
+---------------------------------------------------------------------------------------------------------------------------
 Feature: **Dynamic Lights respect Camera Culling Mask**
 ---------------------------------------------------------------------------------------------------------------------------
 If a dynamic light's layer is not included in a camera's culling mask, that light will be correctly ignored / hidden.

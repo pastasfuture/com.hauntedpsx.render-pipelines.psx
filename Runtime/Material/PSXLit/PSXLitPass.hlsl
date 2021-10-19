@@ -144,7 +144,8 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
 
     float3 V = normalize(i.positionWS - _WorldSpaceCameraPos);
     float3 R = reflect(V, normalWS);
-    float4 reflectionCubemap = SAMPLE_TEXTURECUBE(_ReflectionCubemap, sampler_ReflectionCubemap, R);
+    float3 reflectionDirection = (_ReflectionDirectionMode == PSX_REFLECTION_DIRECTION_MODE_NORMAL) ? normalWS : R;
+    float4 reflectionCubemap = SAMPLE_TEXTURECUBE(_ReflectionCubemap, sampler_ReflectionCubemap, reflectionDirection);
     reflectionCubemap.rgb *= reflectionCubemap.a;
     reflectionCubemap.rgb = ApplyPrecisionColorToColorSRGB(float4(reflectionCubemap.rgb, 0.0f), precisionColor, precisionColorInverse).rgb;
     // TODO: Convert reflectionCubemap from SRGB to linear space, but only if an LDR texture was supplied...

@@ -85,6 +85,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
 
         protected MaterialProperty reflectionColorProp { get; set; }
 
+        protected MaterialProperty reflectionDirectionModeProp { get; set; }
+
         protected MaterialProperty reflectionBlendModeProp { get; set; }
 
         protected MaterialProperty doubleSidedNormalModeProp { get; set; }
@@ -142,6 +144,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             reflectionCubemapProp = FindProperty(PropertyNames._ReflectionCubemap, properties, false);
             reflectionTextureProp = FindProperty(PropertyNames._ReflectionTexture, properties, false);
             reflectionColorProp = FindProperty(PropertyNames._ReflectionColor, properties, false);
+            reflectionDirectionModeProp = FindProperty(PropertyNames._ReflectionDirectionMode, properties, false);
             reflectionBlendModeProp = FindProperty(PropertyNames._ReflectionBlendMode, properties, false);
             doubleSidedNormalModeProp = FindProperty(PropertyNames._DoubleSidedNormalMode, properties);
             doubleSidedConstantsProp = FindProperty(PropertyNames._DoubleSidedConstants, properties);
@@ -260,6 +263,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 material,
                 materialEditor,
                 reflectionProp,
+                reflectionDirectionModeProp,
                 reflectionBlendModeProp,
                 reflectionCubemapProp,
                 reflectionTextureProp,

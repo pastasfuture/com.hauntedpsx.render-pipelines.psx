@@ -29,6 +29,7 @@ SAMPLER(sampler_ReflectionCubemap);
 TEXTURE2D(_ReflectionTexture);
 SAMPLER(sampler_ReflectionTexture);
 float4 _ReflectionColor;
+int _ReflectionDirectionMode;
 int _ReflectionBlendMode;
 float4 _DoubleSidedConstants;
 int _UVAnimationMode;

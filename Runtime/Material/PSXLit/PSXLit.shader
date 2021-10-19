@@ -21,6 +21,7 @@
         _ReflectionCubemap("_ReflectionCubemap", Cube) = "black" {}
         _ReflectionTexture("_ReflectionTexture", 2D) = "white" {}
         _ReflectionColor("_ReflectionColor", Color) = (1,1,1,1)
+        _ReflectionDirectionMode("_ReflectionDirectionMode", Int) = 0
         _ReflectionBlendMode("_ReflectionBlendMode", Int) = 0
         [HideInInspector] _DoubleSidedConstants("_DoubleSidedConstants", Vector) = (1, 1, 1, 0)
         _UVAnimationMode("_UVAnimationMode", Float) = 0.0
