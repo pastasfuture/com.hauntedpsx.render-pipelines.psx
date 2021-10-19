@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Errors when using any other color LUT modes in the fog volume**
+---------------------------------------------------------------------------------------------------------------------------
+Fixed Per-Vertex Shading variant of Color LUT modes to correctly sample LOD 0 in the vertex shader (where gradients do not exist).
+Also fixed a few misc shader warnings.
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix: **Do not compile Compression.compute on platforms that do not support it**
 ---------------------------------------------------------------------------------------------------------------------------
 

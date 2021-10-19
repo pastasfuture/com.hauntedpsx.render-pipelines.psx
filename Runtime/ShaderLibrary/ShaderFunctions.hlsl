@@ -324,7 +324,26 @@ FogFalloffData EvaluateFogFalloffData(float3 positionWS, float3 cameraPositionWS
     return res;
 }
 
-float4 EvaluateFogFalloffColor(FogFalloffData fogFalloffData)
+float4 EvaluateFogFalloffColorPerVertex(FogFalloffData fogFalloffData)
+{
+    float4 fogColorLUTSample = float4(1.0f, 1.0f, 1.0f, 1.0f);
+
+#if defined(_FOG_COLOR_LUT_MODE_TEXTURE2D_DISTANCE_AND_HEIGHT)
+    // Flip Y so that LUT authoring is more intuitive: height fog min value is at the bottom of the texture and height fog max value is at the top.
+    float2 colorLUTUV = float2(fogFalloffData.falloffDistance, 1.0f - fogFalloffData.falloffHeight);
+    fogColorLUTSample = SAMPLE_TEXTURE2D_LOD(_FogColorLUTTexture2D, s_linear_clamp_sampler, colorLUTUV, 0);
+
+#elif defined(_FOG_COLOR_LUT_MODE_TEXTURECUBE)
+    fogColorLUTSample = SAMPLE_TEXTURECUBE_LOD(_FogColorLUTTextureCube, s_linear_clamp_sampler, fogFalloffData.falloffDirectionWS, 0);
+
+#else // defined(_FOG_COLOR_LUT_MODE_DISABLED)
+    fogColorLUTSample = float4(1.0f, 1.0f, 1.0f, 1.0f);    
+#endif
+
+    return fogColorLUTSample;
+}
+
+float4 EvaluateFogFalloffColorPerPixel(FogFalloffData fogFalloffData)
 {
     float4 fogColorLUTSample = float4(1.0f, 1.0f, 1.0f, 1.0f);
 

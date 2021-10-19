@@ -196,12 +196,12 @@ Light GetAdditionalLight(uint i, float3 positionWS, half4 shadowMask)
     return GetAdditionalPerObjectLight(perObjectLightIndex, positionWS, shadowMask);
 }
 
-int GetAdditionalLightsCount()
+uint GetAdditionalLightsCount()
 {
     // TODO: we need to expose in SRP api an ability for the pipeline cap the amount of lights
     // in the culling. This way we could do the loop branch with an uniform
     // This would be helpful to support baking exceeding lights in SH as well
-    return min(_AdditionalLightsCount.x, unity_LightData.y);
+    return (uint)(int)max(0.0, min(_AdditionalLightsCount.x, unity_LightData.y));
 }
 
 half3 LightingLambert(half3 lightColor, half3 lightDir, half3 normal)
@@ -223,17 +223,25 @@ half3 EvaluateDynamicLighting(float3 positionWS, half3 normalWS, half4 shadowMas
 {
 	half3 outgoingRadiance = 0.0h;
 	uint lightsCount = GetAdditionalLightsCount();
-    for (uint lightIndex = 0u; lightIndex < lightsCount; ++lightIndex)
+
+#if (SHADER_TARGET >= 30)
+    for (uint lightIndex = (uint)0u; lightIndex < lightsCount; ++lightIndex)
     {
-        Light light = GetAdditionalLight(lightIndex, positionWS, shadowMask);
-        half3 lightColor = light.color * light.distanceAttenuation;
+#else
+    for (uint lightIndex = (uint)0u; lightIndex < (uint)8u; ++lightIndex)
+    {
+        if (lightIndex < lightsCount)
+#endif
+        {
+            Light light = GetAdditionalLight(lightIndex, positionWS, shadowMask);
+            half3 lightColor = light.color * light.distanceAttenuation;
 
-    #if defined(_BRDF_MODE_LAMBERT)
-        outgoingRadiance += LightingLambert(lightColor, light.direction, normalWS);
-    #elif defined(_BRDF_MODE_WRAPPED_LIGHTING)
-        outgoingRadiance += LightingWrappedLighting(lightColor, light.direction, normalWS);
-    #endif
-
+        #if defined(_BRDF_MODE_LAMBERT)
+            outgoingRadiance += LightingLambert(lightColor, light.direction, normalWS);
+        #elif defined(_BRDF_MODE_WRAPPED_LIGHTING)
+            outgoingRadiance += LightingWrappedLighting(lightColor, light.direction, normalWS);
+        #endif
+        }
     }
     return outgoingRadiance;
 }

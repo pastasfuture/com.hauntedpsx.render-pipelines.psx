@@ -233,7 +233,7 @@ float4 ApplyVertexColorPerPixelColor(float4 color, float4 vertexColor, float aff
 #if defined(_VERTEX_COLOR_MODE_COLOR)
     res = ApplyVertexColorPerPixelColorVertexColorModeColor(color, vertexColorNormalized, vertexColorBlendMode);
 #elif defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND)
-    res.rgb = lerp(vertexColorNormalized, res.rgb, res.a);
+    res.rgb = lerp(vertexColorNormalized.rgb, res.rgb, res.a);
     res.a = 1.0f;
 #elif defined(_VERTEX_COLOR_MODE_ALPHA_ONLY) || defined(_VERTEX_COLOR_MODE_EMISSION_AND_ALPHA_ONLY)
     res.a *= vertexColorNormalized.a;
@@ -446,7 +446,7 @@ float4 EvaluateFogPerVertex(float3 objectPositionWS, float3 objectPositionVS, fl
     #endif
 
         FogFalloffData fogFalloffDataLayer0 = EvaluateFogFalloffData(evaluationPositionWS, _WorldSpaceCameraPos, evaluationPositionVS, _FogFalloffMode, _FogHeightFalloffMirrored == 1, _FogDistanceScaleBias, _FogFalloffCurvePower);
-        float4 fogFalloffColorLayer0 = EvaluateFogFalloffColor(fogFalloffDataLayer0);
+        float4 fogFalloffColorLayer0 = EvaluateFogFalloffColorPerVertex(fogFalloffDataLayer0);
         float fogAlpha = fogFalloffDataLayer0.falloff;
         fogAlpha *= _FogColor.a * lerp(1.0f, fogFalloffColorLayer0.a, _FogColorLUTWeight.x);
 
@@ -550,7 +550,7 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
     fogAlpha = vertexFog.a * affineWarpingScaleInverse;
 #elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
     FogFalloffData fogFalloffDataLayer0 = EvaluateFogFalloffData(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogHeightFalloffMirrored == 1, _FogDistanceScaleBias, _FogFalloffCurvePower);
-    float4 fogFalloffColorLayer0 = EvaluateFogFalloffColor(fogFalloffDataLayer0);
+    float4 fogFalloffColorLayer0 = EvaluateFogFalloffColorPerPixel(fogFalloffDataLayer0);
     fogAlpha = _FogColor.a * fogFalloffDataLayer0.falloff * lerp(1.0f, fogFalloffColorLayer0.a, _FogColorLUTWeight.x);
     
     // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
