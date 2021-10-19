@@ -1,4 +1,8 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Do not compile Compression.compute on platforms that do not support it**
+---------------------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix: **Grass is unaffected by realtime lights**
 ---------------------------------------------------------------------------------------------------------------------------
 Terrain-based grass details did not receive light due to undefined _BRDF_MODE_LAMBERT keyword - which is now statically defined for grass. Thanks for the tip Mika Notarnicola @thebeardphantom !
