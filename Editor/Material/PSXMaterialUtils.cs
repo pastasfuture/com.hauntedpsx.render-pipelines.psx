@@ -88,7 +88,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         public enum ReflectionDirectionMode
         {
             Reflection = 0,
-            Normal
+            Normal,
+            View
         }
 
         public enum ReflectionBlendMode
@@ -425,7 +426,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 "Sets a Texture map to use for controlling how reflective the surface is. You can also select a color with the color picker. Colors are multiplied over the Texture.");
 
             public static readonly GUIContent reflectionDirectionMode = new GUIContent("Reflection Direction Mode",
-                "Controls the direction reflections are sampled from.\nReflection is the standard, physically-based (for fully smooth materials) approach.\nNormal simply uses the surface normal as the reflection sample direction. Useful for emulating old school \"MatCap\" materials.");
+                "Controls the direction reflections are sampled from.\nReflection is the standard, physically-based (for fully smooth materials) approach.\nNormal simply uses the surface normal as the reflection sample direction. Useful for emulating old school \"MatCap\" materials.\n View uses the direction from the camera to the surface as the reflection sample direction. Useful for rendering portals.");
 
             public static readonly GUIContent reflectionBlendMode = new GUIContent("Reflection Blend Mode",
                 "Controls how reflections are blending with other incoming light at the surface. Additive is the standard, physically-based approach. Subtractive and Multiply blend modes are for special effects.");

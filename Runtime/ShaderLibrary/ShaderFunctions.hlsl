@@ -544,6 +544,18 @@ float2 ComputeRasterizationRTUVAbsoluteFromNormalized(float2 uvNormalized)
     return uvNormalized * _RasterizationRTScaledMaxSSAndUV.xy * _ScreenSizeRasterizationRTScaled.zw;
 }
 
-
+float3 EvaluateReflectionDirectionMode(int reflectionDirectionMode, float3 R, float3 N, float3 V)
+{
+    float3 reflectionDirection = R;
+    if (reflectionDirectionMode == PSX_REFLECTION_DIRECTION_MODE_NORMAL)
+    {
+        reflectionDirection = N;
+    }
+    else if (reflectionDirectionMode == PSX_REFLECTION_DIRECTION_MODE_VIEW)
+    {
+        reflectionDirection = V;
+    }
+    return reflectionDirection;
+}
 
 #endif

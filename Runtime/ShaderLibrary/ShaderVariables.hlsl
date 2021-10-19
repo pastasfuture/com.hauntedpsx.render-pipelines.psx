@@ -17,6 +17,7 @@
 // Warning: These definitions must stay in sync with ReflectionDirectionMode enum.
 #define PSX_REFLECTION_DIRECTION_MODE_REFLECTION (0)
 #define PSX_REFLECTION_DIRECTION_MODE_NORMAL (1)
+#define PSX_REFLECTION_DIRECTION_MODE_VIEW (2)
 
 // Warning: These definitions must stay in sync with ReflectionBlendMode enum.
 #define PSX_REFLECTION_BLEND_MODE_ADDITIVE (0)
