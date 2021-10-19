@@ -77,7 +77,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
                 EnsureAdditionalLightData(dynamicLightsMaxCount);
 
-                int additionalLightsCount = SetupPerObjectLightIndices(ref cullingResults, dynamicLightsMaxCount);
+                int additionalLightsCount = SetupPerObjectLightIndices(camera, ref cullingResults, dynamicLightsMaxCount);
                 if (additionalLightsCount == 0)
                 {
                     cmd.SetGlobalVector(PSXShaderIDs._AdditionalLightsCount, Vector4.zero);
@@ -87,7 +87,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 for (int i = 0, lightIter = 0; i < cullingResults.visibleLights.Length && lightIter < dynamicLightsMaxCount; ++i)
                 {
                     VisibleLight light = cullingResults.visibleLights[i];
-                    // if (lightData.mainLightIndex != i)
+                    if (IsLightLayerVisible(light.light.gameObject.layer, camera.cullingMask))
                     {
                         InitializeLightConstants(
                             cullingResults.visibleLights,
@@ -115,6 +115,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             }
         }
 
+        bool IsLightLayerVisible(int lightLayer, int cullingMask)
+        {
+            return ((1 << lightLayer) & cullingMask) > 0;
+        }
+
         void EnsureAdditionalLightData(int capacity)
         {
             Debug.Assert(capacity > 0);
@@ -129,14 +134,14 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             }
         }
 
-        int SetupPerObjectLightIndices(ref CullingResults cullingResults, int dynamicLightsMaxCount)
+        int SetupPerObjectLightIndices(Camera camera, ref CullingResults cullingResults, int dynamicLightsMaxCount)
         {
             Debug.Assert(dynamicLightsMaxCount > 0);
 
             var visibleLights = cullingResults.visibleLights;
 
             var perObjectLightIndexMap = cullingResults.GetLightIndexMap(Allocator.Temp);
-            int globalDirectionalLightsCount = 0;
+            int globalLightsSkippedCount = 0;
             int additionalLightsCount = 0;
 
             // Disable all directional lights from the perobject light indices
@@ -150,17 +155,22 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 // if (i == lightData.mainLightIndex)
                 // {
                 //     perObjectLightIndexMap[i] = -1;
-                //     ++globalDirectionalLightsCount;
+                //     ++globalLightsSkippedCount;
                 // }
-                // else
-                // {
-                    perObjectLightIndexMap[i] -= globalDirectionalLightsCount;
+                if (!IsLightLayerVisible(light.light.gameObject.layer, camera.cullingMask))
+                {
+                    perObjectLightIndexMap[i] = -1;
+                    ++globalLightsSkippedCount;
+                }
+                else
+                {
+                    perObjectLightIndexMap[i] -= globalLightsSkippedCount;
                     ++additionalLightsCount;
-                // }
+                }
             }
 
             // Disable all remaining lights we cannot fit into the global light buffer.
-            for (int i = globalDirectionalLightsCount + additionalLightsCount; i < perObjectLightIndexMap.Length; ++i)
+            for (int i = globalLightsSkippedCount + additionalLightsCount; i < perObjectLightIndexMap.Length; ++i)
                 perObjectLightIndexMap[i] = -1;
 
             cullingResults.SetLightIndexMap(perObjectLightIndexMap);        

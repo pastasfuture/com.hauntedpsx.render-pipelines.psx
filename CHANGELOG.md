@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Feature: **Dynamic Lights respect Camera Culling Mask**
+---------------------------------------------------------------------------------------------------------------------------
+If a dynamic light's layer is not included in a camera's culling mask, that light will be correctly ignored / hidden.
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix: **Errors when using any other color LUT modes in the fog volume**
 ---------------------------------------------------------------------------------------------------------------------------
 Fixed Per-Vertex Shading variant of Color LUT modes to correctly sample LOD 0 in the vertex shader (where gradients do not exist).
