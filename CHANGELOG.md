@@ -1,9 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
 New Volume Feature: **NTSC Volume**
 ---------------------------------------------------------------------------------------------------------------------------
-Produces an filtered image that resembles the output of an old television using Quadrature Amplatude Modulation. Use this as an alternative to the Cathode Ray Tube volume to achieve a different but distinct retro look.
+Produces a filtered image that resembles the output of an old television using Quadrature Amplatude Modulation. Use this as an alternative to the Cathode Ray Tube volume to achieve a different but distinct retro look.
 
-**Enabled**: ontrols whether the NTSC effect is active, which creates color bleeding and a natural blurriness.
+**Enabled**: Controls whether the NTSC effect is active, which creates color bleeding and a natural blurriness.
 IMPORTANT: This effect is not compatible with the Cathode Ray Tube Volume, and using them together can yield strange results.
 **Horizontal Carrier Frequency**: The carrier wave is driven by a very fast oscillator at a fixed frequency. Since the beam is travelling, the phase of the carrier is linear both in time but also in horizontal distance over a scanline. This value determines the frequency of the wave of the horizontal carrier. Ideally, this should be set to a value which makes the scanlines as hidden as possible. Doing it this way will create a "rainbowing" effect along edges, directly related to the scanline frequency produced by this value.
 **Kernel Width Ratio**: Controls the scale of the horizontal blur. To achieve the intended effect, this should be used to blur out the vertical lines produced by the Horizontal Carrier Frequency parameter.
