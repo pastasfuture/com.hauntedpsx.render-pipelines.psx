@@ -521,6 +521,7 @@ Shader "Hidden/HauntedPS1/CRT"
         float vignette = EvaluatePBRVignette(distanceFromCenterSquaredNDC, _CRTVignetteSquared);
 
         crt = float4(CRTMask(positionScreenSS * _CRTGrateMaskScale.y), 1.0f) * Tri(crtUVAbsolute);
+
         #if 1
         // Energy conserving normalized bloom.
         crt = lerp(crt, Bloom(crtUVAbsolute), _CRTBloom);    
