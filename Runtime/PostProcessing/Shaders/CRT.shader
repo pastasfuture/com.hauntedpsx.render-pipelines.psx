@@ -33,13 +33,15 @@ Shader "Hidden/HauntedPS1/CRT"
     float2 _CRTBloomSharpness;
     float _CRTNoiseIntensity;
     float _CRTNoiseSaturation;
+    int _CRTNoiseUseTimeScale;
     float2 _CRTGrateMaskIntensityMinMax;
     float2 _CRTBarrelDistortion;
     float _CRTVignetteSquared;
     int _NTSCIsEnabled;
     float _NTSCHorizontalCarrierFrequency;
+    float _NTSCKernelRadius;
     float _NTSCKernelWidthRatio;
-    float _NTSCSharpenPercent;
+    float _NTSCSharpness;
     float _NTSCLinePhaseShift;
     float _NTSCFlickerPercent;
     float _NTSCFlickerScaleX;
@@ -97,7 +99,8 @@ Shader "Hidden/HauntedPS1/CRT"
 
     float3 FetchNoise(float2 p, TEXTURE2D(noiseTextureSampler))
     {
-        float2 uv = float2(1.0f, cos(_Time.y)) * _Time.y * 8.0f + p;
+        float4 time = (_CRTNoiseUseTimeScale == 1) ? _Time : _TimeUnscaled;
+        float2 uv = float2(1.0f, cos(time.y)) * time.y * 8.0f + p;
 
         // Unfortunately, WebGL builds will ignore the sampler state passed into SAMPLE_TEXTURE2D functions, so we cannot force a texture to repeat
         // that was not specified to repeat in it's own settings via the sampler.
@@ -152,9 +155,9 @@ Shader "Hidden/HauntedPS1/CRT"
 
     float3 QuadratureAmplitudeModulation(float3 colorYIQ, float2 positionFramebufferNDC)
     {
-        float Y = colorYIQ.r;
-        float I = colorYIQ.g;
-        float Q = colorYIQ.b;
+        float Y = colorYIQ.x;
+        float I = colorYIQ.y;
+        float Q = colorYIQ.z;
 
         float lineNumber = 1;
         float carrier_phase =
@@ -169,9 +172,9 @@ Shader "Hidden/HauntedPS1/CRT"
         return premultiplied;
     }
 
-    float Gaussian(int positionX, int halfRange)
+    float Gaussian(int positionX, int kernelRadiusInverse)
     {
-        return exp2(-.5 * ((float)positionX / halfRange * (float)positionX / halfRange));
+        return exp2(-.5 * ((float)positionX * (float)positionX * (kernelRadiusInverse * kernelRadiusInverse)));
     }
 
     float3 ComputeGaussianInYIQ(float2 positionFramebufferNDC)
@@ -180,8 +183,7 @@ Shader "Hidden/HauntedPS1/CRT"
         float weightTotal = 0.0;
         
         float2 positionFramebufferCenterPixels = positionFramebufferNDC * _ScreenSizeRasterizationRTScaled.xy;
-        int halfRange = 3;
-        for (int x = -halfRange; x <= halfRange; ++x)
+        for (int x = -_NTSCKernelRadius; x <= _NTSCKernelRadius; ++x)
         {
             // Convert from framebuffer normalized position to pixel position
             float2 positionFramebufferCurrentPixels = positionFramebufferCenterPixels + float2(x * (_NTSCKernelWidthRatio * _NTSCHorizontalCarrierFrequency), 0);
@@ -193,14 +195,12 @@ Shader "Hidden/HauntedPS1/CRT"
             // Use the original offset value in order to keep it the same distance across resolutions
             colorCurrent = QuadratureAmplitudeModulation(colorCurrent, positionFramebufferCurrentPixels);
 
-            // Fetch the Gauss weight at the current x offset position
-            float weightCurrent = Gaussian(x, halfRange);
+            float weightCurrent = Gaussian(x, 1.0 / _NTSCKernelRadius);
 
             colorTotal += colorCurrent * weightCurrent;
             weightTotal += weightCurrent;
         }
 
-        // After loop.
         colorTotal /= weightTotal;        
         
         return colorTotal;
@@ -208,8 +208,7 @@ Shader "Hidden/HauntedPS1/CRT"
     
     float4 ComputeAnalogSignal(float2 positionFramebufferNDC)
     {
-        float4 time = _TimeUnscaled;
-        if (_NTSCFlickerUseTimeScale == 1) time = _Time;
+        float4 time = (_NTSCFlickerUseTimeScale == 1) ? _Time : _TimeUnscaled;
         float2 offsetFlicker = (_NTSCFlickerScaleX * float2(sign(sin(time.y * (60 * _NTSCFlickerPercent)) * sign(sin(positionFramebufferNDC.y * _ScreenSizeRasterizationRTScaled.y * _NTSCFlickerScaleY))), 0))
             * _ScreenSizeRasterizationRTScaled.zw;
         positionFramebufferNDC += offsetFlicker;
@@ -217,19 +216,15 @@ Shader "Hidden/HauntedPS1/CRT"
         positionFramebufferNDC = ClampRasterizationRTUV(positionFramebufferNDC);
         float4 color = FetchFrameBuffer(positionFramebufferNDC);
 
-        // Convert color space to FCCYIQ
         color.rgb = FCCYIQFromSRGB(color.rgb);
-
-        // color = QuadratureAmplitudeModulation(color, positionFB, positionSS);
 
         float oldY = color.r;
         
         // Compute the Gaussian effect
         color.rgb = ComputeGaussianInYIQ(positionFramebufferNDC);
 
-        color.r = oldY + (_NTSCSharpenPercent * (oldY - color.r));
+        color.r = oldY + (_NTSCSharpness * (oldY - color.r));
 
-        // Convert back to SRGB
         color.rgb = SRGBFromFCCYIQ(color.rgb);
 
         return color;
@@ -243,12 +238,12 @@ Shader "Hidden/HauntedPS1/CRT"
         float2 posNoiseCRT = floor(pos * _ScreenSize.xy + off * res * _ScreenSize.zw) * noiseTextureSize.zw;
         pos = (floor(pos * res + off) + 0.5) / res;
         if (!ComputeRasterizationRTUVIsInBounds(pos)) { return float4(0.0, 0.0, 0.0, 0.0f); }
+        
+#if defined(_NTSC_IS_ENABLED)
+        float4 value = float4(ComputeAnalogSignal(pos).rgb, 1);
+#else
         float4 value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, FetchFrameBuffer(pos));
-
-        if (_NTSCIsEnabled && _IsPSXQualityEnabled)
-        {
-            value = float4(ComputeAnalogSignal(pos).rgb, 1);
-        }
+#endif
         
         value.rgb = SRGBToLinear(value.rgb);
         return value;
@@ -502,13 +497,13 @@ Shader "Hidden/HauntedPS1/CRT"
     float4 EvaluateCRT(float2 framebufferUVAbsolute, float2 positionScreenSS)
     {
         float4 crt = 0.0;
-        
+
         // Carefully handle potentially scaled RT here:
         // Need the normalized aka viewport bounds UV here for converting the warp.
         float2 framebufferUVNormalized = ComputeRasterizationRTUVNormalizedFromAbsolute(framebufferUVAbsolute);
         float2 crtUVNormalized = Warp(framebufferUVNormalized);
         float2 crtUVAbsolute = ComputeRasterizationRTUVAbsoluteFromNormalized(crtUVNormalized);
-        
+
         // Note: if we use the pure NDC coordinates, our vignette will be an ellipse, since we do not take into account physical distance differences from the aspect ratio.
         // Apply aspect ratio to get circular, physically based vignette:
         float2 crtNDCNormalized = crtUVNormalized * 2.0 - 1.0;
@@ -592,11 +587,13 @@ Shader "Hidden/HauntedPS1/CRT"
 
         if (!_IsPSXQualityEnabled || !_CRTIsEnabled)
         {
-            float4 sampleTex = SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0);
-            if (_NTSCIsEnabled == 1) sampleTex.rgb = ComputeAnalogSignal(positionFramebufferNDC);
+            float4 sampleTexture = SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0);
+#if defined(_NTSC_IS_ENABLED)
+            sampleTexture.rgb = ComputeAnalogSignal(positionFramebufferNDC);
+#endif
             
             return ComputeRasterizationRTUVIsInBounds(positionFramebufferNDC.xy)
-                ? sampleTex
+                ? sampleTexture
                 : float4(0.0, 0.0, 0.0, 1.0);
         }
 
@@ -624,6 +621,7 @@ Shader "Hidden/HauntedPS1/CRT"
             #pragma target 3.0
 
             #pragma multi_compile _CRT_MASK_COMPRESSED_TV _CRT_MASK_APERTURE_GRILL _CRT_MASK_VGA _CRT_MASK_VGA_STRETCHED _CRT_MASK_TEXTURE _CRT_MASK_DISABLED
+            #pragma multi_compile _CRT_IS_ENABLED _NTSC_IS_ENABLED
 
             #pragma vertex Vertex
             #pragma fragment Fragment

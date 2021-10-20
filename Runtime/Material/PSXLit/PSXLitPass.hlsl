@@ -64,7 +64,7 @@ Varyings LitPassVertex(Attributes v)
     o.normalWS = EvaluateNormalDoubleSidedPerVertex(o.normalWS, o.positionWS, _WorldSpaceCameraPos);
     o.lighting = EvaluateLightingPerVertex(objectPositionWS, positionWS, o.normalWS, v.color, o.lightmapUV, o.uvw.z);
     o.fog = EvaluateFogPerVertex(objectPositionWS, objectPositionVS, positionWS, positionVS, o.uvw.z, _FogWeight, precisionColor, precisionColorInverse);
-    
+
     return o;
 }
 

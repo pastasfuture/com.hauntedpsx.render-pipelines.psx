@@ -21,6 +21,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         SerializedDataParameter m_BloomSharpnessY;
         SerializedDataParameter m_NoiseIntensity;
         SerializedDataParameter m_NoiseSaturation;
+        SerializedDataParameter m_NoiseUseTimeScale;
         SerializedDataParameter m_GrateMaskIntensityMin;
         SerializedDataParameter m_GrateMaskIntensityMax;
         SerializedDataParameter m_BarrelDistortionX;
@@ -41,6 +42,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             m_BloomSharpnessY = Unpack(o.Find(x => x.bloomSharpnessY));
             m_NoiseIntensity = Unpack(o.Find(x => x.noiseIntensity));
             m_NoiseSaturation = Unpack(o.Find(x => x.noiseSaturation));
+            m_NoiseUseTimeScale = Unpack(o.Find(x => x.noiseUseTimeScale));
             m_GrateMaskIntensityMin = Unpack(o.Find(x => x.grateMaskIntensityMin));
             m_GrateMaskIntensityMax = Unpack(o.Find(x => x.grateMaskIntensityMax));
             m_BarrelDistortionX = Unpack(o.Find(x => x.barrelDistortionX));
@@ -61,6 +63,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PropertyField(m_BloomSharpnessY, EditorGUIUtility.TrTextContent("Bloom Sharpness Y", "Controls the sharpness (height) of bloom (spatial ghosting) vertically (across scanlines)."));
             PropertyField(m_NoiseIntensity, EditorGUIUtility.TrTextContent("Noise Intensity", "Controls the intensity of the simulated analog noise in the video signal."));
             PropertyField(m_NoiseSaturation, EditorGUIUtility.TrTextContent("Noise Saturation", "Controls the Saturation of the simulated analog noise in the video signal. A value of 0.0 will produce pure place and white noise."));
+            PropertyField(m_NoiseUseTimeScale, EditorGUIUtility.TrTextContent("Use Time Scale", "Controls whether the noise uses scaled time."));
             PropertyField(m_GrateMaskIntensityMin, EditorGUIUtility.TrTextContent("Grate Mask Intensity Min", "Controls the blackpoint of the RGB color matrix cells."));
             PropertyField(m_GrateMaskIntensityMax, EditorGUIUtility.TrTextContent("Grate Mask Intensity Max", "Controls the whitepoint of the RGB color matrix cells."));
             PropertyField(m_BarrelDistortionX, EditorGUIUtility.TrTextContent("Barrel Distortion X", "Controls the intensity of the simulated CRT barrel distortion (fish bowl effect) horizontally."));

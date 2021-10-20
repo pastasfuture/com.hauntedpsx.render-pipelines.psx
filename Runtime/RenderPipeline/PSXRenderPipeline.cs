@@ -291,7 +291,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     PushGlobalRasterizationParameters(camera, cmd, rasterizationRT, rasterizationWidth, rasterizationHeight, hdrIsSupported);
                     PushQualityOverrideParameters(camera, cmd, isPSXQualityEnabled);
                     PushPrecisionParameters(camera, cmd, m_Asset);
-                    PushAnalogSignalParameters(camera, cmd, m_Asset);
+                    PushNTSCParameters(camera, cmd, m_Asset);
                     PushFogParameters(camera, cmd);
                     PushLightingParameters(camera, cmd);
                     PushTonemapperParameters(camera, cmd);
@@ -881,20 +881,21 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             }
         }
         
-        static void PushAnalogSignalParameters(Camera camera, CommandBuffer cmd, PSXRenderPipelineAsset asset)
+        static void PushNTSCParameters(Camera camera, CommandBuffer cmd, PSXRenderPipelineAsset asset)
         {
-            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushPrecisionParameters))
+            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushNTSCParameters))
             {
                 var volumeSettings = VolumeManager.instance.stack.GetComponent<NTSCVolume>();
                 if (!volumeSettings) volumeSettings = NTSCVolume.@default;
-                
+
                 cmd.SetGlobalInt(PSXShaderIDs._NTSCIsEnabled,
                     volumeSettings.isEnabled.value ? 1 : 0);
                 cmd.SetGlobalFloat(PSXShaderIDs._NTSCHorizontalCarrierFrequency,
                     volumeSettings.horizontalCarrierFrequency.value);
+                cmd.SetGlobalInt(PSXShaderIDs._NTSCKernelRadius, volumeSettings.kernelRadius.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._NTSCKernelWidthRatio, volumeSettings.kernelWidthRatio.value);
-                cmd.SetGlobalFloat(PSXShaderIDs._NTSCSharpenPercent,
-                    volumeSettings.sharpenPercent.value);
+                cmd.SetGlobalFloat(PSXShaderIDs._NTSCSharpness,
+                    volumeSettings.sharpness.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._NTSCLinePhaseShift,
                     volumeSettings.linePhaseShift.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._NTSCFlickerPercent, volumeSettings.flickerPercent.value);
@@ -1529,6 +1530,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
                 cmd.SetGlobalFloat(PSXShaderIDs._CRTNoiseIntensity, volumeSettings.noiseIntensity.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._CRTNoiseSaturation, volumeSettings.noiseSaturation.value);
+                cmd.SetGlobalInt(PSXShaderIDs._CRTNoiseUseTimeScale, volumeSettings.noiseUseTimeScale.value ? 1 : 0);
 
                 cmd.SetGlobalVector(PSXShaderIDs._CRTGrateMaskIntensityMinMax, new Vector2(volumeSettings.grateMaskIntensityMin.value * 2.0f, volumeSettings.grateMaskIntensityMax.value * 2.0f));
 
@@ -1538,6 +1540,19 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetGlobalVector(PSXShaderIDs._CRTBarrelDistortion, new Vector2(volumeSettings.barrelDistortionX.value * 0.125f, volumeSettings.barrelDistortionY.value * 0.125f));
             
                 cmd.SetGlobalFloat(PSXShaderIDs._CRTVignetteSquared, volumeSettings.vignette.value * volumeSettings.vignette.value);
+                
+                var ntscVolumeSettings = VolumeManager.instance.stack.GetComponent<NTSCVolume>();
+                if (!ntscVolumeSettings) ntscVolumeSettings = NTSCVolume.@default;
+                if (ntscVolumeSettings.isEnabled.value)
+                {
+                    crtMaterial.EnableKeyword(PSXShaderKeywords.s_NTSC_IS_ENABLED);
+                    crtMaterial.DisableKeyword(PSXShaderKeywords.s_CRT_IS_ENABLED);
+                }
+                else
+                {
+                    crtMaterial.EnableKeyword(PSXShaderKeywords.s_CRT_IS_ENABLED);
+                    crtMaterial.DisableKeyword(PSXShaderKeywords.s_NTSC_IS_ENABLED);
+                }
             }
         }
 
@@ -1917,10 +1932,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             if (animateMaterials)
             {
 #if UNITY_EDITOR
-                //time = Application.isPlaying ? Time.timeSinceLevelLoad : Time.realtimeSinceStartup;
                 time = Application.isPlaying ? Time.unscaledTime : Time.realtimeSinceStartup;
-#else
-            //time = Time.timeSinceLevelLoad;          
+#else      
             time = Time.unscaledTime;
 #endif
             }
