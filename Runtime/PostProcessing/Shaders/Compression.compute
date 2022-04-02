@@ -14,7 +14,7 @@
 #pragma kernel CSMain10 CSMain=CSMain10 _COMPRESSION_MODE_FAST _COLORSPACE_YCBCRJPEG
 #pragma kernel CSMain11 CSMain=CSMain11 _COMPRESSION_MODE_FAST _COLORSPACE_SRGB
 
-#pragma only_renderers d3d11
+#pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
 //The Input/Output Textures
 RWTexture2D<float4> _CompressionSource;
