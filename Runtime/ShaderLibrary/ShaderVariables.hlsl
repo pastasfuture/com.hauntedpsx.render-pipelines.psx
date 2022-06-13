@@ -138,16 +138,16 @@ float4x4 unity_WorldToObject;
 float4 unity_LODFade; // x is the fade value ranging within [0,1]. y is x quantized into 16 levels
 real4 unity_WorldTransformParams; // w is usually 1.0, or -1.0 for odd-negative scale transforms
 
+// Render Layer block feature
+// Only the first channel (x) contains valid data and the float must be reinterpreted using asuint() to extract the original 32 bits values.
+float4 unity_RenderingLayer;
+
 // Light Indices block feature
 // These are set internally by the engine upon request by RendererConfiguration.
 real4 unity_LightData;
 real4 unity_LightIndices[2];
 
 float4 unity_ProbesOcclusion;
-
-// Reflection Probe 0 block feature
-// HDR environment map decode instructions
-real4 unity_SpecCube0_HDR;
 
 // Lightmap block feature
 float4 unity_LightmapST;
@@ -161,6 +161,15 @@ real4 unity_SHBr;
 real4 unity_SHBg;
 real4 unity_SHBb;
 real4 unity_SHC;
+
+// Velocity
+float4x4 unity_MatrixPreviousM;
+float4x4 unity_MatrixPreviousMI;
+//X : Use last frame positions (right now skinned meshes are the only objects that use this
+//Y : Force No Motion
+//Z : Z bias value
+//W : Camera only
+float4 unity_MotionVectorsParams;
 CBUFFER_END
 
 // Dynamic Lighting:
@@ -213,6 +222,8 @@ float4x4 OptimizeProjectionMatrix(float4x4 M)
 #define UNITY_MATRIX_T_MV  transpose(UNITY_MATRIX_MV)
 #define UNITY_MATRIX_IT_MV transpose(mul(UNITY_MATRIX_I_M, UNITY_MATRIX_I_V))
 #define UNITY_MATRIX_MVP   mul(UNITY_MATRIX_VP, UNITY_MATRIX_M)
+#define UNITY_PREV_MATRIX_M unity_MatrixPreviousM
+#define UNITY_PREV_MATRIX_I_M unity_MatrixPreviousMI
 
 // These are the samplers available in the HDRenderPipeline.
 // Avoid declaring extra samplers as they are 4x SGPR each on GCN.
