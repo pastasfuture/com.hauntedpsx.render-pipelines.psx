@@ -906,6 +906,14 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 
                 float time = GetAnimatedMaterialsTime(camera);
                 cmd.SetGlobalVector(PSXShaderIDs._Time, new Vector4(time / 20.0f, time, time * 2.0f, time * 3.0f));
+
+                cmd.SetGlobalVector(PSXShaderIDs._SinTime, new Vector4(Mathf.Sin(time * 0.125f), Mathf.Sin(time * 0.25f), Mathf.Sin(time * 0.5f), Mathf.Sin(time)));
+                cmd.SetGlobalVector(PSXShaderIDs._CosTime, new Vector4(Mathf.Cos(time * 0.125f), Mathf.Cos(time * 0.25f), Mathf.Cos(time * 0.5f), Mathf.Cos(time)));
+                cmd.SetGlobalVector(PSXShaderIDs.unity_DeltaTime, new Vector4(Time.deltaTime, 1.0f / Time.deltaTime, Time.smoothDeltaTime, 1.0f / Time.smoothDeltaTime));
+                cmd.SetGlobalVector(PSXShaderIDs._TimeParameters, new Vector4(time, Mathf.Sin(time), Mathf.Cos(time), 0.0f));
+                
+                // TODO:
+                // cmd.SetGlobalVector(PSXShaderIDs._LastTimeParameters = new Vector4(lastTime, Mathf.Sin(lastTime), Mathf.Cos(lastTime), 0.0f));
             
                 Texture2D alphaClippingDitherTex = GetAlphaClippingDitherTexFromAssetAndFrame(asset, (uint)Time.frameCount);
                 cmd.SetGlobalTexture(PSXShaderIDs._AlphaClippingDitherTexture, alphaClippingDitherTex);
@@ -1871,7 +1879,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 #if UNITY_EDITOR
                 time = Application.isPlaying ? Time.timeSinceLevelLoad : Time.realtimeSinceStartup;
 #else
-            time = Time.timeSinceLevelLoad;
+                time = Time.timeSinceLevelLoad;
 #endif
             }
             else
