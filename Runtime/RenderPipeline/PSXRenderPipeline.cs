@@ -296,6 +296,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     PushTonemapperParameters(camera, cmd);
                     PushDynamicLightingParameters(camera, cmd, ref cullingResults);
                     PushSkyParameters(camera, cmd, skyMaterial, m_Asset, rasterizationWidth, rasterizationHeight);
+                    PushTerrainGrassParameters(camera, cmd, m_Asset, rasterizationWidth, rasterizationHeight);
                     PSXRenderPipeline.DrawFullScreenQuad(cmd, skyMaterial);
                     context.ExecuteCommandBuffer(cmd);
                     cmd.Release();
@@ -1256,6 +1257,75 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 }
 
                 cmd.SetGlobalFloat(PSXShaderIDs._SkyFramebufferDitherWeight, volumeSettings.framebufferDitherWeight.value);
+            }
+        }
+
+        static void PushTerrainGrassParameters(Camera camera, CommandBuffer cmd, PSXRenderPipelineAsset asset, int rasterizationWidth, int rasterizationHeight)
+        {
+            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_PushTerrainGrassParameters))
+            {
+                var volumeSettings = VolumeManager.instance.stack.GetComponent<TerrainGrassVolume>();
+                if (!volumeSettings) volumeSettings = TerrainGrassVolume.@default;
+
+                TerrainGrassVolume.TextureFilterMode textureFilterMode = volumeSettings.textureFilterMode.value;
+                switch (textureFilterMode)
+                {
+                    case TerrainGrassVolume.TextureFilterMode.TextureImportSettings:
+                        {
+                            cmd.EnableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                            break;
+                        }
+
+                    case TerrainGrassVolume.TextureFilterMode.Point:
+                        {
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                            cmd.EnableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                            break;
+                        }
+
+                    case TerrainGrassVolume.TextureFilterMode.PointMipmaps:
+                        {
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT);
+                            cmd.EnableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                            break;
+                        }
+
+                    case TerrainGrassVolume.TextureFilterMode.N64:
+                        {
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                            cmd.EnableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                            break;
+                        }
+
+                    case TerrainGrassVolume.TextureFilterMode.N64Mipmaps:
+                        {
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT_MIPMAPS);
+                            cmd.DisableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64);
+                            cmd.EnableShaderKeyword(PSXShaderKeywords.s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64_MIPMAPS);
+                            break;
+                        }
+
+                    default:
+                        {
+                            Debug.Assert(false, "Error: Encountered unsupported TextureFilterMode.");
+                            break;
+                        }
+                }
             }
         }
 
