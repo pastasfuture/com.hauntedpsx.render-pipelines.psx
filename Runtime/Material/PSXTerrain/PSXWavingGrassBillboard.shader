@@ -48,6 +48,7 @@ Shader "Hidden/TerrainEngine/Details/PSX/BillboardWavingDoublePass"
             // #pragma shader_feature _REFLECTION_ON
             #define _FOG_ON
             #define _BRDF_MODE_LAMBERT
+            #define _TEXTURE_FILTER_MODE_POINT
 
             // -------------------------------------
             // Unity defined keywords

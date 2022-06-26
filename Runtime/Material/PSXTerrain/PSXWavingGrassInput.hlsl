@@ -18,6 +18,7 @@ CBUFFER_END
 
 CBUFFER_START(UnityPerMaterial)
 float4 _MainTex_ST;
+float4 _MainTex_TexelSize;
 half4 _BaseColor;
 half4 _SpecColor;
 half4 _EmissionColor;

@@ -47,6 +47,7 @@ Shader "Hidden/TerrainEngine/Details/PSX/WavingDoublePass"
             // #pragma shader_feature _ _ALPHAPREMULTIPLY_ON _ALPHAMODULATE_ON
             // #pragma shader_feature _REFLECTION_ON
             #define _FOG_ON
+            #define _TEXTURE_FILTER_MODE_POINT
 
 
             // -------------------------------------
