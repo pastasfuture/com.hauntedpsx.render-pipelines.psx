@@ -176,9 +176,13 @@ half4 LitPassFragmentGrass(GrassVaryings i) : SV_Target
 
     float2 uv = i.uvw.xy * interpolatorNormalization;
 
-    float2 colorUV = TRANSFORM_TEX(uv, _MainTex);
+    float2 uvColor = TRANSFORM_TEX(uv, _MainTex);
 
-    float4 color = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, colorUV);
+    float4 texelSizeLod;
+    float lod;
+    ComputeLODAndTexelSizeMaybeCallDDX(texelSizeLod, lod, uvColor, _MainTex_TexelSize);
+    
+    float4 color = SampleTextureWithFilterMode(TEXTURE2D_ARGS(_MainTex, sampler_MainTex), uvColor, texelSizeLod, lod);
 
 #if defined(_ALPHATEST_ON)
     // Perform alpha cutoff transparency (i.e: discard pixels in the holes of a chain link fence texture, or in the negative space of a leaf texture).

@@ -32,6 +32,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_DrawAccumulationMotionBlurPreUIOverlayStr = "Accumulation Motion Blur Pre UI Overlay";
         public static readonly string s_DrawAccumulationMotionBlurPostUIOverlayStr = "Accumulation Motion Blur Post UI Overlay";
         public static readonly string s_DrawAccumulationMotionBlurFinalBlitStr = "Accumulation Motion Blur Final Blit";
+        public static readonly string s_PushTerrainGrassParametersStr = "Push Terrain Grass Parameters";
 
         public static ProfilingSampler s_PushCameraParameters = new ProfilingSampler(s_PushCameraParametersStr);
         public static ProfilingSampler s_PushGlobalRasterizationParameters = new ProfilingSampler(s_PushGlobalRasterizationParametersStr);
@@ -50,6 +51,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static ProfilingSampler s_DrawAccumulationMotionBlurPreUIOverlay = new ProfilingSampler(s_DrawAccumulationMotionBlurPreUIOverlayStr);
         public static ProfilingSampler s_DrawAccumulationMotionBlurPostUIOverlay = new ProfilingSampler(s_DrawAccumulationMotionBlurPostUIOverlayStr);
         public static ProfilingSampler s_DrawAccumulationMotionBlurFinalBlit = new ProfilingSampler(s_DrawAccumulationMotionBlurFinalBlitStr);
+        public static ProfilingSampler s_PushTerrainGrassParameters = new ProfilingSampler(s_PushTerrainGrassParametersStr);
     }
 
     internal static class PSXShaderPassNames
@@ -82,6 +84,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_TEXTURE_FILTER_MODE_POINT_MIPMAPS = "_TEXTURE_FILTER_MODE_POINT_MIPMAPS";
         public static readonly string s_TEXTURE_FILTER_MODE_N64 = "_TEXTURE_FILTER_MODE_N64";
         public static readonly string s_TEXTURE_FILTER_MODE_N64_MIPMAPS = "_TEXTURE_FILTER_MODE_N64_MIPMAPS";
+        public static readonly string s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS = "_TERRAIN_GRASS_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS";
+        public static readonly string s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT = "_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT";
+        public static readonly string s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT_MIPMAPS = "_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT_MIPMAPS";
+        public static readonly string s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64 = "_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64";
+        public static readonly string s_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64_MIPMAPS = "_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64_MIPMAPS";
         public static readonly string s_FOG_COLOR_LUT_MODE_DISABLED = "_FOG_COLOR_LUT_MODE_DISABLED";
         public static readonly string s_FOG_COLOR_LUT_MODE_TEXTURE2D_DISTANCE_AND_HEIGHT = "_FOG_COLOR_LUT_MODE_TEXTURE2D_DISTANCE_AND_HEIGHT";
         public static readonly string s_FOG_COLOR_LUT_MODE_TEXTURECUBE = "_FOG_COLOR_LUT_MODE_TEXTURECUBE";
