@@ -899,11 +899,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     volumeSettings.sharpness.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._NTSCLinePhaseShift,
                     volumeSettings.linePhaseShift.value);
-                cmd.SetGlobalFloat(PSXShaderIDs._NTSCFlickerPercent, volumeSettings.flickerPercent.value);
-                cmd.SetGlobalFloat(PSXShaderIDs._NTSCFlickerScaleX, volumeSettings.flickerScaleX.value);
-                cmd.SetGlobalFloat(PSXShaderIDs._NTSCFlickerScaleY, volumeSettings.flickerScaleY.value);
-                cmd.SetGlobalInt(PSXShaderIDs._NTSCFlickerUseTimeScale, 
-                    volumeSettings.flickerUseTimeScale.value ? 1 : 0);
             }
         }
 

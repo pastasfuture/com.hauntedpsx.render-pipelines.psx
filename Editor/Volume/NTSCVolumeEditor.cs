@@ -18,10 +18,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         SerializedDataParameter m_Sharpness;
         SerializedDataParameter m_HorizontalCarrierFrequency;
         SerializedDataParameter m_LinePhaseShift;
-        SerializedDataParameter m_FlickerPercent;
-        SerializedDataParameter m_FlickerScaleX;
-        SerializedDataParameter m_FlickerScaleY;
-        SerializedDataParameter m_FlickerUseTimeScale;
 
         public override void OnEnable()
         {
@@ -32,10 +28,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             m_KernelWidthRatio = Unpack(o.Find(x => x.kernelWidthRatio));
             m_Sharpness = Unpack(o.Find(x => x.sharpness));
             m_LinePhaseShift = Unpack(o.Find(x => x.linePhaseShift));
-            m_FlickerPercent = Unpack(o.Find(x => x.flickerPercent));
-            m_FlickerScaleX = Unpack(o.Find(x => x.flickerScaleX));
-            m_FlickerScaleY = Unpack(o.Find(x => x.flickerScaleY));
-            m_FlickerUseTimeScale = Unpack(o.Find(x => x.flickerUseTimeScale));
         }
         
         public override void OnInspectorGUI()
@@ -56,10 +48,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             PropertyField(m_Sharpness, EditorGUIUtility.TrTextContent("Sharpness", "How much to apply sharpening after blurring."));
             PropertyField(m_LinePhaseShift, EditorGUIUtility.TrTextContent("Line Phase Shift", 
                 "Offsets the wave produced by the Horizontal Carrier Frequency. In most cases this value is unnoticable, and is best left at the default of 3.14."));
-            PropertyField(m_FlickerPercent, EditorGUIUtility.TrTextContent("Flicker Percent", "Represents how fast the flicker effect animates relative to the current FPS."));
-            PropertyField(m_FlickerScaleX, EditorGUIUtility.TrTextContent("Flicker Scale X", "How much to scale the flicker effect horizontally (default 0.1)."));
-            PropertyField(m_FlickerScaleY, EditorGUIUtility.TrTextContent("Flicker Scale Y", "How much to scale the flicker effect vertically (default 4)."));
-            PropertyField(m_FlickerUseTimeScale, EditorGUIUtility.TrTextContent("Use Time Scale", "Controls whether the flicker uses scaled time."));
         }
         
     }

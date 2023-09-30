@@ -43,10 +43,6 @@ Shader "Hidden/HauntedPS1/CRT"
     float _NTSCKernelWidthRatio;
     float _NTSCSharpness;
     float _NTSCLinePhaseShift;
-    float _NTSCFlickerPercent;
-    float _NTSCFlickerScaleX;
-    float _NTSCFlickerScaleY;
-    int _NTSCFlickerUseTimeScale;
     TEXTURE2D(_FrameBufferTexture);
     TEXTURE2D(_WhiteNoiseTexture);
     TEXTURE2D(_BlueNoiseTexture);
@@ -208,11 +204,6 @@ Shader "Hidden/HauntedPS1/CRT"
     
     float4 ComputeAnalogSignal(float2 positionFramebufferNDC)
     {
-        float4 time = (_NTSCFlickerUseTimeScale == 1) ? _Time : _TimeUnscaled;
-        float2 offsetFlicker = (_NTSCFlickerScaleX * float2(sign(sin(time.y * (60 * _NTSCFlickerPercent)) * sign(sin(positionFramebufferNDC.y * _ScreenSizeRasterizationRTScaled.y * _NTSCFlickerScaleY))), 0))
-            * _ScreenSizeRasterizationRTScaled.zw;
-        positionFramebufferNDC += offsetFlicker;
-        
         positionFramebufferNDC = ClampRasterizationRTUV(positionFramebufferNDC);
         float4 color = FetchFrameBuffer(positionFramebufferNDC);
 

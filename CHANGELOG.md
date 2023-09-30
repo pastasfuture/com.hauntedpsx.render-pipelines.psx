@@ -8,10 +8,6 @@ Produces a filtered image that resembles the output of an old television using Q
 **Kernel Width Ratio**: Controls the scale of the horizontal blur. To achieve the intended effect, this should be used to blur out the vertical lines produced by the Horizontal Carrier Frequency parameter.
 **Sharpen**: How much to apply sharpening after blurring.
 **Line Phase Shift**: Offsets the wave produced by the Horizontal Carrier Frequency. In most cases this value is unnoticable, and is best left at the default of 3.14.
-**Flicker Percent**: Represents how fast the flicker effect animates relative to the current FPS.
-**Flicker Scale X**: How much to scale the flicker effect horizontally (default 0.1).
-**Flicker Scale Y**: How much to scale the flicker effect vertically (default 4).
-**Use Time Scale**: Setting this to true will cause the flicker effect to be effected by Time.timeScale.
 
 ---------------------------------------------------------------------------------------------------------------------------
 New Volume Feature: **Terrain Grass**
