@@ -96,6 +96,7 @@ Shader "Hidden/HauntedPS1/CRT"
     float3 FetchNoise(float2 p, TEXTURE2D(noiseTextureSampler))
     {
         float4 time = (_CRTNoiseUseTimeScale == 1) ? _Time : _TimeUnscaled;
+        time = floor(time * 60) * 0.167f;
         float2 uv = float2(1.0f, cos(time.y)) * time.y * 8.0f + p;
 
         // Unfortunately, WebGL builds will ignore the sampler state passed into SAMPLE_TEXTURE2D functions, so we cannot force a texture to repeat
