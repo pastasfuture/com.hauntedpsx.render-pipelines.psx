@@ -225,7 +225,7 @@ Shader "Hidden/HauntedPS1/CRT"
 
         color.r = oldY + (_NTSCSharpness * (oldY - color.r));
 
-        color.rgb = SRGBFromFCCYIQ(color.rgb);
+        color.rgb = SRGBFromFCCYIQ(color.rgb * color.a);
 
         return color;
     }
@@ -240,7 +240,7 @@ Shader "Hidden/HauntedPS1/CRT"
         if (!ComputeRasterizationRTUVIsInBounds(pos)) { return float4(0.0, 0.0, 0.0, 0.0f); }
         
 #if defined(_NTSC_IS_ENABLED)
-        float4 value = float4(ComputeAnalogSignal(pos).rgb, 1);
+        float4 value = ComputeAnalogSignal(pos);
 #else
         float4 value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, FetchFrameBuffer(pos));
 #endif
@@ -521,7 +521,7 @@ Shader "Hidden/HauntedPS1/CRT"
         float vignette = EvaluatePBRVignette(distanceFromCenterSquaredNDC, _CRTVignetteSquared);
 
         crt = float4(CRTMask(positionScreenSS * _CRTGrateMaskScale.y), 1.0f) * Tri(crtUVAbsolute);
-
+        
         #if 1
         // Energy conserving normalized bloom.
         crt = lerp(crt, Bloom(crtUVAbsolute), _CRTBloom);    
@@ -588,15 +588,19 @@ Shader "Hidden/HauntedPS1/CRT"
 
         if (!_IsPSXQualityEnabled || !_CRTIsEnabled)
         {
-            float4 sampleTexture = SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0);
 #if defined(_NTSC_IS_ENABLED)
-            sampleTexture.rgb = ComputeAnalogSignal(positionFramebufferNDC);
+            float4 sampleTexture = _IsPSXQualityEnabled ?
+                ComputeAnalogSignal(positionFramebufferNDC) :
+                SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0);
+#else
+            float4 sampleTexture = SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0);
 #endif
-            
+
             return ComputeRasterizationRTUVIsInBounds(positionFramebufferNDC.xy)
                 ? sampleTexture
                 : float4(0.0, 0.0, 0.0, 1.0);
         }
+
 
         float4 outColor = EvaluateCRT(positionFramebufferNDC, positionScreenSS);
         outColor.rgb = saturate(outColor.rgb);
