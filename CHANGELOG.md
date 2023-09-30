@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix PSXLit: **Enable GPU Instancing**
+---------------------------------------------------------------------------------------------------------------------------
+Enable GPU Instancing on PSXLit materials no works as expected. Multiple instanced draws may occur in a single instanced draw call without flickering in and out, as it did before.
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix UV Animation Mode: **Flipbook**
 ---------------------------------------------------------------------------------------------------------------------------
 Fixed flipbook uv calculation bugs that caused unintentional drop of final flipbook frame. Also fixed bug where texture filtering (if enabled) could bleed across flipbook page boundaries. Thanks for reporting the bug Visuwyg!

@@ -17,6 +17,7 @@ struct Attributes
     float3 normal : NORMAL;
     float4 color : COLOR;
     float2 lightmapUV : TEXCOORD1;
+    UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 
 struct Varyings
@@ -30,12 +31,15 @@ struct Varyings
     float4 fog : TEXCOORD5;
     float3 lighting : TEXCOORD6;
     float2 lightmapUV : TEXCOORD7;
+    UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 
 Varyings LitPassVertex(Attributes v)
 {
+    UNITY_SETUP_INSTANCE_ID(v);
     Varyings o;
     ZERO_INITIALIZE(Varyings, o);
+    UNITY_TRANSFER_INSTANCE_ID(v, o);
 
     float3 objectPositionWS = TransformObjectToWorld(float3(0.0f, 0.0f, 0.0f));
     float3 objectPositionVS = TransformWorldToView(objectPositionWS);
@@ -70,6 +74,8 @@ Varyings LitPassVertex(Attributes v)
 
 half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC) : SV_Target
 {
+    UNITY_SETUP_INSTANCE_ID(i);
+
     float2 positionSS = i.vertex.xy;
 
     // Remember, we multipled all interpolated vertex values by positionCS.w in order to counter contemporary hardware's perspective correct interpolation.
@@ -81,7 +87,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
 
     float2 uv = i.uvw.xy * interpolatorNormalization;
     float2 uvColor = TRANSFORM_TEX(uv, _MainTex);
-    
+
     float4 texelSizeLod;
     float lod;
     ComputeLODAndTexelSizeMaybeCallDDX(texelSizeLod, lod, uvColor, _MainTex_TexelSize);
@@ -175,7 +181,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
     color = ApplyFogToColor(fog, color);
 
 #if defined(_OUTPUT_LDR)
-    
+
 #if !defined(_BLENDMODE_TONEMAPPER_OFF)
     // Apply tonemapping and gamma correction.
     // This is a departure from classic PS1 games, but it allows for greater flexibility, giving artists more controls for creating the final look and feel of their game.
@@ -185,7 +191,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
         color.rgb = TonemapperGeneric(color.rgb);
     }
 #endif
-    
+
     color.rgb = LinearToSRGB(color.rgb);
 
     // Convert the final color value to 5:6:5 color space (default) - this will actually be whatever color space the user specified in the Precision Volume Override.
