@@ -16,6 +16,11 @@ IMPORTANT: This effect is not compatible with the Cathode Ray Tube Volume, and u
 **Use Time Scale**: Setting this to true will cause the flicker effect to be effected by Time.timeScale.
 
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix: **Compression compute shader compile on all supported platforms**
+---------------------------------------------------------------------------------------------------------------------------
+Compression.compute erroneously was flagged to only compile on dx11. Now flagged to compile on all platforms that support it.
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix: **Legacy Canvas UI no longer drawing**
 ---------------------------------------------------------------------------------------------------------------------------
 Legacy Canvas UI broken from the **Canvas order is not considered for legacy Canvas UI** commit. Both are now fixed.
