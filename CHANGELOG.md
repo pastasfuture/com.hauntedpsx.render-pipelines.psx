@@ -1,10 +1,8 @@
----------------------------------------------------------------------------------------------------------------------------
 New Volume Feature: **NTSC Volume**
 ---------------------------------------------------------------------------------------------------------------------------
 Produces a filtered image that resembles the output of an old television using Quadrature Amplatude Modulation. Use this as an alternative to the Cathode Ray Tube volume to achieve a different but distinct retro look.
 
 **Enabled**: Controls whether the NTSC effect is active, which creates color bleeding and a natural blurriness.
-IMPORTANT: This effect is not compatible with the Cathode Ray Tube Volume, and using them together can yield strange results.
 **Horizontal Carrier Frequency**: The carrier wave is driven by a very fast oscillator at a fixed frequency. Since the beam is travelling, the phase of the carrier is linear both in time but also in horizontal distance over a scanline. This value determines the frequency of the wave of the horizontal carrier. Ideally, this should be set to a value which makes the scanlines as hidden as possible. Doing it this way will create a "rainbowing" effect along edges, directly related to the scanline frequency produced by this value.
 **Kernel Radius**: Controls how many steps the Gaussian blur should take (default 3).
 **Kernel Width Ratio**: Controls the scale of the horizontal blur. To achieve the intended effect, this should be used to blur out the vertical lines produced by the Horizontal Carrier Frequency parameter.
@@ -14,6 +12,19 @@ IMPORTANT: This effect is not compatible with the Cathode Ray Tube Volume, and u
 **Flicker Scale X**: How much to scale the flicker effect horizontally (default 0.1).
 **Flicker Scale Y**: How much to scale the flicker effect vertically (default 4).
 **Use Time Scale**: Setting this to true will cause the flicker effect to be effected by Time.timeScale.
+
+---------------------------------------------------------------------------------------------------------------------------
+New Volume Feature: **Terrain Grass**
+---------------------------------------------------------------------------------------------------------------------------
+The Terrain Grass Volume allows the Haunted PSX Render Pipeline to expose additional custom properties for the Terrain Grass shaders.
+In the future, this Terrain Grass Volume will likely expose more HPSXRP material features that were previously unmodifiable on the Terrain Grass shaders.
+Special thanks to joshuaskelly for the first pass at the implementation of terrain grass filtering.
+**Texture Filter Mode**: Controls how the Terrain Grass textures are filtered.
+TextureFilterMode.TextureImportSettings is the standard unity behavior. Textures will be filtered using the texture's import settings.
+TextureFilterMode.Point will force PSX era nearest neighbor point sampling, regardless of texture import settings.
+TextureFilterMode.PointMipmaps is the same as TextureFilterMode.Point but supports supports point sampled lods via the texture's mipmap chain.
+TextureFilterMode.N64 will force N64 era 3-point barycentric texture filtering.
+TextureFilterMode.N64MipMaps is the same as TextureFilterMode.N64 but supports N64 sampled lods via the texture's mipmap chain.
 
 ---------------------------------------------------------------------------------------------------------------------------
 Bugfix: **Compression compute shader compile on all supported platforms**
@@ -72,7 +83,7 @@ Bugfix: **Failed to present D3D11 swapchain due to device reset/removed.**
 ---------------------------------------------------------------------------------------------------------------------------
 Fixed bug where editor crashed for some users when editor was setup with multiple viewports (i.e: scene view, game view, material preview).
 The bug turned out to be a bug within the SRP Batcher, triggered (but not directly caused) by some UnityPerMaterial layout changes in PSXLitInputs.hlsl.
-The SRP Batcher has been manually disabled in HPSXRP until the Unity engine bug is tracked down / resolved. 
+The SRP Batcher has been manually disabled in HPSXRP until the Unity engine bug is tracked down / resolved.
 
 ---------------------------------------------------------------------------------------------------------------------------
 Bugfix: **CRT Shader Scanline Size and Vignette**
@@ -144,12 +155,12 @@ To use Shadow Mask shadows:
 
 For more information on the Shadow Mask feature in unity, visit: https://docs.unity3d.com/Manual/LightMode-Mixed-Shadowmask.html
 
-Note: If ANY light source in your scene requests Shadow Mask, HPSXRP will use Shadow Mask mode for ALL Mixed light sources. You cannot have some lights set to Mixed and some lights set to baked. Of NO light sources request Shadow Mask, HPSXRP will automatically configure itself to expect Lighting Mode->Baked Indirect data. 
+Note: If ANY light source in your scene requests Shadow Mask, HPSXRP will use Shadow Mask mode for ALL Mixed light sources. You cannot have some lights set to Mixed and some lights set to baked. Of NO light sources request Shadow Mask, HPSXRP will automatically configure itself to expect Lighting Mode->Baked Indirect data.
 
 ---------------------------------------------------------------------------------------------------------------------------
 Bugfix Fog Volume: **Fog Color LUT Modes**
 ---------------------------------------------------------------------------------------------------------------------------
-Fixed WebGL compatibility issue with Fog Color LUT Modes. WebGL doesn't support SAMPLE_TEXTURE2D_LOD or SAMPLE_CUBE_LOD - replaced with SAMPLE_TEXTURE2D and SAMPLE_CUBE. The LOD call was unnecessary. 
+Fixed WebGL compatibility issue with Fog Color LUT Modes. WebGL doesn't support SAMPLE_TEXTURE2D_LOD or SAMPLE_CUBE_LOD - replaced with SAMPLE_TEXTURE2D and SAMPLE_CUBE. The LOD call was unnecessary.
 
 ---------------------------------------------------------------------------------------------------------------------------
 New Volume Feature: **Accumulation Motion Blur Volume**
@@ -203,7 +214,7 @@ New Fog Volume Feature: **Color LUT Texture**
 ---------------------------------------------------------------------------------------------------------------------------
 New Material Feature: **Shading Evaluation Mode: Per-Object**
 ---------------------------------------------------------------------------------------------------------------------------
-**Shading Evaluation Mode: Per-Object**: Evaluates lighting and fog at the object origin, rather than per-vertex or per-pixel. This is useful for replicating lighting and fog artifacts that would occur when per-vertex or per-pixel lighting could not be afforded. Note, this has approximately the same performance cost as per-vertex, it is not optimization. This is due to the fact that in our render pipeline (in the context of unity SRP), it is more convinient and likely more efficient to still perform lighting in the vertex shader, rather than running say a CPU-side job to calculate lighting per-object. 
+**Shading Evaluation Mode: Per-Object**: Evaluates lighting and fog at the object origin, rather than per-vertex or per-pixel. This is useful for replicating lighting and fog artifacts that would occur when per-vertex or per-pixel lighting could not be afforded. Note, this has approximately the same performance cost as per-vertex, it is not optimization. This is due to the fact that in our render pipeline (in the context of unity SRP), it is more convinient and likely more efficient to still perform lighting in the vertex shader, rather than running say a CPU-side job to calculate lighting per-object.
 
 ---------------------------------------------------------------------------------------------------------------------------
 Workflow Improvement: **Precision Volume->Geometry Pushback Disabled by Default**
