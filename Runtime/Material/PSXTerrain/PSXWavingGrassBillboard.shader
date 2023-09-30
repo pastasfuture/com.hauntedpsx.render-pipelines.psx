@@ -49,6 +49,22 @@ Shader "Hidden/TerrainEngine/Details/PSX/BillboardWavingDoublePass"
             #define _FOG_ON
             #define _BRDF_MODE_LAMBERT
 
+            #pragma shader_feature _TERRAIN_GRASS_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS _TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT _TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT_MIPMAPS _TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64 _TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64_MIPMAPS
+
+            #if defined(_TERRAIN_GRASS_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS)
+                #define _TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS
+            #elif defined(_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT)
+                #define _TEXTURE_FILTER_MODE_POINT
+            #elif defined(_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT_MIPMAPS)
+                #define _TEXTURE_FILTER_MODE_POINT_MIPMAPS
+            #elif defined(_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64)
+                #define _TEXTURE_FILTER_MODE_N64
+            #elif defined(_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64_MIPMAPS)
+                #define _TEXTURE_FILTER_MODE_N64_MIPMAPS
+            #else
+                #define _TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS
+            #endif
+
             // -------------------------------------
             // Unity defined keywords
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
@@ -101,6 +117,22 @@ Shader "Hidden/TerrainEngine/Details/PSX/BillboardWavingDoublePass"
             // #pragma shader_feature _REFLECTION_ON
             // #define _FOG_ON
             #define _BRDF_MODE_LAMBERT
+
+            #pragma shader_feature _TERRAIN_GRASS_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS _TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT _TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT_MIPMAPS _TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64 _TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64_MIPMAPS
+
+            #if defined(_TERRAIN_GRASS_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS)
+                #define _TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS
+            #elif defined(_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT)
+                #define _TEXTURE_FILTER_MODE_POINT
+            #elif defined(_TERRAIN_GRASS_TEXTURE_FILTER_MODE_POINT_MIPMAPS)
+                #define _TEXTURE_FILTER_MODE_POINT_MIPMAPS
+            #elif defined(_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64)
+                #define _TEXTURE_FILTER_MODE_N64
+            #elif defined(_TERRAIN_GRASS_TEXTURE_FILTER_MODE_N64_MIPMAPS)
+                #define _TEXTURE_FILTER_MODE_N64_MIPMAPS
+            #else
+                #define _TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS
+            #endif
 
             #pragma vertex DepthOnlyVertex
             #pragma fragment DepthOnlyFragment
