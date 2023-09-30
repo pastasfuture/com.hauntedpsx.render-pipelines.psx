@@ -13,8 +13,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
     static class PSXRenderPipelineAssetFactory
     {
     	static readonly string s_PackagePath = "Packages/com.hauntedpsx.render-pipelines.psx/";
-        
+
+#if UNITY_2021_2_OR_NEWER
+        [MenuItem("HauntedPS1/Create HauntedPS1 Render Pipeline Asset", priority = CoreUtils.Priorities.assetsCreateRenderingMenuPriority)]
+#else
         [MenuItem("HauntedPS1/Create HauntedPS1 Render Pipeline Asset", priority = CoreUtils.assetCreateMenuPriority1)]
+#endif
         static void CreatePSXRenderPipelineAsset()
         {
             var icon = EditorGUIUtility.FindTexture("ScriptableObject Icon");
@@ -35,7 +39,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
             }
         }
 
+#if UNITY_2021_2_OR_NEWER
+        [MenuItem("HauntedPS1/Create HauntedPS1 Render Pipeline Resources", priority = CoreUtils.Priorities.assetsCreateRenderingMenuPriority)]
+#else
         [MenuItem("HauntedPS1/Create HauntedPS1 Render Pipeline Resources", priority = CoreUtils.assetCreateMenuPriority1)]
+#endif
         static void CreatePSXRenderPipelineResources()
         {
             var icon = EditorGUIUtility.FindTexture("ScriptableObject Icon");
