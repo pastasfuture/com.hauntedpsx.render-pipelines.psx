@@ -98,7 +98,7 @@ Varyings LitMetaPassVertex(Attributes v)
         unity_LightmapST, unity_DynamicLightmapST);
     o.uv = v.uv0;
 
-#if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND)
+#if defined(_VERTEX_COLOR_MODE_COLOR) || defined(_VERTEX_COLOR_MODE_COLOR_BACKGROUND) || defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING)
     o.color = v.color;
 #endif
 
@@ -130,7 +130,7 @@ half4 LitMetaPassFragment(Varyings i) : SV_Target
     }
 
 #endif
-    
+
 #if _ALPHATEST_ON
     // Perform alpha cutoff transparency (i.e: discard pixels in the holes of a chain link fence texture, or in the negative space of a leaf texture).
     // Any alpha value < alphaClippingDither will trigger the pixel to be discarded, any alpha value greater than or equal to alphaClippingDither will trigger the pixel to be preserved.

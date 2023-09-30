@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix PSXLit: **MetaPass Uninitialized Vertex Color in Split Color and Lighting Mode**
+---------------------------------------------------------------------------------------------------------------------------
+Fix legitimate shader warning where the vertex color varying was not initialized when in vertex color mode split color and lighting.
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix PSXLit: **Enable GPU Instancing**
 ---------------------------------------------------------------------------------------------------------------------------
 Enable GPU Instancing on PSXLit materials no works as expected. Multiple instanced draws may occur in a single instanced draw call without flickering in and out, as it did before.
