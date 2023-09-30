@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix UV Animation Mode: **Flipbook**
+---------------------------------------------------------------------------------------------------------------------------
+Fixed flipbook uv calculation bugs that caused unintentional drop of final flipbook frame. Also fixed bug where texture filtering (if enabled) could bleed across flipbook page boundaries. Thanks for reporting the bug Visuwyg!
+
+
+---------------------------------------------------------------------------------------------------------------------------
 New Volume Feature: **Terrain Grass**
 ---------------------------------------------------------------------------------------------------------------------------
 The Terrain Grass Volume allows the Haunted PSX Render Pipeline to expose additional custom properties for the Terrain Grass shaders.

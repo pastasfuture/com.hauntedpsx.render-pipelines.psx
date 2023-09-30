@@ -22,7 +22,7 @@ void ApplyPrecisionColorOverride(out float3 precisionColorOut, out float3 precis
 {
     precisionColorOut = precisionColorIn;
     precisionColorInverseOut = precisionColorInverseIn;
-    
+
     if (!_IsPSXQualityEnabled)
     {
         // Nothing to do.
@@ -93,7 +93,7 @@ float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, 
         }
         else if (drawDistanceOverrideMode == PSX_DRAW_DISTANCE_OVERRIDE_MODE_OVERRIDE)
         {
-            drawDistance = drawDistanceOverride; 
+            drawDistance = drawDistanceOverride;
         }
         else if (drawDistanceOverrideMode == PSX_DRAW_DISTANCE_OVERRIDE_MODE_ADD)
         {
@@ -154,7 +154,7 @@ float4 ApplyPrecisionGeometryToPositionCS(float3 positionWS, float3 positionVS, 
             positionCS.xy = (positionSS * screenSizePrecisionGeometry.zw) * 2.0f - 1.0f;
             positionCS.xy *= w; // Unapply divide by W, as the hardware will automatically perform this transform between the vertex and fragment shaders.
         }
-        
+
     }
     return positionCS;
 }
@@ -323,7 +323,7 @@ float3 EvaluateLightingPerVertex(float3 objectPositionWS, float3 positionWS, flo
 
         lighting *= _BakedLightingMultiplier;
 #endif
-        
+
 #if defined(_VERTEX_COLOR_MODE_LIGHTING)
         lighting += SRGBToLinear(vertexColor.rgb) * _VertexColorLightingMultiplier;
 #elif defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING)
@@ -398,7 +398,7 @@ float3 EvaluateLightingPerPixel(float3 positionWS, float3 normalWS, float3 verte
 
         lighting *= _BakedLightingMultiplier;
 #endif
-        
+
 #if defined(_VERTEX_COLOR_MODE_LIGHTING) || defined(_VERTEX_COLOR_MODE_SPLIT_COLOR_AND_LIGHTING)
         lighting += vertexLighting * affineWarpingScaleInverse;
 #endif
@@ -470,7 +470,7 @@ float4 EvaluateFogPerVertex(float3 objectPositionWS, float3 objectPositionVS, fl
             // We store final fogColor as most-multiplied, rather than premultiplied.
             // This is necessary because we want to perform alpha discretization once, post alpha blending.
             // In order to do this, we need to compute the blend ratio between the two colors.
-            // Pre-multiplied blend example: 
+            // Pre-multiplied blend example:
             // fogColor = fogColor * (1.0f - fogAlphaLayer1) + fogColorLayer1;
             float fogColorWeight0 = fogAlpha * (1.0f - fogAlphaLayer1);
             float fogColorWeight1 = fogAlphaLayer1;
@@ -483,7 +483,7 @@ float4 EvaluateFogPerVertex(float3 objectPositionWS, float3 objectPositionVS, fl
         }
 
         fogAlpha *= fogWeight;
-        
+
         fogAlpha = saturate(floor(fogAlpha * _FogPrecisionAlphaAndInverse.x + 0.5f) * _FogPrecisionAlphaAndInverse.y);
 
         fog = float4(fogColor, fogAlpha);
@@ -552,7 +552,7 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
     FogFalloffData fogFalloffDataLayer0 = EvaluateFogFalloffData(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogHeightFalloffMirrored == 1, _FogDistanceScaleBias, _FogFalloffCurvePower);
     float4 fogFalloffColorLayer0 = EvaluateFogFalloffColorPerPixel(fogFalloffDataLayer0);
     fogAlpha = _FogColor.a * fogFalloffDataLayer0.falloff * lerp(1.0f, fogFalloffColorLayer0.a, _FogColorLUTWeight.x);
-    
+
     // TODO: We could perform this discretization and transform to linear space on the CPU side and pass in.
     // For now just do it here to make this code easier to refactor as we figure out the architecture.
     fogColor = floor(_FogColor.rgb * lerp(float3(1.0f, 1.0f, 1.0f), fogFalloffColorLayer0.rgb, _FogColorLUTWeight.x) * precisionColor + 0.5f) * precisionColorInverse;
@@ -571,7 +571,7 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
         // We store final fogColor as most-multiplied, rather than premultiplied.
         // This is necessary because we want to perform alpha discretization once, post alpha blending.
         // In order to do this, we need to compute the blend ratio between the two colors.
-        // Pre-multiplied blend example: 
+        // Pre-multiplied blend example:
         // fogColor = fogColor * (1.0f - fogAlphaLayer1) + fogColorLayer1;
         float fogColorWeight0 = fogAlpha * (1.0f - fogAlphaLayer1);
         float fogColorWeight1 = fogAlphaLayer1;
@@ -660,7 +660,7 @@ void ComputeLODAndTexelSizeMaybeCallDDX(out float4 texelSizeLod, out float lod, 
 
 float4 SampleTextureWithFilterMode(TEXTURE2D_PARAM(tex, samp), float2 uv, float4 texelSizeLod, float lod)
 {
-#if defined(_TEXTURE_FILTER_MODE_POINT) || defined(_TEXTURE_FILTER_MODE_POINT_MIPMAPS) 
+#if defined(_TEXTURE_FILTER_MODE_POINT) || defined(_TEXTURE_FILTER_MODE_POINT_MIPMAPS)
     return SampleTextureWithFilterModePoint(TEXTURE2D_ARGS(tex, samp), uv, texelSizeLod, lod);
 #elif defined(_TEXTURE_FILTER_MODE_N64) || defined(_TEXTURE_FILTER_MODE_N64_MIPMAPS)
     return SampleTextureWithFilterModeN64(TEXTURE2D_ARGS(tex, samp), uv, texelSizeLod, lod);
@@ -692,7 +692,7 @@ float2 ApplyUVAnimationVertex(float2 uv, int uvAnimationMode, float2 uvAnimation
         if (uvAnimationMode == PSX_UV_ANIMATION_MODE_PAN_LINEAR)
         {
             // frac() to limit range of pan to avoid texture sampler precision issues with large values.
-            uvAnimated = frac(uvAnimationParameters.xy * timeSeconds) + uv; 
+            uvAnimated = frac(uvAnimationParameters.xy * timeSeconds) + uv;
         }
         else if (uvAnimationMode == PSX_UV_ANIMATION_MODE_PAN_SIN)
         {
@@ -716,7 +716,7 @@ float2 ApplyUVAnimationVertex(float2 uv, int uvAnimationMode, float2 uvAnimation
             // Do nothing. This will be applied in the fragment shader.
         }
     }
-    
+
 
     return uvAnimated;
 }
@@ -740,7 +740,7 @@ float2 ApplyUVAnimationPixel(inout float4 texelSizeLod, inout float lod, float2 
 
         if (uvAnimationMode == PSX_UV_ANIMATION_MODE_PAN_LINEAR)
         {
-            // Do nothing. This was applied in the vertex shader. 
+            // Do nothing. This was applied in the vertex shader.
         }
         else if (uvAnimationMode == PSX_UV_ANIMATION_MODE_PAN_SIN)
         {
@@ -752,12 +752,18 @@ float2 ApplyUVAnimationPixel(inout float4 texelSizeLod, inout float lod, float2 
             float height = uvAnimationParameters.y;
             float tileCount = width * height;
 
+            // LOD caculation needs to take into account the scale of the flipbook,
+            // otherwise we will overblur the results.
+            float lodCorrected = max(0.0, lod - log2(min(width, height)));
+            texelSizeLod.xy *= exp2(lodCorrected - lod);
+            texelSizeLod.zw *= exp2(lod - lodCorrected);
+            lod = lodCorrected;
+
             float tileIndex = floor(timeSeconds * uvAnimationParameters.z);
 
             // Loop limit tileIndex to range [0, tileCount - 1].
-            float tileCountMinusOne = tileCount - 1.0;
-            tileIndex = floor(tileIndex / tileCountMinusOne) * -tileCountMinusOne + tileIndex;
-            
+            tileIndex = floor(tileIndex / tileCount) * -tileCount + tileIndex;
+
             float tileY = floor(tileIndex / width);
             float tileX = tileIndex - tileY * width;
 
@@ -775,23 +781,14 @@ float2 ApplyUVAnimationPixel(inout float4 texelSizeLod, inout float lod, float2 
             float2 tileScale = 1.0 / float2(width, height);
             float2 tileUvBase = float2(tileX, tileY) * tileScale;
 
-            // This compiles down to a fused-multiply-add, which is a single instruction.
-            // Alternatively, I could have written this as:
-            // uvAnimated = (uv + float2(tileX, tileY)) * tileScale;
-            // that would result in two instructions, and it would require the above flip logic to get more complicated
-            // (because presumably we skipped the pre-multiply by tileScale).
-            // All that to say, I prefer this version.
-            uvAnimated = frac(uv) * tileScale + tileUvBase;
+            float2 texelSizeLodHalf = 0.5 * texelSizeLod.xy;
 
-            // LOD caculation needs to take into account the scale of the flipbook,
-            // otherwise we will overblur the results.
-            float lodCorrected = max(0.0, lod - log2(min(width, height)));
-            texelSizeLod.xy *= exp2(lodCorrected - lod);
-            texelSizeLod.zw *= exp2(lod - lodCorrected);
-            lod = lodCorrected;
+            uvAnimated = frac(uv) * tileScale;
+            uvAnimated = clamp(uvAnimated, texelSizeLodHalf, tileScale - texelSizeLodHalf);
+            uvAnimated += tileUvBase;
         }
     }
-    
+
 
     return uvAnimated;
 }
