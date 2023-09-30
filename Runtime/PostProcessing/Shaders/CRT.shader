@@ -241,6 +241,7 @@ Shader "Hidden/HauntedPS1/CRT"
         
 #if defined(_NTSC_IS_ENABLED)
         float4 value = ComputeAnalogSignal(pos);
+        value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, value);
 #else
         float4 value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, FetchFrameBuffer(pos));
 #endif
