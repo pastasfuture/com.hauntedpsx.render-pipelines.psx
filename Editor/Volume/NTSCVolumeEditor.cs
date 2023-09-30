@@ -40,8 +40,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
         
         public override void OnInspectorGUI()
         {
-            PropertyField(m_isEnabled, EditorGUIUtility.TrTextContent("Enabled", "Controls whether the NTSC effect is active, which creates color bleeding and a natural blurriness." +
-                "\n\nIMPORTANT: This effect is not compatible with the Cathode Ray Tube Volume, and using them together can yield strange results."));
+            PropertyField(m_isEnabled, EditorGUIUtility.TrTextContent("Enabled", "Controls whether the NTSC effect is active, which creates color bleeding and a natural blurriness."));
             PropertyField(m_HorizontalCarrierFrequency, EditorGUIUtility.TrTextContent("Horizontal Carrier Frequency", 
                 "The carrier wave is driven by a very fast oscillator at a fixed frequency. Since the beam is travelling, " +
                 "the phase of the carrier is linear both in time but also in horizontal distance over a scanline. This value " +
