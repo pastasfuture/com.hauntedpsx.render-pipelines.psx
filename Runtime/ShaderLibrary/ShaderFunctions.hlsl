@@ -5,15 +5,20 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/SpaceTransforms.hlsl"
 
-float4x4 GetViewToWorldMatrix()
+// In Core versions less than 14.0 (2021 and older), GetViewToWorldMatrix and TransformViewToWorld are not defined yet in SpaceTransforms.hlsl.
+// But in 14.0, 2022 and up, they are.
+// Currently we have no way of detecting the version of core and static branching in our shaders.
+// Instead, we simply define our own PSX variants that mimic the functions in newer versions of SpaceTransforms.hlsl, and use those everywhere so that we always have compatability.
+float4x4 PSXGetViewToWorldMatrix()
 {
     return UNITY_MATRIX_I_V;
 }
 
-float3 TransformViewToWorld(float3 positionVS)
+float3 PSXTransformViewToWorld(float3 positionVS)
 {
-    return mul(GetViewToWorldMatrix(), float4(positionVS, 1.0)).xyz;
+    return mul(PSXGetViewToWorldMatrix(), float4(positionVS, 1.0)).xyz;
 }
+
 
 float TonemapperGenericScalar(float x)
 {

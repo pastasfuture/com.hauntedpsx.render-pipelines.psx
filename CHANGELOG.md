@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix 2022: Shader Functions **GetViewToWorldMatrix Declaration**
+---------------------------------------------------------------------------------------------------------------------------
+In Core versions less than 14.0 (2021 and older), GetViewToWorldMatrix and TransformViewToWorld are not defined yet in SpaceTransforms.hlsl.
+But in 14.0, 2022 and up, they are.
+Currently we have no way of detecting the version of core and static branching in our shaders.
+Instead, we simply define our own PSX variants that mimic the functions in newer versions of SpaceTransforms.hlsl, and use those everywhere so that we always have compatability.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Unity Version Support: **2021-LTS**
 ---------------------------------------------------------------------------------------------------------------------------
 Unity 2021 LTS is now the newest version that the Haunted PSX Render Pipeline now supports. Previously it only supported up to 2020-LTS.
