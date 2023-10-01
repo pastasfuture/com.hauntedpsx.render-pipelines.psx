@@ -149,8 +149,13 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
         internal void UpdateBeginFrame(PSXCameraUpdateContext context)
         {
+#if UNITY_2021_2_OR_NEWER
+            RTHandles.SetReferenceSize(context.rasterizationWidth, context.rasterizationHeight);
+            historyRTSystem.SwapAndSetReferenceSize(context.rasterizationWidth, context.rasterizationHeight);
+#else
             RTHandles.SetReferenceSize(context.rasterizationWidth, context.rasterizationHeight, MSAASamples.None);
             historyRTSystem.SwapAndSetReferenceSize(context.rasterizationWidth, context.rasterizationHeight, MSAASamples.None);
+#endif
 
             EnsureRasterizationRT(context);
             EnsureRasterizationPreUIRT(context);

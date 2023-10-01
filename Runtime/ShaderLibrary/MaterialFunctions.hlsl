@@ -430,11 +430,19 @@ float4 ApplyLightingToColor(float3 lighting, float4 color)
     return color;
 }
 
+#if !defined(_FOG_ON)
+#define _FOG_EVALUATION_MODE_DISABLED
+#elif (defined(_SHADING_EVALUATION_MODE_PER_VERTEX) || defined(_SHADING_EVALUATION_MODE_PER_OBJECT)) && !defined(_FOG_EVALUATION_MODE_FORCE_PER_PIXEL)
+#define _FOG_EVALUATION_MODE_PER_VERTEX
+#else
+#define _FOG_EVALUATION_MODE_PER_PIXEL
+#endif
+
 float4 EvaluateFogPerVertex(float3 objectPositionWS, float3 objectPositionVS, float3 positionWS, float3 positionVS, float affineWarpingScale, float fogWeight, float3 precisionColor, float3 precisionColorInverse)
 {
     float4 fog = 0.0f;
 
-#if defined(_FOG_ON) && (defined(_SHADING_EVALUATION_MODE_PER_VERTEX) || defined(_SHADING_EVALUATION_MODE_PER_OBJECT))
+#if defined(_FOG_EVALUATION_MODE_PER_VERTEX)
     if (_IsPSXQualityEnabled)
     {
     #if defined(_SHADING_EVALUATION_MODE_PER_OBJECT)
@@ -544,11 +552,10 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
     float3 fogColor = 0.0f;
     float fogAlpha = 0.0f;
 
-#if defined(_FOG_ON)
-#if (defined(_SHADING_EVALUATION_MODE_PER_VERTEX) || defined(_SHADING_EVALUATION_MODE_PER_OBJECT))
+#if defined(_FOG_EVALUATION_MODE_PER_VERTEX)
     fogColor = vertexFog.rgb * affineWarpingScaleInverse;
     fogAlpha = vertexFog.a * affineWarpingScaleInverse;
-#elif defined(_SHADING_EVALUATION_MODE_PER_PIXEL)
+#elif defined(_FOG_EVALUATION_MODE_PER_PIXEL)
     FogFalloffData fogFalloffDataLayer0 = EvaluateFogFalloffData(positionWS, _WorldSpaceCameraPos, positionVS, _FogFalloffMode, _FogHeightFalloffMirrored == 1, _FogDistanceScaleBias, _FogFalloffCurvePower);
     float4 fogFalloffColorLayer0 = EvaluateFogFalloffColorPerPixel(fogFalloffDataLayer0);
     fogAlpha = _FogColor.a * fogFalloffDataLayer0.falloff * lerp(1.0f, fogFalloffColorLayer0.a, _FogColorLUTWeight.x);
@@ -586,8 +593,6 @@ float4 EvaluateFogPerPixel(float3 positionWS, float3 positionVS, float2 position
     fogAlpha *= fogWeight;
 
     fogAlpha = ComputeFogAlphaDiscretization(fogAlpha, positionSS);
-#endif
-
 #endif
 
     return float4(fogColor, fogAlpha);

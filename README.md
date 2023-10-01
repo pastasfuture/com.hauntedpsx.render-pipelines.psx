@@ -1,7 +1,7 @@
 # com.hauntedpsx.render-pipelines.psx
 A scriptable render pipeline for emulating Playstation-1-style graphics on contemporary hardware.
 
-Built for, and verified in Unity version 2019.3, 2019.4 LTS, 2020.1, and 2020.2.
+Built for, and verified in Unity version 2019.3, 2019.4 LTS, 2020.1, 2020.2, 2020-LTS, 2021.1, 2021.2, 2021-LTS
 
 # Installation Guide
 https://github.com/pastasfuture/com.hauntedpsx.render-pipelines.psx/wiki/Installation-Guide
@@ -10,5 +10,7 @@ https://github.com/pastasfuture/com.hauntedpsx.render-pipelines.psx/wiki/Install
 The Haunted PS1 -> Collabs -> hpsxrp
 https://discord.com/invite/3Yg3Yhh
 
-# Itch.io
-https://hpsxrp.itch.io/
+# Primary Author Itch.io
+https://pastasfuture.itch.io
+and
+https://future-reality-softworks.itch.io/
