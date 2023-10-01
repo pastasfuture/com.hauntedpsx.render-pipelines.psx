@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+New Unity Version Support: **2021-LTS**
+---------------------------------------------------------------------------------------------------------------------------
+Unity 2021 LTS is now the newest version that the Haunted PSX Render Pipeline now supports. Previously it only supported up to 2020-LTS.
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix Fog Volume: **Color LUT Mode: Texture Cube**
 ---------------------------------------------------------------------------------------------------------------------------
 Many platforms, such as WebGL 2.0 do not support performing texture cube samples or loads in a vertex shader. This caused shaders in Color Lut Mode: Texture Cube to not compile in WebGL 2.0.
