@@ -36,6 +36,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public ClampedFloatParameter bloomSharpnessY = new ClampedFloatParameter(0.0f, 0.0f, 1.0f);
         public ClampedFloatParameter noiseIntensity = new ClampedFloatParameter(1.0f / 10.0f, 0.0f, 1.0f);
         public ClampedFloatParameter noiseSaturation = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
+        public BoolParameter noiseUseTimeScale = new BoolParameter(false);
         public ClampedFloatParameter grateMaskIntensityMin = new ClampedFloatParameter(0.25f, 0.0f, 1.0f);
         public ClampedFloatParameter grateMaskIntensityMax = new ClampedFloatParameter(0.75f, 0.0f, 1.0f);
         public ClampedFloatParameter barrelDistortionX = new ClampedFloatParameter(8.0f / 64.0f, 0.0f, 1.0f);

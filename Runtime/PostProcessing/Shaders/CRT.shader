@@ -33,14 +33,23 @@ Shader "Hidden/HauntedPS1/CRT"
     float2 _CRTBloomSharpness;
     float _CRTNoiseIntensity;
     float _CRTNoiseSaturation;
+    int _CRTNoiseUseTimeScale;
     float2 _CRTGrateMaskIntensityMinMax;
     float2 _CRTBarrelDistortion;
     float _CRTVignetteSquared;
+    int _NTSCIsEnabled;
+    float _NTSCHorizontalCarrierFrequency;
+    float _NTSCKernelRadius;
+    float _NTSCKernelWidthRatio;
+    float _NTSCSharpness;
+    float _NTSCLinePhaseShift;
     TEXTURE2D(_FrameBufferTexture);
     TEXTURE2D(_WhiteNoiseTexture);
     TEXTURE2D(_BlueNoiseTexture);
     TEXTURE2D(_CRTGrateMaskTexture);
 
+    static const float E = 2.71828;
+    
     // Emulated input resolution.
 #if 1
     // Fix resolution to set amount.
@@ -86,7 +95,9 @@ Shader "Hidden/HauntedPS1/CRT"
 
     float3 FetchNoise(float2 p, TEXTURE2D(noiseTextureSampler))
     {
-        float2 uv = float2(1.0f, cos(_Time.y)) * _Time.y * 8.0f + p;
+        float4 time = (_CRTNoiseUseTimeScale == 1) ? _Time : _TimeUnscaled;
+        time = floor(time * 60) * 0.167f;
+        float2 uv = float2(1.0f, cos(time.y)) * time.y * 8.0f + p;
 
         // Unfortunately, WebGL builds will ignore the sampler state passed into SAMPLE_TEXTURE2D functions, so we cannot force a texture to repeat
         // that was not specified to repeat in it's own settings via the sampler.
@@ -139,6 +150,78 @@ Shader "Hidden/HauntedPS1/CRT"
         return color;
     }
 
+    float3 QuadratureAmplitudeModulation(float3 colorYIQ, float2 positionFramebufferNDC)
+    {
+        float Y = colorYIQ.x;
+        float I = colorYIQ.y;
+        float Q = colorYIQ.z;
+
+        float lineNumber = 1;
+        float carrier_phase =
+            _NTSCHorizontalCarrierFrequency * positionFramebufferNDC.x +
+            _NTSCLinePhaseShift * lineNumber;
+        float s = sin(carrier_phase);
+        float c = cos(carrier_phase);
+
+        float modulated = I * s + Q * c;
+        float3 premultiplied = float3(Y, 2 * s * modulated, 2 * c * modulated);
+        
+        return premultiplied;
+    }
+
+    float Gaussian(int positionX, int kernelRadiusInverse)
+    {
+        return exp2(-.5 * ((float)positionX * (float)positionX * (kernelRadiusInverse * kernelRadiusInverse)));
+    }
+
+    float3 ComputeGaussianInYIQ(float2 positionFramebufferNDC)
+    {
+        float3 colorTotal = 0;
+        float weightTotal = 0.0;
+        
+        float2 positionFramebufferCenterPixels = positionFramebufferNDC * _ScreenSizeRasterizationRTScaled.xy;
+        for (int x = -_NTSCKernelRadius; x <= _NTSCKernelRadius; ++x)
+        {
+            // Convert from framebuffer normalized position to pixel position
+            float2 positionFramebufferCurrentPixels = positionFramebufferCenterPixels + float2(x * (_NTSCKernelWidthRatio * _NTSCHorizontalCarrierFrequency), 0);
+            float2 positionFramebufferCurrentNDC = positionFramebufferCurrentPixels * _ScreenSizeRasterizationRTScaled.zw;
+            
+            positionFramebufferCurrentNDC = ClampRasterizationRTUV(positionFramebufferCurrentNDC);
+            float3 colorCurrent = FCCYIQFromSRGB(FetchFrameBuffer(positionFramebufferCurrentNDC).rgb);
+
+            // Use the original offset value in order to keep it the same distance across resolutions
+            colorCurrent = QuadratureAmplitudeModulation(colorCurrent, positionFramebufferCurrentPixels);
+
+            float weightCurrent = Gaussian(x, 1.0 / _NTSCKernelRadius);
+
+            colorTotal += colorCurrent * weightCurrent;
+            weightTotal += weightCurrent;
+        }
+
+        colorTotal /= weightTotal;        
+        
+        return colorTotal;
+    }
+    
+    float4 ComputeAnalogSignal(float2 positionFramebufferNDC)
+    {
+        positionFramebufferNDC = ClampRasterizationRTUV(positionFramebufferNDC);
+        float4 color = FetchFrameBuffer(positionFramebufferNDC);
+
+        color.rgb = FCCYIQFromSRGB(color.rgb);
+
+        float oldY = color.r;
+        
+        // Compute the Gaussian effect
+        color.rgb = ComputeGaussianInYIQ(positionFramebufferNDC);
+
+        color.r = oldY + (_NTSCSharpness * (oldY - color.r));
+
+        color.rgb = SRGBFromFCCYIQ(color.rgb * color.a);
+
+        return color;
+    }
+
     // Nearest emulated sample given floating point position and texel offset.
     // Also zero's off screen.
     float4 Fetch(float2 pos, float2 off, TEXTURE2D(noiseTextureSampler), float4 noiseTextureSize)
@@ -147,7 +230,14 @@ Shader "Hidden/HauntedPS1/CRT"
         float2 posNoiseCRT = floor(pos * _ScreenSize.xy + off * res * _ScreenSize.zw) * noiseTextureSize.zw;
         pos = (floor(pos * res + off) + 0.5) / res;
         if (!ComputeRasterizationRTUVIsInBounds(pos)) { return float4(0.0, 0.0, 0.0, 0.0f); }
+        
+#if defined(_NTSC_IS_ENABLED)
+        float4 value = ComputeAnalogSignal(pos);
+        value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, value);
+#else
         float4 value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, FetchFrameBuffer(pos));
+#endif
+        
         value.rgb = SRGBToLinear(value.rgb);
         return value;
     }
@@ -424,7 +514,7 @@ Shader "Hidden/HauntedPS1/CRT"
         float vignette = EvaluatePBRVignette(distanceFromCenterSquaredNDC, _CRTVignetteSquared);
 
         crt = float4(CRTMask(positionScreenSS * _CRTGrateMaskScale.y), 1.0f) * Tri(crtUVAbsolute);
-
+        
         #if 1
         // Energy conserving normalized bloom.
         crt = lerp(crt, Bloom(crtUVAbsolute), _CRTBloom);    
@@ -491,10 +581,19 @@ Shader "Hidden/HauntedPS1/CRT"
 
         if (!_IsPSXQualityEnabled || !_CRTIsEnabled)
         {
+#if defined(_NTSC_IS_ENABLED)
+            float4 sampleTexture = _IsPSXQualityEnabled ?
+                ComputeAnalogSignal(positionFramebufferNDC) :
+                SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0);
+#else
+            float4 sampleTexture = SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0);
+#endif
+
             return ComputeRasterizationRTUVIsInBounds(positionFramebufferNDC.xy)
-                ? SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0)
+                ? sampleTexture
                 : float4(0.0, 0.0, 0.0, 1.0);
         }
+
 
         float4 outColor = EvaluateCRT(positionFramebufferNDC, positionScreenSS);
         outColor.rgb = saturate(outColor.rgb);
@@ -520,6 +619,7 @@ Shader "Hidden/HauntedPS1/CRT"
             #pragma target 3.0
 
             #pragma multi_compile _CRT_MASK_COMPRESSED_TV _CRT_MASK_APERTURE_GRILL _CRT_MASK_VGA _CRT_MASK_VGA_STRETCHED _CRT_MASK_TEXTURE _CRT_MASK_DISABLED
+            #pragma multi_compile _CRT_IS_ENABLED _NTSC_IS_ENABLED
 
             #pragma vertex Vertex
             #pragma fragment Fragment
