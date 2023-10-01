@@ -68,7 +68,7 @@ void ApplyGeometryPushbackToPosition(inout float3 positionWS, inout float3 posit
     if (geometryPushbackEnabled)
     {
         positionVS.z = (-positionVS.z < geometryPushbackDistanceMin || -positionVS.z > geometryPushbackDistanceMax) ? positionVS.z : -geometryPushbackDistanceMax;
-        positionWS = TransformViewToWorld(positionVS);
+        positionWS = PSXTransformViewToWorld(positionVS);
     }
 }
 
