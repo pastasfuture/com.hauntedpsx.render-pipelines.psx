@@ -18,7 +18,7 @@ float3 TransformViewToWorld(float3 positionVS)
 float TonemapperGenericScalar(float x)
 {
     return saturate(
-        pow(x, _TonemapperContrast) 
+        pow(x, _TonemapperContrast)
         / (pow(x, _TonemapperContrast * _TonemapperShoulder) * _TonemapperGraypointCoefficients.x + _TonemapperGraypointCoefficients.y)
     );
 }
@@ -69,7 +69,7 @@ float3 YUVNormalizedFromRGB(float3 rgb)
     const float2 UV_RANGE = UV_MAX - UV_MIN;
     const float2 UV_SCALE = 1.0 / UV_RANGE;
     const float2 UV_BIAS = -UV_MIN / UV_RANGE;
-    
+
     yuv.yz = yuv.yz * UV_SCALE + UV_BIAS;
 
     return yuv;
@@ -91,7 +91,7 @@ float3 RGBFromYUVNormalized(float3 yuv)
     const float2 UV_RANGE = UV_MAX - UV_MIN;
     const float2 UV_SCALE = UV_RANGE;
     const float2 UV_BIAS = UV_MIN;
-    
+
     yuv.yz  = yuv.yz * UV_SCALE + UV_BIAS;
 
     float3 rgb = RGBFromYUV(yuv);
@@ -301,14 +301,14 @@ FogFalloffData EvaluateFogFalloffData(float3 positionWS, float3 cameraPositionWS
     float falloffDistance = falloffDepth * fogDistanceScaleBias.x + fogDistanceScaleBias.y;
     falloffDistance = saturate(falloffDistance);
     falloffDistance = pow(falloffDistance, fogFalloffCurvePower);
-    
+
     float falloffHeight = positionWS.y;
     falloffHeight = falloffHeight * fogDistanceScaleBias.z + fogDistanceScaleBias.w;
     float falloffHeightSign = (falloffHeight >= 0.0f) ? 1.0f : -1.0f;
     falloffHeight = fogHeightFalloffMirrored ? abs(falloffHeight) : falloffHeight;
     falloffHeight = saturate(falloffHeight);
     falloffHeight = pow(falloffHeight, fogFalloffCurvePower);
-    
+
     float falloff = falloffDistance * falloffHeight;
 
     float falloffHeightForLUT = fogHeightFalloffMirrored
@@ -324,6 +324,12 @@ FogFalloffData EvaluateFogFalloffData(float3 positionWS, float3 cameraPositionWS
     return res;
 }
 
+// SAMPLE_TEXTURECUBE_LOD() is not supported in vertex shaders in SM 5.0 or lower (i.e: WebGL2)
+// Rather than branching feature support per platform, for consistency we force fog to be evaluated per pixel if _FOG_COLOR_LUT_MODE_TEXTURECUBE is requested.
+#if defined(_FOG_COLOR_LUT_MODE_TEXTURECUBE)
+#define _FOG_EVALUATION_MODE_FORCE_PER_PIXEL
+#endif
+
 float4 EvaluateFogFalloffColorPerVertex(FogFalloffData fogFalloffData)
 {
     float4 fogColorLUTSample = float4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -333,11 +339,8 @@ float4 EvaluateFogFalloffColorPerVertex(FogFalloffData fogFalloffData)
     float2 colorLUTUV = float2(fogFalloffData.falloffDistance, 1.0f - fogFalloffData.falloffHeight);
     fogColorLUTSample = SAMPLE_TEXTURE2D_LOD(_FogColorLUTTexture2D, s_linear_clamp_sampler, colorLUTUV, 0);
 
-#elif defined(_FOG_COLOR_LUT_MODE_TEXTURECUBE)
-    fogColorLUTSample = SAMPLE_TEXTURECUBE_LOD(_FogColorLUTTextureCube, s_linear_clamp_sampler, fogFalloffData.falloffDirectionWS, 0);
-
-#else // defined(_FOG_COLOR_LUT_MODE_DISABLED)
-    fogColorLUTSample = float4(1.0f, 1.0f, 1.0f, 1.0f);    
+#else // defined(_FOG_COLOR_LUT_MODE_DISABLED) || defined(_FOG_COLOR_LUT_MODE_TEXTURECUBE)
+    fogColorLUTSample = float4(1.0f, 1.0f, 1.0f, 1.0f);
 #endif
 
     return fogColorLUTSample;
@@ -356,7 +359,7 @@ float4 EvaluateFogFalloffColorPerPixel(FogFalloffData fogFalloffData)
     fogColorLUTSample = SAMPLE_TEXTURECUBE(_FogColorLUTTextureCube, s_linear_clamp_sampler,  fogFalloffData.falloffDirectionWS);
 
 #else // defined(_FOG_COLOR_LUT_MODE_DISABLED)
-    fogColorLUTSample = float4(1.0f, 1.0f, 1.0f, 1.0f);    
+    fogColorLUTSample = float4(1.0f, 1.0f, 1.0f, 1.0f);
 #endif
 
     return fogColorLUTSample;
@@ -384,7 +387,7 @@ bool EvaluateDrawDistanceIsVisible(float3 positionWS, float3 cameraPositionWS, f
     }
     else if (drawDistanceFalloffMode == PSX_DRAW_DISTANCE_FALLOFF_MODE_CYLINDRICAL)
     {
-        float2 offset = positionWS.xz - cameraPositionWS.xz; 
+        float2 offset = positionWS.xz - cameraPositionWS.xz;
         return dot(offset, offset) < drawDistanceSquared;
     }
     else // drawDistanceFalloffMode == PSX_DRAW_DISTANCE_FALLOFF_MODE_SPHERICAL
@@ -402,7 +405,7 @@ float ComputeLODFromTexelDDXDDY(float2 texelDDX, float2 texelDDY)
     // log2(1) == 0
     // clamp to lod 0 and guard against -infinity at the same time via max(1, x).
     ddMaxSquared = max(1.0f, ddMaxSquared);
-    
+
     // 0.5 * log2(x) == log2(sqrt(x))
     float lod = 0.5f * log2(ddMaxSquared);
 
