@@ -7,7 +7,11 @@ using HauntedPSX.RenderPipelines.PSX.Runtime;
 namespace HauntedPSX.RenderPipelines.PSX.Editor
 {
     [CanEditMultipleObjects]
+#if UNITY_2022_1_OR_NEWER
+    [CustomEditor(typeof(QualityOverrideVolume))]
+#else
     [VolumeComponentEditor(typeof(QualityOverrideVolume))]
+#endif
     public class QualityOverrideVolumeEditor : VolumeComponentEditor
     {
         SerializedDataParameter m_IsPSXQualityEnabled;
