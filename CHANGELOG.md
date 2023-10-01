@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+Bugfix 2022: Volume Editors **VolumeComponentEditor attribute deprecated**
+---------------------------------------------------------------------------------------------------------------------------
+VolumeComponentEditor attribute was deprecated in 2022. Simply use the CustomEditor attribute instead, which exists in all versions of unity that the haunted psx render pipeline supports.
+
+---------------------------------------------------------------------------------------------------------------------------
 Bugfix 2022: Shader Functions **GetViewToWorldMatrix Declaration**
 ---------------------------------------------------------------------------------------------------------------------------
 In Core versions less than 14.0 (2021 and older), GetViewToWorldMatrix and TransformViewToWorld are not defined yet in SpaceTransforms.hlsl.

@@ -7,7 +7,11 @@ using HauntedPSX.RenderPipelines.PSX.Runtime;
 namespace HauntedPSX.RenderPipelines.PSX.Editor
 {
     [CanEditMultipleObjects]
+#if UNITY_2022_1_OR_NEWER
+    [CustomEditor(typeof(TonemapperVolume))]
+#else
     [VolumeComponentEditor(typeof(TonemapperVolume))]
+#endif
     public class TonemapperVolumeEditor : VolumeComponentEditor
     {
         SerializedDataParameter m_IsEnabled;

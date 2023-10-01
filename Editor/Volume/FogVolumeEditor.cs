@@ -7,7 +7,11 @@ using HauntedPSX.RenderPipelines.PSX.Runtime;
 namespace HauntedPSX.RenderPipelines.PSX.Editor
 {
     [CanEditMultipleObjects]
+#if UNITY_2022_1_OR_NEWER
+    [CustomEditor(typeof(FogVolume))]
+#else
     [VolumeComponentEditor(typeof(FogVolume))]
+#endif
     public class FogVolumeEditor : VolumeComponentEditor
     {
         SerializedDataParameter m_IsEnabled;
@@ -136,7 +140,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                     PropertyField(m_HeightMinLayer1, EditorGUIUtility.TrTextContent("Height Min Secondary", "Controls the height that fog reaches full opacity. Only has an effect if Height Falloff Enabled is true."));
                     PropertyField(m_HeightMaxLayer1, EditorGUIUtility.TrTextContent("Height Max Secondary", "Controls the height that fog reaches zero opacity. Only has an effect if Height Falloff Enabled is true."));
                 }
-            
+
             }
         }
     }

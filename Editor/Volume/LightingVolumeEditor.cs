@@ -7,7 +7,11 @@ using HauntedPSX.RenderPipelines.PSX.Runtime;
 namespace HauntedPSX.RenderPipelines.PSX.Editor
 {
     [CanEditMultipleObjects]
+#if UNITY_2022_1_OR_NEWER
+    [CustomEditor(typeof(LightingVolume))]
+#else
     [VolumeComponentEditor(typeof(LightingVolume))]
+#endif
     public class LightingVolumeEditor : VolumeComponentEditor
     {
         SerializedDataParameter m_LightingIsEnabled;

@@ -7,7 +7,11 @@ using HauntedPSX.RenderPipelines.PSX.Runtime;
 namespace HauntedPSX.RenderPipelines.PSX.Editor
 {
     [CanEditMultipleObjects]
+#if UNITY_2022_1_OR_NEWER
+    [CustomEditor(typeof(CameraVolume))]
+#else
     [VolumeComponentEditor(typeof(CameraVolume))]
+#endif
     public class CameraVolumeEditor : VolumeComponentEditor
     {
         SerializedDataParameter m_IsFrameLimitEnabled;
@@ -41,7 +45,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Editor
                 PropertyField(m_FrameLimit, EditorGUIUtility.TrTextContent("Frame Limit", "Controls the target frame rate when frame limit is enabled."));
             }
 
-            
+
             PropertyField(m_AspectMode, EditorGUIUtility.TrTextContent("Aspect Ratio Mode", "Controls how the aspect ratio of the camera is handled.\nFree Stretch: Naive upscale from rasterization resolution to screen resolution. Results in pixel drop-out and moire interferance patterns when screen resolution is not an even multiple of rasterization resolution. Not reccomended.\nFree Fit Pixel Perfect: Upscale rasterization resolution to screen resolution by the max round multiple of rasterization resolution that can be contained within the screen. Perfectly preserves all pixels and dither patterns. Maintains aspect ratio. Results in black border when screen resolution is not an even multiple of rasterization resolution.\nFree Crop Pixel Perfect: Upscale rasterization resolution to screen resolution by the max round multiple of rasterization resolution that can completely fill the screen. Perfectly preserves all pixels and dither patterns. Maintains aspect ratio. Results in zoomed in image / change of aspect ration when screen resolution is not an even multiple of rasterization resolution.\nFree Bleed Pixel Perfect: Same as Free Fit Pixel Perfect, but the camera field of view is automatically expanded to fill areas that would otherwise require black borders.\nLocked Fit Pixel Perfect: Same as Free Fit Pixel Perfect, but enforces the aspect ratio defined by the rasterization resolution X and Y parameters. Useful for forcing a retro 4:3 aspect ratio on any screen.\nLocked Stretch: enforces the aspect ratio defined by the rasterization resolution X and Y parameters while upscaling in a pixel-imperfect way. Pixel dropping and duplication artifacts can occur.\nNative: Rasterizes at native camera resolution and aspect ratio. No scaling is performed."));
             if ((CameraVolume.CameraAspectMode)m_AspectMode.value.intValue != CameraVolume.CameraAspectMode.Native)
             {
