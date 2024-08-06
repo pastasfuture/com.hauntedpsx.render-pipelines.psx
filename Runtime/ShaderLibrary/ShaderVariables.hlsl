@@ -62,10 +62,18 @@
 #define PSX_VERTEX_COLOR_BLEND_MODE_ADDITIVE (1)
 #define PSX_VERTEX_COLOR_BLEND_MODE_SUBTRACTIVE (2)
 
-// Warning: These definitions must stay in sync with VertexColorBlendMode enum.
+// Warning: These definitions must stay in sync with LightingClampMode enum.
 #define PSX_LIGHTING_CLAMP_MODE_NONE (0)
 #define PSX_LIGHTING_CLAMP_MODE_CLAMP (1)
 #define PSX_LIGHTING_CLAMP_MODE_SOFT_CLAMP (2)
+
+// Warning: These definitions must stay in sync with UpscaleFilterMode enum.
+#define PSX_UPSCALE_FILTER_MODE_POINT (0)
+#define PSX_UPSCALE_FILTER_MODE_BILINEAR (1)
+#define PSX_UPSCALE_FILTER_MODE_N64_DOUBLER_X (2)
+#define PSX_UPSCALE_FILTER_MODE_N64_DOUBLER_Y (3)
+#define PSX_UPSCALE_FILTER_MODE_N64_DOUBLER_XY (4)
+#define PSX_UPSCALE_FILTER_MODE_N64_BLUR_BOX_2_X_2 (5)
 
 // Globals:
 // Unity Standard:
