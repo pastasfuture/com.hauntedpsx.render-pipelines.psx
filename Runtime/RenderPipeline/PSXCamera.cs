@@ -42,7 +42,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         private uint cameraFrameCount;
         private uint cameraAccumulationMotionBlurFrameCount;
         private uint cameraAccumulationMotionBlurBufferCount;
+        private int rasterizationPreviousWidth;
+        private int rasterizationPreviousHeight;
         private BufferedRTHandleSystem historyRTSystem = new BufferedRTHandleSystem();
+        internal RTHandle rasterizationMaybeMSAART = default;
+        internal RTHandle rasterizationMaybeMSAADepthStencilRT = default;
 
         internal PSXCamera(Camera cam)
         {
@@ -57,6 +61,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             cameraFrameCount = 0;
             cameraAccumulationMotionBlurFrameCount = 0;
             cameraAccumulationMotionBlurBufferCount = 0;
+            rasterizationPreviousWidth = 0;
+            rasterizationPreviousHeight = 0;
         }
 
         internal void ResetAccumulationMotionBlurFrameCount()
@@ -139,6 +145,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
         internal struct PSXCameraUpdateContext
         {
+            public PSXMSAAHandleSystem msaaHandleSystem;
+            public MSAASamples rasterizationMSAASamples;
             public int rasterizationWidth;
             public int rasterizationHeight;
             public bool rasterizationHistoryRequested;
@@ -149,27 +157,94 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
         internal void UpdateBeginFrame(PSXCameraUpdateContext context)
         {
+            RTHandleSystem maybeMSAAHandleSystem = context.msaaHandleSystem.Ensure(context.rasterizationMSAASamples, context.rasterizationWidth, context.rasterizationHeight);
+
 #if UNITY_2021_2_OR_NEWER
             RTHandles.SetReferenceSize(context.rasterizationWidth, context.rasterizationHeight);
             historyRTSystem.SwapAndSetReferenceSize(context.rasterizationWidth, context.rasterizationHeight);
+            rtHandleSystem.SetReferenceSize(context.rasterizationWidth, context.rasterizationHeight);
 #else
             RTHandles.SetReferenceSize(context.rasterizationWidth, context.rasterizationHeight, MSAASamples.None);
             historyRTSystem.SwapAndSetReferenceSize(context.rasterizationWidth, context.rasterizationHeight, MSAASamples.None);
+            maybeMSAAHandleSystem.SetReferenceSize(context.rasterizationWidth, context.rasterizationHeight, context.rasterizationMSAASamples);
 #endif
 
-            EnsureRasterizationRT(context);
-            EnsureRasterizationPreUIRT(context);
-            EnsureRasterizationDepthStencilRT(context);
+            EnsureRasterizationMaybeMSAART(context);
+            EnsureAccumulationFeedbackRT(context);
         }
 
-        internal void UpdateEndFrame()
+        internal void UpdateEndFrame(int rasterizationWidth, int rasterizationHeight)
         {
             isFirstFrame = false;
             ++cameraFrameCount;
             ++cameraAccumulationMotionBlurFrameCount;
+            rasterizationPreviousWidth = rasterizationWidth;
+            rasterizationPreviousHeight = rasterizationHeight;
         }
 
-        void EnsureRasterizationRT(PSXCameraUpdateContext context)
+        void EnsureRasterizationMaybeMSAART(PSXCameraUpdateContext context)
+        {
+            bool found = context.msaaHandleSystem.TryGet(out RTHandleSystem maybeMSAAHandleSystem, context.rasterizationMSAASamples);
+            Debug.Assert(found);
+
+            if (rasterizationMaybeMSAART != null)
+            {
+                if (rasterizationMaybeMSAART.rt == null)
+                {
+                    rasterizationMaybeMSAART = null;
+                }
+                else if (rasterizationMaybeMSAART.rt.antiAliasing != (int)context.rasterizationMSAASamples)
+                {
+                    rasterizationMaybeMSAART.Release();
+                    rasterizationMaybeMSAART = null;
+                }
+            }
+
+            if (rasterizationMaybeMSAART == null)
+            {
+                rasterizationMaybeMSAART = maybeMSAAHandleSystem.Alloc(
+                    Vector2.one,
+                    slices: 1,
+                    filterMode: FilterMode.Bilinear, // Some upscale filters rely on hardware accelerated blending.
+                    dimension: TextureDimension.Tex2D,
+                    colorFormat: GraphicsFormat.R8G8B8A8_UNorm,
+                    depthBufferBits: DepthBits.None,
+                    bindTextureMS: false,
+                    enableMSAA: context.rasterizationMSAASamples != MSAASamples.None,
+                    useDynamicScale: false,
+                    name: "Rasterization RT Maybe MSAA"
+                );
+            }
+
+            if (rasterizationMaybeMSAADepthStencilRT != null)
+            {
+                if (rasterizationMaybeMSAADepthStencilRT.rt == null)
+                {
+                    rasterizationMaybeMSAADepthStencilRT = null;
+                }
+                else if (rasterizationMaybeMSAADepthStencilRT.rt.antiAliasing != (int)context.rasterizationMSAASamples)
+                {
+                    rasterizationMaybeMSAADepthStencilRT.Release();
+                    rasterizationMaybeMSAADepthStencilRT = null;
+                }
+            }
+            
+            if (rasterizationMaybeMSAADepthStencilRT == null)
+            {
+                rasterizationMaybeMSAADepthStencilRT = maybeMSAAHandleSystem.Alloc(
+                    Vector2.one,
+                    slices: 1,
+                    dimension: TextureDimension.Tex2D,
+                    depthBufferBits: DepthBits.Depth24,
+                    isShadowMap: true, // This is not actually a shadow map RT. This is a workaround for force the RTHandleSystem to not allocate a stencil texture. This is necessary because WebGL does not support the hardcoded R8 UInt stencil format.
+                    enableMSAA: context.rasterizationMSAASamples != MSAASamples.None,
+                    useDynamicScale: false,
+                    name: "Rasterization RT Maybe MSAA Depth Stencil"
+                );
+            }
+        }
+
+        void EnsureAccumulationFeedbackRT(PSXCameraUpdateContext context)
         {
             uint rasterizationRTCountRequested = context.rasterizationHistoryRequested ? 2u : 1u;
             uint rasterizationRTCountCurrent = cameraAccumulationMotionBlurBufferCount;
@@ -177,7 +252,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             bool rasterizationRTNeedsAllocation = rasterizationRTCountRequested != rasterizationRTCountCurrent;
             if (!rasterizationRTNeedsAllocation)
             {
-                RTHandle rasterizationRTCurrent = GetCurrentFrameRT((int)PSXCameraFrameHistoryType.Rasterization);
+                RTHandle rasterizationRTCurrent = GetCurrentFrameRT((int)PSXCameraFrameHistoryType.AccumulationFeedback);
                 if (rasterizationRTCurrent.rt.descriptor.enableRandomWrite != context.rasterizationRandomWriteRequested)
                 {
                     rasterizationRTNeedsAllocation = true;
@@ -186,56 +261,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
             if (rasterizationRTNeedsAllocation)
             {
-                historyRTSystem.ReleaseBuffer((int)PSXCameraFrameHistoryType.Rasterization);
+                historyRTSystem.ReleaseBuffer((int)PSXCameraFrameHistoryType.AccumulationFeedback);
 
-                var rasterizationRTAllocatorData = new RasterizationRTAllocator(scaleFactor: 1.0f, enableRandomWrite: context.rasterizationRandomWriteRequested);
-                AllocHistoryFrameRT((int)PSXCameraFrameHistoryType.Rasterization, rasterizationRTAllocatorData.Allocator, (int)rasterizationRTCountRequested);
+                var rasterizationRTAllocatorData = new AccumulationFeedbackRTAllocator(scaleFactor: 1.0f, enableRandomWrite: context.rasterizationRandomWriteRequested);
+                AllocHistoryFrameRT((int)PSXCameraFrameHistoryType.AccumulationFeedback, rasterizationRTAllocatorData.Allocator, (int)rasterizationRTCountRequested);
 
                 // Reset so that our camera frame count is zeroed on resizes (when the history is no longer valid).
                 Reset();
 
                 cameraAccumulationMotionBlurBufferCount = rasterizationRTCountRequested;
-            }
-        }
-
-        void EnsureRasterizationPreUIRT(PSXCameraUpdateContext context)
-        {
-            bool rasterizationPreUIRTAllocated = (GetCurrentFrameRT((int)PSXCameraFrameHistoryType.RasterizationPreUICopy) != null);
-
-            if (context.rasterizationPreUICopyRequested)
-            {
-                if (!rasterizationPreUIRTAllocated)
-                {
-                    var rasterizationPreUIRTAllocatorData = new RasterizationPreUIRTAllocator(scaleFactor: 1.0f);
-                    AllocHistoryFrameRT((int)PSXCameraFrameHistoryType.RasterizationPreUICopy, rasterizationPreUIRTAllocatorData.Allocator, 1);
-                }
-            }
-            else
-            {
-                if (rasterizationPreUIRTAllocated)
-                {
-                    historyRTSystem.ReleaseBuffer((int)PSXCameraFrameHistoryType.RasterizationPreUICopy);
-                }
-            }
-        }
-
-        void EnsureRasterizationDepthStencilRT(PSXCameraUpdateContext context)
-        {
-            bool depthStencilRTAllocated = GetCurrentFrameRT((int)PSXCameraFrameHistoryType.RasterizationDepthStencil) != null;
-            if (context.rasterizationDepthBufferRequested)
-            {
-                if (!depthStencilRTAllocated)
-                {
-                    var rasterizationDepthStencilRTAllocatorData = new RasterizationDepthStencilRTAllocator(scaleFactor: 1.0f);
-                    AllocHistoryFrameRT((int)PSXCameraFrameHistoryType.RasterizationDepthStencil, rasterizationDepthStencilRTAllocatorData.Allocator, 1);
-                }
-            }
-            else
-            {
-                if (depthStencilRTAllocated)
-                {
-                    historyRTSystem.ReleaseBuffer((int)PSXCameraFrameHistoryType.RasterizationDepthStencil);
-                }
             }
         }
 
@@ -249,18 +283,28 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             return isFirstFrame;
         }
 
+        internal int GetRasterizationPreviousWidth()
+        {
+            return rasterizationPreviousWidth;
+        }
+
+        internal int GetRasterizationPreviousHeight()
+        {
+            return rasterizationPreviousHeight;
+        }
+
         internal uint GetCameraAccumulationMotionBlurFrameCount()
         {
             return cameraAccumulationMotionBlurFrameCount;
         }
 
         // Workaround for the Allocator callback so it doesn't allocate memory because of the capture of scaleFactor.
-        struct RasterizationRTAllocator
+        struct AccumulationFeedbackRTAllocator
         {
             float scaleFactor;
             bool enableRandomWrite;
 
-            public RasterizationRTAllocator(float scaleFactor, bool enableRandomWrite)
+            public AccumulationFeedbackRTAllocator(float scaleFactor, bool enableRandomWrite)
             {
                 this.scaleFactor = scaleFactor;
                 this.enableRandomWrite = enableRandomWrite;
@@ -276,55 +320,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     dimension: TextureDimension.Tex2D, //TextureXR.dimension,
                     useDynamicScale: false, // useDynamicScale: true,
                     enableRandomWrite: enableRandomWrite,
-                    name: string.Format("{0}_Rasterization RT History_{1}", id, frameIndex)
-                );
-            }
-        }
-
-        struct RasterizationPreUIRTAllocator
-        {
-            float scaleFactor;
-
-            public RasterizationPreUIRTAllocator(float scaleFactor)
-            {
-                this.scaleFactor = scaleFactor;
-            }
-
-            public RTHandle Allocator(string id, int frameIndex, RTHandleSystem rtHandleSystem)
-            {
-                return rtHandleSystem.Alloc(
-                    Vector2.one * scaleFactor,
-                    slices: 1, //TextureXR.slices,
-                    filterMode: FilterMode.Point,
-                    colorFormat: GraphicsFormat.R8G8B8A8_UNorm,
-                    dimension: TextureDimension.Tex2D, //TextureXR.dimension,
-                    useDynamicScale: false, // useDynamicScale: true,
-                    enableRandomWrite: false,
-                    name: string.Format("{0}_Rasterization Pre UI RT History_{1}", id, frameIndex)
-                );
-            }
-        }
-
-        struct RasterizationDepthStencilRTAllocator
-        {
-            float scaleFactor;
-
-            public RasterizationDepthStencilRTAllocator(float scaleFactor)
-            {
-                this.scaleFactor = scaleFactor;
-            }
-
-            public RTHandle Allocator(string id, int frameIndex, RTHandleSystem rtHandleSystem)
-            {
-                return rtHandleSystem.Alloc(
-                    Vector2.one * scaleFactor,
-                    slices: 1, //TextureXR.slices,
-                    filterMode: FilterMode.Point,
-                    depthBufferBits: DepthBits.Depth24,//DepthBits.Depth24,
-                    isShadowMap: true, // This is not actually a shadow map RT. This is a workaround for force the RTHandleSystem to not allocate a stencil texture. This is necessary because WebGL does not support the hardcoded R8 UInt stencil format.
-                    dimension: TextureDimension.Tex2D, //TextureXR.dimension,
-                    useDynamicScale: false, // useDynamicScale: true,
-                    name: string.Format("{0}_Rasterization Depth Stencil RT History_{1}", id, frameIndex)
+                    name: string.Format("{0}_Accumulation Feedback RT History_{1}", id, frameIndex)
                 );
             }
         }

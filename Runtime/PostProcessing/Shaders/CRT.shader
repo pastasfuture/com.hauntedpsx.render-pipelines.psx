@@ -22,6 +22,7 @@ Shader "Hidden/HauntedPS1/CRT"
 
     float4 _CameraAspectModeUVScaleBias;
     int _FlipY;
+    int _UpscaleFilterMode;
     float4 _BlueNoiseSize;
     float4 _WhiteNoiseSize;
     float4 _CRTGrateMaskSize;
@@ -45,10 +46,84 @@ Shader "Hidden/HauntedPS1/CRT"
 #if 1
     // Fix resolution to set amount.
     #define res (_ScreenSizeRasterizationRTScaled.xy)
+    #define resInverse (_ScreenSizeRasterizationRTScaled.zw)
 #else
     // Optimize for resize.
     #define res ((_ScreenSize.xy / 6.0f * _CRTGrateMaskScale.y))
+    #define resInverse (1.0 / (_ScreenSize.xy / 6.0f * _CRTGrateMaskScale.y))
 #endif
+
+    float2 ComputeUVTransformFromUpscaleFilter(float2 uv)
+    {
+        // No uv modification necessary for bilinear.
+        // All other upscalers use the same uv modification routine, with different constants.
+        if (_UpscaleFilterMode != PSX_UPSCALE_FILTER_MODE_BILINEAR)
+        {
+            float2 upscaleFactor = float2(1.0, 1.0);
+            float2 subpixelOffset = float2(0.5, 0.5);
+            if (_UpscaleFilterMode == PSX_UPSCALE_FILTER_MODE_POINT)
+            {
+                upscaleFactor = float2(1.0, 1.0);
+                subpixelOffset = float2(0.5, 0.5);
+            }
+            else if (_UpscaleFilterMode == PSX_UPSCALE_FILTER_MODE_N64_DOUBLER_X)
+            {
+                upscaleFactor = float2(2.0, 1.0);
+                subpixelOffset = float2(0.0, 0.5);
+            }
+            else if (_UpscaleFilterMode == PSX_UPSCALE_FILTER_MODE_N64_DOUBLER_Y)
+            {
+                upscaleFactor = float2(1.0, 2.0);
+                subpixelOffset = float2(0.5, 0.0);
+            }
+            else if (_UpscaleFilterMode == PSX_UPSCALE_FILTER_MODE_N64_DOUBLER_XY)
+            {
+                upscaleFactor = float2(2.0, 2.0);
+                subpixelOffset = float2(0.0, 0.0);
+            }
+            else if (_UpscaleFilterMode == PSX_UPSCALE_FILTER_MODE_N64_BLUR_BOX_2_X_2)
+            {
+                upscaleFactor = float2(1.0, 1.0);
+                subpixelOffset = float2(0.0, 0.0);
+            }
+            float2 upscaleFactorInverse = 1.0 / upscaleFactor;
+            float2 positionUpscaledSS = (clamp(floor(uv.xy * _ScreenSizeRasterization.xy * upscaleFactor), 0.0, (upscaleFactor * _ScreenSizeRasterization.xy) - 1.0));
+
+            uv = (positionUpscaledSS * upscaleFactorInverse + subpixelOffset) * _ScreenSizeRasterization.zw;
+        }
+
+        return uv;
+    }
+
+    float2 ComputeRasterizationResolutionScaleFromUpscaleFilter()
+    {
+        float2 upscaleFactor = float2(1.0, 1.0);
+        if (_UpscaleFilterMode == PSX_UPSCALE_FILTER_MODE_POINT)
+        {
+            upscaleFactor = float2(1.0, 1.0);
+        }
+        else if (_UpscaleFilterMode == PSX_UPSCALE_FILTER_MODE_N64_DOUBLER_X)
+        {
+            upscaleFactor = float2(2.0, 1.0);
+        }
+        else if (_UpscaleFilterMode == PSX_UPSCALE_FILTER_MODE_N64_DOUBLER_Y)
+        {
+            upscaleFactor = float2(1.0, 2.0);
+        }
+        else if (_UpscaleFilterMode == PSX_UPSCALE_FILTER_MODE_N64_DOUBLER_XY)
+        {
+            upscaleFactor = float2(2.0, 2.0);
+        }
+        else if (_UpscaleFilterMode == PSX_UPSCALE_FILTER_MODE_N64_BLUR_BOX_2_X_2)
+        {
+            upscaleFactor = float2(0.5, 0.5);
+        }
+        else if (_UpscaleFilterMode != PSX_UPSCALE_FILTER_MODE_BILINEAR)
+        {
+            upscaleFactor = float2(1.0, 1.0);
+        }
+        return upscaleFactor;
+    }
 
     float EvaluatePBRVignette(float distanceFromCenterSquaredNDC, float vignetteAtOffsetOneSquared)
     {
@@ -109,7 +184,7 @@ Shader "Hidden/HauntedPS1/CRT"
     #else
         float3 cyuv = FCCYIQFromSRGB(c.rgb);
     #endif
-        float3 noiseSignalYUV = FetchNoise(posNoiseSignal, noiseTextureSampler);
+        float3 noiseSignalYUV = 0.0;//FetchNoise(posNoiseSignal, noiseTextureSampler);
         float3 noiseCRTYUV = FetchNoise(posNoiseCRT, noiseTextureSampler);
 
         return float4(saturate(SRGBFromFCCYIQ((noiseSignalYUV + noiseCRTYUV) * c.a + cyuv)), c.a);
@@ -117,7 +192,7 @@ Shader "Hidden/HauntedPS1/CRT"
 
     float4 FetchFrameBuffer(float2 uv)
     {
-        float4 color = SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, uv, 0);
+        float4 color = SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_linear_clamp_sampler, uv, 0);
 
     #if defined(_OUTPUT_HDR)
 
@@ -141,28 +216,18 @@ Shader "Hidden/HauntedPS1/CRT"
 
     // Nearest emulated sample given floating point position and texel offset.
     // Also zero's off screen.
-    float4 Fetch(float2 pos, float2 off, TEXTURE2D(noiseTextureSampler), float4 noiseTextureSize)
+    float4 Fetch(float2 pos, float2 posUnsnappedForNoise, float2 off, TEXTURE2D(noiseTextureSampler), float4 noiseTextureSize, float2 upscaleScaleInverse)
     {
-        float2 posNoiseSignal = floor(pos * res + off) * noiseTextureSize.zw;
-        float2 posNoiseCRT = floor(pos * _ScreenSize.xy + off * res * _ScreenSize.zw) * noiseTextureSize.zw;
-        pos = (floor(pos * res + off) + 0.5) / res;
-        if (!ComputeRasterizationRTUVIsInBounds(pos)) { return float4(0.0, 0.0, 0.0, 0.0f); }
+        float2 posNoiseSignal = floor(posUnsnappedForNoise * res + off) * noiseTextureSize.zw;
+        float2 posNoiseCRT = floor(posUnsnappedForNoise * _ScreenSize.xy + off * res * _ScreenSize.zw) * noiseTextureSize.zw;
+        
+        bool isInBounds = ComputeRasterizationRTUVIsInBounds(pos);
+        pos = off * resInverse * upscaleScaleInverse + pos;
+        pos = ComputeUVTransformFromUpscaleFilter(pos);
+        if (!isInBounds) { return float4(0.0, 0.0, 0.0, 0.0f); }
         float4 value = CompositeSignalAndNoise(noiseTextureSampler, posNoiseSignal, posNoiseCRT, off, FetchFrameBuffer(pos));
         value.rgb = SRGBToLinear(value.rgb);
         return value;
-    }
-
-    // Distance in emulated pixels to nearest texel.
-    float2 Dist(float2 pos)
-    {
-        pos = pos * res;
-        return -((pos - floor(pos)) - 0.5);
-    }
-
-    // 1D Gaussian.
-    float Gaus(float pos, float sharpness)
-    {
-        return exp2(sharpness * pos * pos);
     }
 
     // Lanczos filter will be used for simulating overshoot ringing.
@@ -178,135 +243,53 @@ Shader "Hidden/HauntedPS1/CRT"
                 : (sin(c2) * sin(c1) / (c2 * c1));
     }
 
-    // 3-tap Gaussian filter along horz line.
-    float4 Horz3(float2 pos,float off)
-    {
-        float4 b=Fetch(pos,float2(-1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float4 c=Fetch(pos,float2( 0.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float4 d=Fetch(pos,float2( 1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float dst=Dist(pos).x;
-
-        // Use gaussian as windowing function for lanczos filter.
-        // TODO: Use more efficient / less agressive windowing function.
-        float scale=_CRTImageSharpness;
-        float wb = Gaus(dst-1.0,scale);
-        float wc = Gaus(dst+0.0,scale);
-        float wd = Gaus(dst+1.0,scale);
-
-        // Return filtered sample.
-        return (b*wb+c*wc+d*wd)/(wb+wc+wd);
-    }
-
-    // 5-tap Gaussian filter along horz line.
-    float4 Horz5(float2 pos,float off)
-    {
-        float4 a=Fetch(pos,float2(-2.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float4 b=Fetch(pos,float2(-1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float4 c=Fetch(pos,float2( 0.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float4 d=Fetch(pos,float2( 1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float4 e=Fetch(pos,float2( 2.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float dst=Dist(pos).x;
-
-        // Use gaussian as windowing function for lanczos filter.
-        // TODO: Use more efficient / less agressive windowing function.
-        float scale=_CRTImageSharpness;
-        float wa = Gaus(dst-2.0,scale);
-        float wb = Gaus(dst-1.0,scale);
-        float wc = Gaus(dst+0.0,scale);
-        float wd = Gaus(dst+1.0,scale);
-        float we = Gaus(dst+2.0,scale);
-
-        // Return filtered sample.
-        return (a*wa+b*wb+c*wc+d*wd+e*we)/(wa+wb+wc+wd+we);
-    }
-
-    // 7-tap Gaussian filter along horz line.
-    float4 Horz7(float2 pos,float off)
-    {
-        float4 a=Fetch(pos,float2(-3.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float4 b=Fetch(pos,float2(-2.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float4 c=Fetch(pos,float2(-1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float4 d=Fetch(pos,float2( 0.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float4 e=Fetch(pos,float2( 1.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float4 f=Fetch(pos,float2( 2.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float4 g=Fetch(pos,float2( 3.0,off), _WhiteNoiseTexture, _WhiteNoiseSize);
-        float dst=Dist(pos).x;
-
-        // Convert distance to weight.
-        float scale=_CRTBloomSharpness.x;
-
-        // Use gaussian as windowing function for lanczos filter.
-        // TODO: Use more efficient / less agressive windowing function.
-        float wa = Gaus(dst-3.0,scale);
-        float wb = Gaus(dst-2.0,scale);
-        float wc = Gaus(dst-1.0,scale);
-        float wd = Gaus(dst+0.0,scale);
-        float we = Gaus(dst+1.0,scale);
-        float wf = Gaus(dst+2.0,scale);
-        float wg = Gaus(dst+3.0,scale);
-
-        // Return filtered sample.
-        return (a*wa+b*wb+c*wc+d*wd+e*we+f*wf+g*wg)/(wa+wb+wc+wd+we+wf+wg);
-    }
-
-    // Return scanline weight.
-    float Scan(float2 pos,float off)
-    {
-        float dst=Dist(pos).y;
-        return Gaus(dst+off,_CRTScanlineSharpness);
-    }
-
-    // Return scanline weight for bloom.
-    float BloomScan(float2 pos,float off)
-    {
-        float dst=Dist(pos).y;
-        return Gaus(dst+off,_CRTBloomSharpness.y);
-    }
-
-    // Allow nearest three lines to effect pixel.
     float4 Tri(float2 pos)
     {
-        float2 positionPixelsMax = pos * res + float2(5.0, 1.0);
-        float2 positionPixelsMin = pos * res - float2(5.0, 1.0);
+        float2 upscaleFactor = ComputeRasterizationResolutionScaleFromUpscaleFilter();
+        float2 upscaleFactorInverse = 1.0 / upscaleFactor;
 
-        if (positionPixelsMax.x <= 0.0 || positionPixelsMax.y <= 0.0
-            || positionPixelsMin.x >= res.x || positionPixelsMin.y >= res.y)
-        {
-            return 0.0;
-        }
+        // Take 4 horizontal taps across each of our 2 nearest scanlines, for 8 taps total.
+        float2 positionRasterizedImagePixels = pos * res * upscaleFactor;
+        float2 positionRasterizedImageStartPixels = float2(
+            floor(positionRasterizedImagePixels.x - 1.5) + 0.5,
+            floor(positionRasterizedImagePixels.y - 0.5) + 0.5
+        );
+        float2 positionRasterizedImageStartPixelsUnsnapped = float2(
+            positionRasterizedImagePixels.x - 1.5,
+            positionRasterizedImagePixels.y - 0.5
+        );
+        float2 positionRasterizedImageStartUV = positionRasterizedImageStartPixels * resInverse * upscaleFactorInverse;
+        float2 positionRasterizedImageStartUnsnappedUV = positionRasterizedImageStartPixelsUnsnapped * resInverse * upscaleFactorInverse;
 
-        float4 a=Horz3(pos,-1.0);
-        float4 b=Horz5(pos, 0.0);
-        float4 c=Horz3(pos, 1.0);
-        float wa=Scan(pos,-1.0);
-        float wb=Scan(pos, 0.0);
-        float wc=Scan(pos, 1.0);
-        return a*wa+b*wb+c*wc;
-    }
+        float4 sampleSouth0 = Fetch(positionRasterizedImageStartUV, positionRasterizedImageStartUnsnappedUV, float2(0, 0), _WhiteNoiseTexture, _WhiteNoiseSize, upscaleFactorInverse);
+        float4 sampleSouth1 = Fetch(positionRasterizedImageStartUV, positionRasterizedImageStartUnsnappedUV, float2(1, 0), _WhiteNoiseTexture, _WhiteNoiseSize, upscaleFactorInverse);
+        float4 sampleSouth2 = Fetch(positionRasterizedImageStartUV, positionRasterizedImageStartUnsnappedUV, float2(2, 0), _WhiteNoiseTexture, _WhiteNoiseSize, upscaleFactorInverse);
+        float4 sampleSouth3 = Fetch(positionRasterizedImageStartUV, positionRasterizedImageStartUnsnappedUV, float2(3, 0), _WhiteNoiseTexture, _WhiteNoiseSize, upscaleFactorInverse);
+        float4 sampleNorth0 = Fetch(positionRasterizedImageStartUV, positionRasterizedImageStartUnsnappedUV, float2(0, 1), _WhiteNoiseTexture, _WhiteNoiseSize, upscaleFactorInverse);
+        float4 sampleNorth1 = Fetch(positionRasterizedImageStartUV, positionRasterizedImageStartUnsnappedUV, float2(1, 1), _WhiteNoiseTexture, _WhiteNoiseSize, upscaleFactorInverse);
+        float4 sampleNorth2 = Fetch(positionRasterizedImageStartUV, positionRasterizedImageStartUnsnappedUV, float2(2, 1), _WhiteNoiseTexture, _WhiteNoiseSize, upscaleFactorInverse);
+        float4 sampleNorth3 = Fetch(positionRasterizedImageStartUV, positionRasterizedImageStartUnsnappedUV, float2(3, 1), _WhiteNoiseTexture, _WhiteNoiseSize, upscaleFactorInverse);
 
-    // Small bloom.
-    float4 Bloom(float2 pos)
-    {
-        float2 positionPixelsMax = pos * res + float2(7.0, 2.0);
-        float2 positionPixelsMin = pos * res - float2(7.0, 2.0);
+        float scanlineOffsetSouth = positionRasterizedImagePixels.y - positionRasterizedImageStartPixels.y;
+        float scanlineWeightSouth = cos(min(0.5, scanlineOffsetSouth * _CRTScanlineSharpness) * 2.0 * PI) * 0.5 + 0.5;
+        float scanlineWeightNorth = cos(min(0.5,(-scanlineOffsetSouth) * _CRTScanlineSharpness + _CRTScanlineSharpness) * 2.0 * PI) * 0.5 + 0.5;
 
-        if (positionPixelsMax.x <= 0.0 || positionPixelsMax.y <= 0.0
-            || positionPixelsMin.x >= res.x || positionPixelsMin.y >= res.y)
-        {
-            return 0.0;
-        }
+        float offsetX0 = positionRasterizedImagePixels.x - positionRasterizedImageStartPixels.x;
+        float offsetX1 = offsetX0 - 1.0;
+        float offsetX2 = offsetX0 - 2.0;
+        float offsetX3 = offsetX0 - 3.0;
 
-        float4 a=Horz5(pos,-2.0);
-        float4 b=Horz7(pos,-1.0);
-        float4 c=Horz7(pos, 0.0);
-        float4 d=Horz7(pos, 1.0);
-        float4 e=Horz5(pos, 2.0);
-        float wa=BloomScan(pos,-2.0);
-        float wb=BloomScan(pos,-1.0);
-        float wc=BloomScan(pos, 0.0);
-        float wd=BloomScan(pos, 1.0);
-        float we=BloomScan(pos, 2.0);
-        return (a*wa+b*wb+c*wc+d*wd+e*we) / (wa + wb + wc + wd + we);
+        float weightX0 = exp2(_CRTImageSharpness * offsetX0 * offsetX0);
+        float weightX1 = exp2(_CRTImageSharpness * offsetX1 * offsetX1);
+        float weightX2 = exp2(_CRTImageSharpness * offsetX2 * offsetX2);
+        float weightX3 = exp2(_CRTImageSharpness * offsetX3 * offsetX3);
+        float weightXNormalization = 1.0 / (weightX0 + weightX1 + weightX2 + weightX3);
+
+        float4 accumulatedColor =
+            (sampleSouth0 * weightX0 + sampleSouth1 * weightX1 + sampleSouth2 * weightX2 + sampleSouth3 * weightX3) * scanlineWeightSouth * weightXNormalization
+            + (sampleNorth0 * weightX0 + sampleNorth1 * weightX1 + sampleNorth2 * weightX2 + sampleNorth3 * weightX3) * scanlineWeightNorth * weightXNormalization;
+        
+        return accumulatedColor;
     }
 
     // Distortion of scanlines, and end of screen alpha.
@@ -423,16 +406,7 @@ Shader "Hidden/HauntedPS1/CRT"
         float distanceFromCenterSquaredNDC = dot(crtNDCNormalized, crtNDCNormalized);
         float vignette = EvaluatePBRVignette(distanceFromCenterSquaredNDC, _CRTVignetteSquared);
 
-        crt = float4(CRTMask(positionScreenSS * _CRTGrateMaskScale.y), 1.0f) * Tri(crtUVAbsolute);
-
-        #if 1
-        // Energy conserving normalized bloom.
-        crt = lerp(crt, Bloom(crtUVAbsolute), _CRTBloom);    
-        #else
-        // Additive bloom.
-        crt += Bloom(crtUVAbsolute) * _CRTBloom;
-        crt.a = saturate(crt.a);   
-        #endif
+        crt = Tri(crtUVAbsolute) * float4(CRTMask(positionScreenSS * _CRTGrateMaskScale.y), 1.0f);
 
         crt.rgb *= vignette;
 
@@ -491,8 +465,10 @@ Shader "Hidden/HauntedPS1/CRT"
 
         if (!_IsPSXQualityEnabled || !_CRTIsEnabled)
         {
-            return ComputeRasterizationRTUVIsInBounds(positionFramebufferNDC.xy)
-                ? SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_point_clamp_sampler, positionFramebufferNDC.xy, 0)
+            bool isInBounds = ComputeRasterizationRTUVIsInBounds(positionFramebufferNDC.xy);
+            positionFramebufferNDC = ComputeUVTransformFromUpscaleFilter(positionFramebufferNDC);
+            return isInBounds
+                ? SAMPLE_TEXTURE2D_LOD(_FrameBufferTexture, s_linear_clamp_sampler, positionFramebufferNDC.xy, 0)
                 : float4(0.0, 0.0, 0.0, 1.0);
         }
 

@@ -5,8 +5,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
     /// </summary>
     public enum PSXCameraFrameHistoryType
     {
-        Rasterization = 0,
-        RasterizationDepthStencil,
-        RasterizationPreUICopy
+        AccumulationFeedback = 0
     }
 }

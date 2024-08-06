@@ -22,6 +22,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         Material copyColorRespectFlipYMaterial;
         Material crtMaterial;
         int[] compressionCSKernels;
+        private PSXMSAAHandleSystem msaaHandleSystem = new PSXMSAAHandleSystem();
 
         // Use to detect frame changes (for accurate frame count in editor, consider using psxCamera.GetCameraFrameCount)
         int frameCount;
@@ -63,7 +64,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             compressionCSKernels = FindCompressionKernels(m_Asset);
         }
 
-        internal protected void Allocate()
+        private void Allocate()
         {
             this.skyMaterial = CoreUtils.CreateEngineMaterial(m_Asset.renderPipelineResources.shaders.skyPS);
             this.accumulationMotionBlurMaterial = CoreUtils.CreateEngineMaterial(m_Asset.renderPipelineResources.shaders.accumulationMotionBlurPS);
@@ -85,6 +86,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             CoreUtils.Destroy(copyColorRespectFlipYMaterial);
             CoreUtils.Destroy(crtMaterial);
             compressionCSKernels = null;
+            msaaHandleSystem.Dispose();
             DisposeLighting();
         }
 
@@ -208,9 +210,35 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     rasterizationHistoryRequested = accumulationMotionBlurVolumeSettings.weight.value > 1e-5f;
                     rasterizationPreUICopyRequested = rasterizationHistoryRequested && !accumulationMotionBlurVolumeSettings.applyToUIOverlay.value;
                 }
+                
+                MSAASamples rasterizationMSAASamples = MSAASamples.None;
+                CameraVolume.UpscaleFilterMode upscaleFilterMode = CameraVolume.UpscaleFilterMode.Point;
+                {
+                    CameraVolume.RasterizationAntiAliasingMode rasterizationAntiAliasingMode = CameraVolume.RasterizationAntiAliasingMode.None;
+                    switch (volumeSettings.cameraFilterPreset.value)
+                    {
+                        case CameraVolume.CameraFilterPreset.PSX: rasterizationAntiAliasingMode = CameraVolume.RasterizationAntiAliasingMode.None; upscaleFilterMode = CameraVolume.UpscaleFilterMode.Point; break;
+                        case CameraVolume.CameraFilterPreset.N64: rasterizationAntiAliasingMode = CameraVolume.RasterizationAntiAliasingMode.MSAA4x; upscaleFilterMode = CameraVolume.UpscaleFilterMode.N64DoublerX; break;
+                        case CameraVolume.CameraFilterPreset.Custom: rasterizationAntiAliasingMode = volumeSettings.rasterizationAntiAliasingMode.value; upscaleFilterMode = volumeSettings.upscaleFilterMode.value; break;
+                        default: Debug.Assert(false); break;
+                    }
+
+                    switch (rasterizationAntiAliasingMode)
+                    {
+                        case CameraVolume.RasterizationAntiAliasingMode.None: rasterizationMSAASamples = MSAASamples.None; break;
+                        case CameraVolume.RasterizationAntiAliasingMode.MSAA2x: rasterizationMSAASamples = MSAASamples.MSAA2x; break;
+                        case CameraVolume.RasterizationAntiAliasingMode.MSAA4x: rasterizationMSAASamples = MSAASamples.MSAA4x; break;
+                        case CameraVolume.RasterizationAntiAliasingMode.MSAA8x: rasterizationMSAASamples = MSAASamples.MSAA8x; break;
+                        default: Debug.Assert(false); break;
+                    }
+                }
+                
+                cmd.SetGlobalInt(PSXShaderIDs._UpscaleFilterMode, (int)upscaleFilterMode);
 
                 psxCamera.UpdateBeginFrame(new PSXCamera.PSXCameraUpdateContext()
                 {
+                    msaaHandleSystem = msaaHandleSystem,
+                    rasterizationMSAASamples = rasterizationMSAASamples,
                     rasterizationWidth = rasterizationWidth,
                     rasterizationHeight = rasterizationHeight,
                     rasterizationHistoryRequested = rasterizationHistoryRequested,
@@ -282,13 +310,18 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 context.SetupCameraProperties(camera);
 
                 bool hdrIsSupported = false;
-                RTHandle rasterizationRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.Rasterization);
-                RTHandle rasterizationDepthStencilRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.RasterizationDepthStencil);
-                cmd.SetRenderTarget(rasterizationRT.rt, rasterizationDepthStencilRT.rt);
-                PSXRenderPipeline.SetViewport(cmd, rasterizationRT);
+                RTHandle rasterizationMaybeMSAART = psxCamera.rasterizationMaybeMSAART;
+                RTHandle rasterizationMaybeMSAADepthStencilRT = psxCamera.rasterizationMaybeMSAADepthStencilRT;
+                cmd.SetRenderTarget(rasterizationMaybeMSAART.rt, rasterizationMaybeMSAADepthStencilRT.rt);
+                PSXRenderPipeline.SetViewport(cmd, rasterizationMaybeMSAART);
+                
+                // RTHandle rasterizationRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.Rasterization);
+                // RTHandle rasterizationDepthStencilRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.RasterizationDepthStencil);
+                // cmd.SetRenderTarget(rasterizationRT.rt, rasterizationDepthStencilRT.rt);
+                // PSXRenderPipeline.SetViewport(cmd, rasterizationRT);
                 {
                     // Clear background to fog color to create seamless blend between forward-rendered fog, and "sky" / infinity.
-                    PushGlobalRasterizationParameters(camera, cmd, rasterizationRT, rasterizationWidth, rasterizationHeight, hdrIsSupported);
+                    PushGlobalRasterizationParameters(camera, cmd, rasterizationMaybeMSAART, rasterizationWidth, rasterizationHeight, hdrIsSupported);
                     PushQualityOverrideParameters(camera, cmd, isPSXQualityEnabled);
                     PushPrecisionParameters(camera, cmd, m_Asset);
                     PushFogParameters(camera, cmd);
@@ -330,30 +363,32 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 
                 cmd = CommandBufferPool.Get(PSXStringConstants.s_CommandBufferRenderPostProcessStr);
                 {
-                    TryDrawAccumulationMotionBlurPostUIOverlay(psxCamera, cmd, accumulationMotionBlurMaterial);
+                    TryDrawAccumulationMotionBlurPostUIOverlay(psxCamera, cmd, accumulationMotionBlurMaterial, copyColorRespectFlipYMaterial);
                 }
                 cmd.SetRenderTarget(camera.targetTexture);
                 PSXRenderPipeline.SetViewport(cmd, camera, camera.targetTexture);
                 {
-                    PushGlobalPostProcessingParameters(camera, cmd, m_Asset, rasterizationRT, rasterizationWidth, rasterizationHeight, cameraAspectModeUVScaleBias);
-                    PushCompressionParameters(camera, cmd, m_Asset, rasterizationRT, compressionCSKernels);
+                    PushGlobalPostProcessingParameters(camera, cmd, m_Asset, rasterizationMaybeMSAART, rasterizationWidth, rasterizationHeight, cameraAspectModeUVScaleBias);
+                    PushCompressionParameters(camera, cmd, m_Asset, rasterizationMaybeMSAART, compressionCSKernels);
                     PushCathodeRayTubeParameters(camera, cmd, crtMaterial);
                     PSXRenderPipeline.DrawFullScreenQuad(cmd, crtMaterial);
-
-                    TryDrawAccumulationMotionBlurFinalBlit(psxCamera, cmd, camera.targetTexture, copyColorRespectFlipYMaterial);
                 }
                 
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Release();
                 context.Submit();
 
-                psxCamera.UpdateEndFrame();
+                psxCamera.UpdateEndFrame(rasterizationWidth, rasterizationHeight);
 
                 // Reset any modifications to the cameras aspect ratio so that built in unity handles draw normally.
                 camera.ResetAspect();
 
                 UnityEngine.Rendering.RenderPipeline.EndCameraRendering(context, camera);
             }
+            
+            msaaHandleSystem.Tick();
+
+            UnityEngine.Rendering.RenderPipeline.EndFrameRendering(context, cameras);
         }
 
         private bool TryUpdateFrameCount(Camera[] cameras)
@@ -1346,21 +1381,19 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     PSXRenderPipeline.PushAccumulationMotionBlurParameters(psxCamera, cmd, volumeSettings);
                     PSXRenderPipeline.DrawFullScreenQuad(cmd, accumulationMotionBlurMaterial);
 
-                    RTHandle rasterizationCurrentRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.Rasterization);
-                    RTHandle rasterizationPreUICopyRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.RasterizationPreUICopy);
-
-                    PSXRenderPipeline.CopyColorRespectFlipY(psxCamera.camera, cmd, rasterizationCurrentRT, rasterizationPreUICopyRT, copyColorRespectFlipYMaterial);
+                    // Blit, both to store our color data for the next frame in our double buffered RT, and so that we have a copy of the data, pre-ui overlay to feedback.
+                    RTHandle rasterizationCurrentRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.AccumulationFeedback);
+                    PSXRenderPipeline.CopyColorRespectFlipY(psxCamera.camera, cmd, psxCamera.rasterizationMaybeMSAART, rasterizationCurrentRT, copyColorRespectFlipYMaterial);
 
                     // The above blit changes the global state of our bound render target.
                     // Switch the global bound render target back to the one we were rendering with before.
-                    RTHandle rasterizationDepthStencilCurrentRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.RasterizationDepthStencil);
-                    cmd.SetRenderTarget(rasterizationCurrentRT, rasterizationDepthStencilCurrentRT);
-                    PSXRenderPipeline.SetViewport(cmd, rasterizationCurrentRT);
+                    cmd.SetRenderTarget(psxCamera.rasterizationMaybeMSAART, psxCamera.rasterizationMaybeMSAADepthStencilRT);
+                    PSXRenderPipeline.SetViewport(cmd, psxCamera.rasterizationMaybeMSAART);
                 }
             }
         }
 
-        static void TryDrawAccumulationMotionBlurPostUIOverlay(PSXCamera psxCamera, CommandBuffer cmd, Material accumulationMotionBlurMaterial)
+        static void TryDrawAccumulationMotionBlurPostUIOverlay(PSXCamera psxCamera, CommandBuffer cmd, Material accumulationMotionBlurMaterial, Material copyColorRespectFlipYMaterial)
         {
             using (new ProfilingScope(cmd, PSXProfilingSamplers.s_DrawAccumulationMotionBlurPostUIOverlay))
             {
@@ -1376,38 +1409,22 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 {
                     PSXRenderPipeline.PushAccumulationMotionBlurParameters(psxCamera, cmd, volumeSettings);
                     PSXRenderPipeline.DrawFullScreenQuad(cmd, accumulationMotionBlurMaterial);
-                }
-            }
-        }
-
-        static void TryDrawAccumulationMotionBlurFinalBlit(PSXCamera psxCamera, CommandBuffer cmd, RenderTexture renderTargetCurrent, Material copyColorRespectFlipYMaterial)
-        {
-            using (new ProfilingScope(cmd, PSXProfilingSamplers.s_DrawAccumulationMotionBlurFinalBlit))
-            {
-                var volumeSettings = VolumeManager.instance.stack.GetComponent<AccumulationMotionBlurVolume>();
-                if (!volumeSettings) volumeSettings = AccumulationMotionBlurVolume.@default;
-
-                if ((psxCamera.GetCameraAccumulationMotionBlurFrameCount() > 0) && (!volumeSettings.applyToUIOverlay.value))
-                {
-                    // Copy our pre-ui data back to the current RT so that it will get correctly swapped into the history back buffer for sampling next frame.
-                    RTHandle rasterizationPreUICopyRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.RasterizationPreUICopy);
-                    RTHandle rasterizationCurrentRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.Rasterization);
-
-                    PSXRenderPipeline.CopyColorRespectFlipY(psxCamera.camera, cmd, rasterizationPreUICopyRT, rasterizationCurrentRT, copyColorRespectFlipYMaterial);
-
-                    // Our blit call will change the global state of the bound render target.
-                    // Bind back our previous render target to avoid non-obvious side effects.
-                    // This actually is necessary in the editor. It seems the final camera render target needs to be bound before the context is submitted,
-                    // otherwise we get this error spilling: Dimensions of color surface does not match dimensions of depth surface.
-                    cmd.SetRenderTarget(renderTargetCurrent);
-                    PSXRenderPipeline.SetViewport(cmd, psxCamera.camera, renderTargetCurrent);
+                    
+                    // Blit, both to store our color data for the next frame in our double buffered RT.
+                    RTHandle rasterizationCurrentRT = psxCamera.GetCurrentFrameRT((int)PSXCameraFrameHistoryType.AccumulationFeedback);
+                    PSXRenderPipeline.CopyColorRespectFlipY(psxCamera.camera, cmd, psxCamera.rasterizationMaybeMSAART, rasterizationCurrentRT, copyColorRespectFlipYMaterial);
+                    
+                    // The above blit changes the global state of our bound render target.
+                    // Switch the global bound render target back to the one we were rendering with before.
+                    cmd.SetRenderTarget(psxCamera.rasterizationMaybeMSAART, psxCamera.rasterizationMaybeMSAADepthStencilRT);
+                    PSXRenderPipeline.SetViewport(cmd, psxCamera.rasterizationMaybeMSAART);
                 }
             }
         }
 
         static void PushAccumulationMotionBlurParameters(PSXCamera psxCamera, CommandBuffer cmd, AccumulationMotionBlurVolume volumeSettings)
         {
-            RTHandle rasterizationHistoryRT = psxCamera.GetPreviousFrameRT((int)PSXCameraFrameHistoryType.Rasterization);
+            RTHandle accumulationFeedbackHistoryRT = psxCamera.GetPreviousFrameRT((int)PSXCameraFrameHistoryType.AccumulationFeedback);
 
             float rasterizationHistoryWeight = volumeSettings.weight.value;
 
@@ -1425,7 +1442,19 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 volumeSettings.zoomDither.value,
                 volumeSettings.anisotropy.value
             ));
-            cmd.SetGlobalTexture(PSXShaderIDs._RasterizationHistoryRT, rasterizationHistoryRT);
+            
+            // Clamp our uv to software emulate a clamped wrap mode within the context of our potentially scaled RT
+            // (where the RT viewport may be significantly smaller than the actual RT resolution due to resizing events).
+            // Note: When useScaling is false, this is the same as: new Vector4(0.5f / rasterizationWidth, 0.5f / rasterizationHeight, (rasterizationWidth - 0.5f) / rasterizationWidth, (rasterizationHeight - 0.5f) / rasterizationHeight);
+            Vector4 accumulationFeedbackRTScaledClampBoundsUV = new Vector4(0.5f / accumulationFeedbackHistoryRT.rt.width, 0.5f / accumulationFeedbackHistoryRT.rt.height, (psxCamera.GetRasterizationPreviousWidth() - 0.5f) / accumulationFeedbackHistoryRT.rt.width, (psxCamera.GetRasterizationPreviousHeight() - 0.5f) / accumulationFeedbackHistoryRT.rt.height);
+            cmd.SetGlobalVector(PSXShaderIDs._AccumulationFeedbackHistoryRTScaledClampBoundsUV, accumulationFeedbackRTScaledClampBoundsUV);
+
+            Vector4 rasterizationRTScaledMaxSSAndUV = accumulationFeedbackHistoryRT.useScaling
+                ? new Vector4(psxCamera.GetRasterizationPreviousWidth(), psxCamera.GetRasterizationPreviousHeight(), (float)psxCamera.GetRasterizationPreviousWidth() / accumulationFeedbackHistoryRT.rt.width, (float)psxCamera.GetRasterizationPreviousHeight() / accumulationFeedbackHistoryRT.rt.height)
+                : new Vector4(accumulationFeedbackHistoryRT.rt.width, accumulationFeedbackHistoryRT.rt.height, 1.0f, 1.0f);
+            cmd.SetGlobalVector(PSXShaderIDs._AccumulationFeedbackHistoryRTScaledMaxSSAndUV, rasterizationRTScaledMaxSSAndUV);
+            
+            cmd.SetGlobalTexture(PSXShaderIDs._RasterizationHistoryRT, accumulationFeedbackHistoryRT);
         }
 
         static void CopyColorRespectFlipY(Camera camera, CommandBuffer cmd, RTHandle source, RTHandle destination, Material copyColorRespectFlipYMaterial)
@@ -1461,8 +1490,6 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 if (!volumeSettings) volumeSettings = CathodeRayTubeVolume.@default;
 
                 cmd.SetGlobalInt(PSXShaderIDs._CRTIsEnabled, volumeSettings.isEnabled.value ? 1 : 0);
-
-                cmd.SetGlobalFloat(PSXShaderIDs._CRTBloom, volumeSettings.bloom.value);
 
                 switch (volumeSettings.grateMaskMode.value)
                 {
@@ -1544,30 +1571,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 
 
                 cmd.SetGlobalVector(PSXShaderIDs._CRTGrateMaskScale, new Vector2(volumeSettings.grateMaskScale.value, 1.0f / volumeSettings.grateMaskScale.value));
+                
+                cmd.SetGlobalFloat(PSXShaderIDs._CRTScanlineSharpness, Mathf.Lerp(0.5f, 1.0f, volumeSettings.scanlineSharpness.value));
 
-                // Hardness of scanline.
-                //  -8.0 = soft
-                // -16.0 = medium
-                cmd.SetGlobalFloat(PSXShaderIDs._CRTScanlineSharpness, Mathf.Lerp(-8.0f, -32.0f, volumeSettings.scanlineSharpness.value));
-
-                // Hardness of pixels in scanline.
-                // -2.0 = soft
-                // -4.0 = hard
-                cmd.SetGlobalFloat(PSXShaderIDs._CRTImageSharpness, Mathf.Lerp(-2.0f, -4.0f, volumeSettings.imageSharpness.value));
-
-                cmd.SetGlobalVector(PSXShaderIDs._CRTBloomSharpness, new Vector2(
-                    // Hardness of short horizontal bloom.
-                    //  -0.5 = wide to the point of clipping (bad)
-                    //  -1.0 = wide
-                    //  -2.0 = not very wide at all
-                    Mathf.Lerp(-1.0f, -2.0f, volumeSettings.bloomSharpnessX.value),
-
-                    // Hardness of short vertical bloom.
-                    //  -1.0 = wide to the point of clipping (bad)
-                    //  -1.5 = wide
-                    //  -4.0 = not very wide at all
-                    Mathf.Lerp(-1.5f, -4.0f, volumeSettings.bloomSharpnessY.value)
-                ));
+                cmd.SetGlobalFloat(PSXShaderIDs._CRTImageSharpness, Mathf.Lerp(-1.0f, -3.0f, volumeSettings.imageSharpness.value));
 
                 cmd.SetGlobalFloat(PSXShaderIDs._CRTNoiseIntensity, volumeSettings.noiseIntensity.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._CRTNoiseSaturation, volumeSettings.noiseSaturation.value);

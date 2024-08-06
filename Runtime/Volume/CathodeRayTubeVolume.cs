@@ -26,14 +26,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         }
 
         public BoolParameter isEnabled = new BoolParameter(true);
-        public ClampedFloatParameter bloom = new ClampedFloatParameter(1.0f / 16.0f, 0.0f, 1.0f);
         public CRTGrateMaskModeParameter grateMaskMode = new CRTGrateMaskModeParameter(CRTGrateMaskMode.CompressedTV);
         public TextureParameter grateMaskTexture = new TextureParameter(null);
         public FloatParameter grateMaskScale = new FloatParameter(1.0f);
         public ClampedFloatParameter scanlineSharpness = new ClampedFloatParameter(0.5f, 0.0f, 1.0f);
         public ClampedFloatParameter imageSharpness = new ClampedFloatParameter(0.5f, 0.0f, 1.0f);
-        public ClampedFloatParameter bloomSharpnessX = new ClampedFloatParameter(0.0f, 0.0f, 1.0f);
-        public ClampedFloatParameter bloomSharpnessY = new ClampedFloatParameter(0.0f, 0.0f, 1.0f);
         public ClampedFloatParameter noiseIntensity = new ClampedFloatParameter(1.0f / 10.0f, 0.0f, 1.0f);
         public ClampedFloatParameter noiseSaturation = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
         public ClampedFloatParameter grateMaskIntensityMin = new ClampedFloatParameter(0.25f, 0.0f, 1.0f);

@@ -23,7 +23,19 @@ Shader "Hidden/HauntedPS1/AccumulationMotionBlur"
     float _RasterizationHistoryWeight;
     float _RasterizationHistoryCompositeDither;
     float4 _AccumulationMotionBlurParameters;
+    float4 _AccumulationFeedbackHistoryRTScaledMaxSSAndUV;
+    float4 _AccumulationFeedbackHistoryRTScaledClampBoundsUV;
     TEXTURE2D(_RasterizationHistoryRT);
+
+    float2 ComputeAccumulationFeedbackHistoryRTUV(float2 uv)
+    {
+        return uv * _AccumulationFeedbackHistoryRTScaledMaxSSAndUV.zw;
+    }
+
+    float2 ClampAccumulationFeedbackHistoryRTUV(float2 uv)
+    {
+        return clamp(uv, _AccumulationFeedbackHistoryRTScaledClampBoundsUV.xy, _AccumulationFeedbackHistoryRTScaledClampBoundsUV.zw);
+    }
 
     struct Attributes
     {
@@ -45,6 +57,7 @@ Shader "Hidden/HauntedPS1/AccumulationMotionBlur"
         output.positionCS.y *= -_ProjectionParams.x;
 
         output.uv = input.uv;
+        output.uv.y = (_ProjectionParams.x >= 0.0) ? output.uv.y : (1.0 - output.uv.y);
 
         return output;
     }
@@ -86,9 +99,9 @@ Shader "Hidden/HauntedPS1/AccumulationMotionBlur"
         blurDirection.x *= 1.0f - saturate(-data.blurAnisotropy);
         blurDirection *= vignetteWeight;
         float blurSignedDistancePixels = data.blurSignedDistancePixels * lerp(1.0, zoomDither, data.dither);
-        historyUV = ComputeRasterizationRTUV(historyUV);
+        historyUV = ComputeAccumulationFeedbackHistoryRTUV(historyUV);
         historyUV -= blurDirection * _ScreenSizeRasterization.zw * blurSignedDistancePixels;
-        historyUV = ClampRasterizationRTUV(historyUV);
+        historyUV = ClampAccumulationFeedbackHistoryRTUV(historyUV);
         return historyUV;
     }
 
