@@ -196,6 +196,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _BakedLightingMultiplier = Shader.PropertyToID("_BakedLightingMultiplier");
         public static readonly int _VertexColorLightingMultiplier = Shader.PropertyToID("_VertexColorLightingMultiplier");
         public static readonly int _DynamicLightingMultiplier = Shader.PropertyToID("_DynamicLightingMultiplier");
+        public static readonly int _LightingClampMode = Shader.PropertyToID("_LightingClampMode");
+        public static readonly int _LightingClampParameters = Shader.PropertyToID("_LightingClampParameters");
         public static readonly int _AlphaClippingDitherTexture = Shader.PropertyToID("_AlphaClippingDitherTexture");
         public static readonly int _AlphaClippingDitherSize = Shader.PropertyToID("_AlphaClippingDitherSize");
         public static readonly int _AdditionalLightsPosition = Shader.PropertyToID("_AdditionalLightsPosition");

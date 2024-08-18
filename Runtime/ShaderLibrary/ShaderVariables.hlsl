@@ -62,6 +62,11 @@
 #define PSX_VERTEX_COLOR_BLEND_MODE_ADDITIVE (1)
 #define PSX_VERTEX_COLOR_BLEND_MODE_SUBTRACTIVE (2)
 
+// Warning: These definitions must stay in sync with VertexColorBlendMode enum.
+#define PSX_LIGHTING_CLAMP_MODE_NONE (0)
+#define PSX_LIGHTING_CLAMP_MODE_CLAMP (1)
+#define PSX_LIGHTING_CLAMP_MODE_SOFT_CLAMP (2)
+
 // Globals:
 // Unity Standard:
 //
@@ -108,6 +113,8 @@ int _LightingIsEnabled;
 float _BakedLightingMultiplier;
 float _VertexColorLightingMultiplier;
 float _DynamicLightingMultiplier;
+int _LightingClampMode;
+float4 _LightingClampParameters;
 
 // Post Processing
 int _TonemapperIsEnabled;

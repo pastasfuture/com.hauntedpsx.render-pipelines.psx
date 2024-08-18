@@ -403,6 +403,7 @@ half4 TerrainLitPassFrag(Varyings i) : SV_TARGET
     }
 
     float3 lighting = EvaluateLightingPerPixel(i.positionWS, normalWS, i.lighting, uvMainAndLM.zw, interpolatorNormalization);
+    lighting = ApplyLightingClampModeToLighting(lighting);
     color = ApplyLightingToColor(lighting, color);
 
     float4 fog = EvaluateFogPerPixel(i.positionWS, i.positionVS, positionSS, i.fog, interpolatorNormalization, _FogWeight, precisionColor, precisionColorInverse);

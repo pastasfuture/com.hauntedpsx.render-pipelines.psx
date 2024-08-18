@@ -540,6 +540,41 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 cmd.SetGlobalFloat(PSXShaderIDs._BakedLightingMultiplier, volumeSettings.bakedLightingMultiplier.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._VertexColorLightingMultiplier, volumeSettings.vertexColorLightingMultiplier.value);
                 cmd.SetGlobalFloat(PSXShaderIDs._DynamicLightingMultiplier, volumeSettings.dynamicLightingMultiplier.value);
+                cmd.SetGlobalInt(PSXShaderIDs._LightingClampMode, (int)volumeSettings.lightingClampMode.value);
+
+                Vector4 lightingClampParameters = Vector4.zero;
+                switch (volumeSettings.lightingClampMode.value)
+                {
+                    case LightingVolume.LightingClampMode.None: break;
+                    case LightingVolume.LightingClampMode.Clamp: lightingClampParameters = new Vector4(volumeSettings.lightingClamp.value, 0.0f, 0.0f, 0.0f); break;
+                    case LightingVolume.LightingClampMode.SoftClamp:
+                    {
+                        lightingClampParameters.x = volumeSettings.lightingClamp.value;
+                        lightingClampParameters.y = volumeSettings.lightingClampSharpness.value * 8.0f;
+
+                        // CPU side precompute of the scale term necessary to rescale our normalized softmin space back out into our raw space.
+                        // float3 clampRatio = (limit > 1e-5) ? (limit / limit) : 0.0;
+                        // float3 clampOffsetNormalized = 1.0 - clampRatio;
+                        // float3 clampSoftminNormalized = 0.5 * (clampOffsetNormalized - sqrt(clampOffsetNormalized * clampOffsetNormalized + sharpnessExponent));
+                        // 
+                        // float3 clampSoftminNormalizedMax = 0.5 * (0.0 - sqrt(0.0 * 0.0 + sharpnessExponent));
+                        // float3 clampSoftminNormalizedMin = 0.5 * (1.0 - sqrt(1.0 * 1.0 + sharpnessExponent));
+                        //
+                        float clampSoftminNormalizedMax = 0.5f * (0.0f - Mathf.Sqrt(0.0f + lightingClampParameters.y));
+                        float clampSoftminNormalizedMin = 0.5f * (1.0f - Mathf.Sqrt(1.0f + lightingClampParameters.y));
+
+                        // (x - clampSoftminNormalizedMin) / (clampSoftminNormalizedMax - clampSoftminNormalizedMin)
+                        lightingClampParameters.z = 1.0f / (clampSoftminNormalizedMax - clampSoftminNormalizedMin);
+                        lightingClampParameters.w = -clampSoftminNormalizedMin / (clampSoftminNormalizedMax - clampSoftminNormalizedMin);
+                        break;
+                    }
+                    default:
+                    {
+                        Debug.Assert(false, "PushLightingParameters: Encountered unsupported LightingClampMode. Falling back to LightingClampMode.None");
+                        break;
+                    }
+                }
+                cmd.SetGlobalVector(PSXShaderIDs._LightingClampParameters, lightingClampParameters);
             }
         }
 

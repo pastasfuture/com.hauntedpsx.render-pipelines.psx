@@ -129,6 +129,7 @@ half4 LitPassFragment(Varyings i, FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
     color = ApplyAlphaBlendTransformToColor(color);
 
     float3 lighting = EvaluateLightingPerPixel(i.positionWS, normalWS, i.lighting, i.lightmapUV, interpolatorNormalization);
+    lighting = ApplyLightingClampModeToLighting(lighting);
     color = ApplyLightingToColor(lighting, color);
 
 #if defined(_EMISSION)

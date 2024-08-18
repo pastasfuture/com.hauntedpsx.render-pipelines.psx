@@ -566,4 +566,118 @@ float3 EvaluateReflectionDirectionMode(int reflectionDirectionMode, float3 R, fl
     return reflectionDirection;
 }
 
+float3 remap(float a, float b, float3 v) {
+    //return (v-a) / (b-a);
+    return clamp((v - a) / (b - a), 0.0, 1.0);
+}
+
+float3 remap_noclamp(float a, float b, float3 v)
+{
+    return (v - float3(a, a, a)) / (b - a);
+}
+
+//note: smooth minium, soft-min
+//      https://www.shadertoy.com/view/ltf3W2
+float SAbs(float x, float k)
+{
+    return sqrt(x * x + k);
+}
+
+float SRamp1(float x, float k)
+{
+    return 0.5 * (x - sqrt(x * x + k));
+}
+
+float SMin1(float a, float b, float k)
+{
+    return a + SRamp1(b - a, k);
+}
+//note: smax = -smin(-a, -b, k )
+float3 SMin1(float3 a, float3 b, float k)
+{
+    return float3(SMin1(a.r, b.r, k),
+        SMin1(a.g, b.g, k),
+        SMin1(a.b, b.b, k));
+}
+
+float3 gamma_softmin(float3 x, float4 params)
+{
+    //note: sensible defaults for single-parameter control (t)
+    //note: black-cutoff, white-cutoff, power, soft-clipping
+
+
+    x = max(x, params.xxx); //note: clamp below min
+    x = remap_noclamp(params.x, params.y, x);
+
+    x = SMin1(x, params.y, params.z); //upper
+
+    return x;
+}
+
+
+// ============================================
+
+float SMinC2(float a, float b, float r)
+{
+    float n = max(0.0, 1.0 - abs(a - b) / r);
+
+    float o = n * n * n * 0.166667;
+
+    return min(a, b) - o * r;
+}
+
+float3 gamma(float3 x, float4 params)
+{
+    //float3 softmin = gamma_softmin(x, params);
+
+    ////note: renormalize (0,0) and (1,1) values
+    ////note: should be done in app or vertex-shader
+    //float softmin0 = gamma_softmin(float3(0, 0, 0), params).r;
+    //float softmin1 = gamma_softmin(params.y, params).r;
+
+    //return remap(softmin0, softmin1, softmin);
+
+    float r = (params.z / 8.0) * 8.0;// / params.y;
+    float3 v = float3(
+        SMinC2(x.x, params.y, r),
+        SMinC2(x.y, params.y, r),
+        SMinC2(x.z, params.y, r)
+    );
+
+    float softmin0 = SMinC2(0.0, params.y, r);
+    float softmin1 = SMinC2(params.y, params.y, r);
+
+    v = (v - softmin0) / (softmin1 - softmin0) * softmin1;
+
+    return v;
+}
+
+float3 ApplyLightingClampModeToLighting(float3 lighting)
+{
+    if (_LightingClampMode == PSX_LIGHTING_CLAMP_MODE_NONE)
+    {
+        // Nothing to do here.
+    }
+    else if (_LightingClampMode == PSX_LIGHTING_CLAMP_MODE_CLAMP)
+    {
+        lighting = min(lighting, (float3)_LightingClampParameters.x);
+    }
+    else if (_LightingClampMode == PSX_LIGHTING_CLAMP_MODE_SOFT_CLAMP)
+    {
+        // https://loopit.dk/rendering_inside.pdf pg.21
+        float limit = _LightingClampParameters.x;
+        float sharpnessExponent = _LightingClampParameters.y;
+        float scale = _LightingClampParameters.z;
+        float bias = _LightingClampParameters.w;
+        /*float3 clampRatio = (limit > 1e-5) ? ((lighting * scale + bias) / limit) : 0.0;
+        float3 clampOffsetNormalized = 1.0 - clampRatio;
+        float3 clampSoftminNormalized = 0.5 * (clampOffsetNormalized - sqrt(clampOffsetNormalized * clampOffsetNormalized + sharpnessExponent));
+        lighting = clampSoftminNormalized * scale + bias;*/
+
+        lighting = gamma(lighting, float4(0.0, limit, sharpnessExponent, 1.0));
+    }
+
+    return lighting;
+}
+
 #endif
