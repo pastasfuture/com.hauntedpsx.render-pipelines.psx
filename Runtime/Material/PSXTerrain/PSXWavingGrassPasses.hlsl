@@ -211,6 +211,7 @@ half4 LitPassFragmentGrass(GrassVaryings i) : SV_Target
     color.rgb *= i.color.rgb;
 
     float3 lighting = EvaluateLightingPerPixel(i.positionWS, normalWS, i.lighting, i.lightmapUV, interpolatorNormalization);
+    lighting = ApplyLightingClampModeToLighting(lighting);
     color = ApplyLightingToColor(lighting, color);
 
     // We currently have no methods of assigning specific user controllable materials to our grass surfaces,
