@@ -318,7 +318,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                         spotLight.angularFalloff = GlobalIllumination.AngularFalloffType.AnalyticAndInnerAngle;
                         lightData.Init(ref spotLight);
                         break;
-                    case LightType.Area:
+                    case LightType.Rectangle:
                         GlobalIllumination.RectangleLight rectangleLight = new GlobalIllumination.RectangleLight();
                         GlobalIllumination.LightmapperUtils.Extract(light, ref rectangleLight);
                         rectangleLight.mode = GlobalIllumination.LightMode.Baked;
@@ -339,7 +339,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                 directColor = GlobalIllumination.LinearColor.Convert(light.color, light.intensity);
                 indirectColor = GlobalIllumination.LightmapperUtils.ExtractIndirect(light);
 
-                if (light.type != LightType.Area && light.type != LightType.Disc)
+                if (light.type != LightType.Rectangle && light.type != LightType.Disc)
                 {
                     // Division by PI is handled at runtime in the shaders when evaluating lambert, rather than being baked into the light color.
                     directColor.intensity /= Mathf.PI;

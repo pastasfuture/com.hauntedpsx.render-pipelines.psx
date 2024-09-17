@@ -6,7 +6,7 @@ using UnityEngine.Serialization;
 
 namespace HauntedPSX.RenderPipelines.PSX.Runtime
 {
-    public partial class PSXRenderPipelineAsset : RenderPipelineAsset
+    public partial class PSXRenderPipelineAsset : RenderPipelineAsset<PSXRenderPipeline>
     {
         PSXRenderPipelineAsset()
         {
@@ -32,7 +32,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             //Do not reconstruct the pipeline if we modify other assets.
             //OnValidate is called once at first selection of the asset.
-            if (GraphicsSettings.renderPipelineAsset == this)
+            if (GraphicsSettings.defaultRenderPipeline == this)
                 base.OnValidate();
         }
 
