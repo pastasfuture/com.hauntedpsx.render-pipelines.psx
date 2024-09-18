@@ -32,10 +32,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             instance = this;
             m_Asset = asset;
+#if UNITY_6000_0_OR_NEWER
             if (!VolumeManager.instance.isInitialized)
             {
-                VolumeManager.instance.Initialize();
+                VolumeManager.instance.iInitialize();
             }
+#endif
             Build();
             Allocate();
         }

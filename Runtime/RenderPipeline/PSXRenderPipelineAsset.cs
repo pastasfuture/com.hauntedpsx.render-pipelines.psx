@@ -6,7 +6,11 @@ using UnityEngine.Serialization;
 
 namespace HauntedPSX.RenderPipelines.PSX.Runtime
 {
+#if UNITY_6000_0_OR_NEWER
     public partial class PSXRenderPipelineAsset : RenderPipelineAsset<PSXRenderPipeline>
+#else
+    public partial class PSXRenderPipelineAsset : RenderPipelineAsset
+#endif
     {
         PSXRenderPipelineAsset()
         {
