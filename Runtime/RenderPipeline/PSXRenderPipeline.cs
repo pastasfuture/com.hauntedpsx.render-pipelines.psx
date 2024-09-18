@@ -35,7 +35,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 #if UNITY_6000_0_OR_NEWER
             if (!VolumeManager.instance.isInitialized)
             {
-                VolumeManager.instance.iInitialize();
+                VolumeManager.instance.Initialize();
             }
 #endif
             Build();
