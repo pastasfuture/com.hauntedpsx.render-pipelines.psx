@@ -7,6 +7,10 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
     {
         public static readonly string s_PackagePath = "Packages/com.hauntedpsx.render-pipelines.psx";
         public static readonly string s_GlobalRenderPipelineStr = "PSXRenderPipeline";
+        public static readonly string s_CommandBufferRenderOpaqueStr = "PSXRenderPipeline.RenderOpaque";
+        public static readonly string s_CommandBufferRenderTransparentStr = "PSXRenderPipeline.RenderTransparent";
+        public static readonly string s_CommandBufferRenderSkyboxStr = "PSXRenderPipeline.RenderSkybox";
+        public static readonly string s_CommandBufferRenderLegacyCanvasUIStr = "PSXRenderPipeline.RenderLegacyCanvasUI";
         public static readonly string s_CommandBufferRenderForwardStr = "PSXRenderPipeline.RenderForward";
         public static readonly string s_CommandBufferRenderPreMainStr = "PSXRenderPipeline.RenderPreMain";
         public static readonly string s_CommandBufferRenderPreUIOverlayStr = "PSXRenderPipeline.RenderPreUIOverlay";

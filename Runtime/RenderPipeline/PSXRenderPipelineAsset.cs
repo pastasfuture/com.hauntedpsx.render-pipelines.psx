@@ -6,7 +6,12 @@ using UnityEngine.Serialization;
 
 namespace HauntedPSX.RenderPipelines.PSX.Runtime
 {
-    public partial class PSXRenderPipelineAsset : RenderPipelineAsset
+    public partial class PSXRenderPipelineAsset
+#if UNITY_6000_0_OR_NEWER
+        : RenderPipelineAsset<PSXRenderPipeline>
+#else
+        : RenderPipelineAsset
+#endif
     {
         PSXRenderPipelineAsset()
         {
@@ -37,11 +42,15 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             //Do not reconstruct the pipeline if we modify other assets.
             //OnValidate is called once at first selection of the asset.
+#if UNITY_6000_0_OR_NEWER
+            if (GraphicsSettings.defaultRenderPipeline == this)
+#else
             if (GraphicsSettings.renderPipelineAsset == this)
+#endif
                 base.OnValidate();
         }
 
-    #if UNITY_EDITOR
+#if UNITY_EDITOR
         private Shader _defaultShader = null;
         public override Shader defaultShader
         {
@@ -82,7 +91,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
             get { return null; } // TODO
         }
-    #endif
+#endif
 
         [SerializeField]
         public PSXRenderPipelineResources renderPipelineResources;
