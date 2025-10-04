@@ -12,6 +12,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         {
         }
 
+#if UNITY_2022_3_OR_NEWER
+        // Shader stripping changed in Core RP 14.0.8 which used by Unity 2022 LTS and later
+        public override string renderPipelineShaderTag => PSXStringConstants.s_GlobalRenderPipelineStr;
+#endif
+
         protected override UnityEngine.Rendering.RenderPipeline CreatePipeline()
         {
             PSXRenderPipeline pipeline = null;

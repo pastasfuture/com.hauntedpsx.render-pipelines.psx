@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------------------------------
+New Unity Version Support: **2022.3**
+---------------------------------------------------------------------------------------------------------------------------
+Unity 2022.3 is now the newest version that the Haunted PSX Render Pipeline now supports. Previously it only supported up to 2022.2.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Unity Version Support: **2022.2**
 ---------------------------------------------------------------------------------------------------------------------------
 Unity 2022.2 is now the newest version that the Haunted PSX Render Pipeline now supports. Previously it only supported up to 2021-LTS.
