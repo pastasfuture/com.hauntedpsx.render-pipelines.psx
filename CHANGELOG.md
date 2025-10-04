@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------------------------------
+new Lighting Volume Feature: **Lighting Clamp Mode**
+---------------------------------------------------------------------------------------------------------------------------
+Controls whether a light brightness limit is imposed.
+**None**: No limit imposed. Most physically correct. Artifacts can occur with bright light sources, and lower color precision or texture compression.
+**Clamp**: Introduces an artist-defined hard clamp value. Useful for limiting artifacts, or stylized rendering.
+**Soft Clamp**: Same as Clamp, but uses a soft-min curve to apply the clamp. Results in a smoother transition from unclamped to clamped brightness values.
+
+---------------------------------------------------------------------------------------------------------------------------
 New Unity Version Support: **2022.3**
 ---------------------------------------------------------------------------------------------------------------------------
 Unity 2022.3 is now the newest version that the Haunted PSX Render Pipeline now supports. Previously it only supported up to 2022.2.
