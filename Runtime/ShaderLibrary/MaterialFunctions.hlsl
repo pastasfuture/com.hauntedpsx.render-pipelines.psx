@@ -726,7 +726,7 @@ float2 ApplyUVAnimationVertex(float2 uv, int uvAnimationMode, float2 uvAnimation
     return uvAnimated;
 }
 
-float2 ApplyUVAnimationPixel(inout float4 texelSizeLod, inout float lod, float2 uv, int uvAnimationMode, float2 uvAnimationParametersFrameLimit, float4 uvAnimationParameters)
+float2 ApplyUVAnimationPixelMaybeCallDDX(inout float4 texelSizeLod, inout float lod, float2 uv, int uvAnimationMode, float2 uvAnimationParametersFrameLimit, float4 uvAnimationParameters, float4 texelSize)
 {
     float2 uvAnimated = uv;
     float timeSeconds = _Time.y;
@@ -756,13 +756,38 @@ float2 ApplyUVAnimationPixel(inout float4 texelSizeLod, inout float lod, float2 
             float width = uvAnimationParameters.x;
             float height = uvAnimationParameters.y;
             float tileCount = width * height;
+            float2 tileScale = 1.0 / float2(width, height);
 
             // LOD caculation needs to take into account the scale of the flipbook,
             // otherwise we will overblur the results.
-            float lodCorrected = max(0.0, lod - log2(min(width, height)));
-            texelSizeLod.xy *= exp2(lodCorrected - lod);
-            texelSizeLod.zw *= exp2(lod - lodCorrected);
-            lod = lodCorrected;
+            // In order to cleanly support non square and non power of two flipbook widths and height (i.e: 3x1 flipbooks)
+            // we need to recompute the lod and texelSizeLod values, taking into account our flipbook width and height.
+            {
+#if defined(_TEXTURE_FILTER_MODE_N64_MIPMAPS) || defined(_TEXTURE_FILTER_MODE_POINT_MIPMAPS)
+
+                // WARNING: Because we are calling ddx(), we need to ensure we do not discard any fragments via clip() before this function call.
+                // Otherwise, the result of ddx() will be undefined.
+                float2 texel = uv * tileScale * texelSize.zw;
+                float2 texelDDX = ddx(texel);
+                float2 texelDDY = ddy(texel);
+                lod = ComputeLODFromTexelDDXDDY(texelDDX, texelDDY);
+
+                // Simulate bilinear filtering where we simply round to the nearest, rather then blending between neighboring lod steps.
+                // Rounding seems to give closest results to hardware in our tests.
+                // ceil() would be more conservative, and would guarentee less aliasing, but also would overblur more compared to round.
+                // floor() would be least conservative and would guarentee less blurring, but would also alias more compared to round.
+                lod = floor(lod + 0.5f);
+
+                // Alternatively, we could perform exp2(lod) on xy rather than rcp(). Unsure which is faster in practice.
+                texelSizeLod.zw = texelSize.zw * exp2(-lod);
+                texelSizeLod.xy = rcp(texelSizeLod.zw);
+
+    #else // defined(_TEXTURE_FILTER_MODE_TEXTURE_IMPORT_SETTINGS)
+                // No modifications.
+                texelSizeLod = texelSize;
+                lod = 0.0f;
+    #endif
+            }
 
             float tileIndex = floor(timeSeconds * uvAnimationParameters.z);
 
@@ -783,7 +808,6 @@ float2 ApplyUVAnimationPixel(inout float4 texelSizeLod, inout float lod, float2 
             bool flipY = true;
             tileY = flipY ? (height - 1.0 - tileY) : tileY;
 
-            float2 tileScale = 1.0 / float2(width, height);
             float2 tileUvBase = float2(tileX, tileY) * tileScale;
 
             float2 texelSizeLodHalf = 0.5 * texelSizeLod.xy;
