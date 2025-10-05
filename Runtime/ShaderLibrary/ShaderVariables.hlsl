@@ -72,6 +72,7 @@
 //
 // Time (t = time since current level load) values from Unity
 float4 _Time; // (t/20, t, t*2, t*3)
+float4 _TimeUnscaled; // (t/20, t, t*2, t*3)
 float3 _WorldSpaceCameraPos;
 float4 _ProjectionParams;
 

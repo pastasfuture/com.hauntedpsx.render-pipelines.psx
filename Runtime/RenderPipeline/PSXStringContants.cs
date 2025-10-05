@@ -33,6 +33,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_PushFogParametersStr = "Push Fog Parameters";
         public static readonly string s_PushCompressionParametersStr = "Push Compression Parameters";
         public static readonly string s_PushCathodeRayTubeParametersStr = "Push Cathode Ray Tube Parameters";
+        public static readonly string s_PushNTSCParametersStr = "Push NTSC Parameters";
         public static readonly string s_DrawAccumulationMotionBlurPreUIOverlayStr = "Accumulation Motion Blur Pre UI Overlay";
         public static readonly string s_DrawAccumulationMotionBlurPostUIOverlayStr = "Accumulation Motion Blur Post UI Overlay";
         public static readonly string s_DrawAccumulationMotionBlurFinalBlitStr = "Accumulation Motion Blur Final Blit";
@@ -52,6 +53,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static ProfilingSampler s_PushFogParameters = new ProfilingSampler(s_PushFogParametersStr);
         public static ProfilingSampler s_PushCompressionParameters = new ProfilingSampler(s_PushCompressionParametersStr);
         public static ProfilingSampler s_PushCathodeRayTubeParameters = new ProfilingSampler(s_PushCathodeRayTubeParametersStr);
+        public static ProfilingSampler s_PushNTSCParameters = new ProfilingSampler(s_PushCathodeRayTubeParametersStr);
         public static ProfilingSampler s_DrawAccumulationMotionBlurPreUIOverlay = new ProfilingSampler(s_DrawAccumulationMotionBlurPreUIOverlayStr);
         public static ProfilingSampler s_DrawAccumulationMotionBlurPostUIOverlay = new ProfilingSampler(s_DrawAccumulationMotionBlurPostUIOverlayStr);
         public static ProfilingSampler s_DrawAccumulationMotionBlurFinalBlit = new ProfilingSampler(s_DrawAccumulationMotionBlurFinalBlitStr);
@@ -79,6 +81,8 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly string s_CRT_MASK_VGA_STRETCHED = "_CRT_MASK_VGA_STRETCHED";
         public static readonly string s_CRT_MASK_TEXTURE = "_CRT_MASK_TEXTURE";
         public static readonly string s_CRT_MASK_DISABLED = "_CRT_MASK_DISABLED";
+        public static readonly string s_CRT_IS_ENABLED = "_CRT_IS_ENABLED";
+        public static readonly string s_NTSC_IS_ENABLED = "_NTSC_IS_ENABLED";
         public static readonly string s_SKY_MODE_FOG_COLOR = "_SKY_MODE_FOG_COLOR"; 
         public static readonly string s_SKY_MODE_BACKGROUND_COLOR = "_SKY_MODE_BACKGROUND_COLOR";
         public static readonly string s_SKY_MODE_SKYBOX = "_SKY_MODE_SKYBOX";
@@ -135,6 +139,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _BlueNoiseTexture = Shader.PropertyToID("_BlueNoiseTexture");
         public static readonly int _BlueNoiseSize = Shader.PropertyToID("_BlueNoiseSize");
         public static readonly int _Time = Shader.PropertyToID("_Time");
+        public static readonly int _TimeUnscaled = Shader.PropertyToID("_TimeUnscaled");
         public static readonly int _ProjectionParams = Shader.PropertyToID("_ProjectionParams");
         public static readonly int _WorldSpaceCameraPos = Shader.PropertyToID("_WorldSpaceCameraPos");
         public static readonly int _FlipY = Shader.PropertyToID("_FlipY");
@@ -149,6 +154,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _CRTBloomSharpness = Shader.PropertyToID("_CRTBloomSharpness");
         public static readonly int _CRTNoiseIntensity = Shader.PropertyToID("_CRTNoiseIntensity");
         public static readonly int _CRTNoiseSaturation = Shader.PropertyToID("_CRTNoiseSaturation");
+        public static readonly int _CRTNoiseUseTimeScale = Shader.PropertyToID("_CRTNoiseUseTimeScale");
         public static readonly int _CRTGrateMaskIntensityMinMax = Shader.PropertyToID("_CRTGrateMaskIntensityMinMax");
         public static readonly int _CRTBarrelDistortion = Shader.PropertyToID("_CRTBarrelDistortion");
         public static readonly int _CRTVignetteSquared = Shader.PropertyToID("_CRTVignetteSquared");
@@ -239,5 +245,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
         public static readonly int _AccumulationMotionBlurParameters = Shader.PropertyToID("_AccumulationMotionBlurParameters");
         public static readonly int _CopyColorSourceRT = Shader.PropertyToID("_CopyColorSourceRT");
         public static readonly int _CopyColorSourceRTSize = Shader.PropertyToID("_CopyColorSourceRTSize");
+        public static readonly int _NTSCIsEnabled = Shader.PropertyToID("_NTSCIsEnabled");
+        public static readonly int _NTSCHorizontalCarrierFrequency = Shader.PropertyToID("_NTSCHorizontalCarrierFrequency");
+        public static readonly int _NTSCKernelRadius = Shader.PropertyToID("_NTSCKernelRadius");
+        public static readonly int _NTSCKernelWidthRatio = Shader.PropertyToID("_NTSCKernelWidthRatio");
+        public static readonly int _NTSCSharpness = Shader.PropertyToID("_NTSCSharpness");
+        public static readonly int _NTSCLinePhaseShift = Shader.PropertyToID("_NTSCLinePhaseShift");
     }
 }
