@@ -77,7 +77,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             if (rtHandleSystems[index] == null)
             {
                 rtHandleSystems[index] = new RTHandleSystem();
-                rtHandleSystems[index].Initialize(width, height, scaledRTsupportsMSAA: index > 0, msaaSamples);
+                rtHandleSystems[index].Initialize(width, height
+#if !UNITY_2021_2_OR_NEWER
+                    , scaledRTsupportsMSAA: index > 0,
+                    msaaSamples
+#endif
+                );
             }
 
             rtHandleSystemTimestamps[index] = timestampCurrent;

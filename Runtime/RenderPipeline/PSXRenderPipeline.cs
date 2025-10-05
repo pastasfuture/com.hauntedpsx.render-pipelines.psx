@@ -417,7 +417,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
             
             msaaHandleSystem.Tick();
 
+#if UNITY_6000_0_OR_NEWER
+            UnityEngine.Rendering.RenderPipeline.EndContextRendering(context, cameras);
+#else
             UnityEngine.Rendering.RenderPipeline.EndFrameRendering(context, cameras);
+#endif
         }
 
         private bool TryUpdateFrameCount(

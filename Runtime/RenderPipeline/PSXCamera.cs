@@ -162,7 +162,7 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
 #if UNITY_2021_2_OR_NEWER
             RTHandles.SetReferenceSize(context.rasterizationWidth, context.rasterizationHeight);
             historyRTSystem.SwapAndSetReferenceSize(context.rasterizationWidth, context.rasterizationHeight);
-            rtHandleSystem.SetReferenceSize(context.rasterizationWidth, context.rasterizationHeight);
+            maybeMSAAHandleSystem.SetReferenceSize(context.rasterizationWidth, context.rasterizationHeight);
 #else
             RTHandles.SetReferenceSize(context.rasterizationWidth, context.rasterizationHeight, MSAASamples.None);
             historyRTSystem.SwapAndSetReferenceSize(context.rasterizationWidth, context.rasterizationHeight, MSAASamples.None);
@@ -198,6 +198,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     rasterizationMaybeMSAART.Release();
                     rasterizationMaybeMSAART = null;
                 }
+                // Random read write is not supported on MSAA targets. For MSAA targets, we need to resolve the target to a non-MSAA target, and then random read write to / from that.
+                else if ((context.rasterizationMSAASamples == MSAASamples.None) && (rasterizationMaybeMSAART.rt.descriptor.enableRandomWrite != context.rasterizationRandomWriteRequested))
+                {
+                    rasterizationMaybeMSAART.Release();
+                    rasterizationMaybeMSAART = null;
+                }
             }
 
             if (rasterizationMaybeMSAART == null)
@@ -210,7 +216,12 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     colorFormat: GraphicsFormat.R8G8B8A8_UNorm,
                     depthBufferBits: DepthBits.None,
                     bindTextureMS: false,
+#if UNITY_2021_2_OR_NEWER
+                    msaaSamples: context.rasterizationMSAASamples,
+#else
                     enableMSAA: context.rasterizationMSAASamples != MSAASamples.None,
+#endif
+                    enableRandomWrite: context.rasterizationRandomWriteRequested && (context.rasterizationMSAASamples == MSAASamples.None),
                     useDynamicScale: false,
                     name: "Rasterization RT Maybe MSAA"
                 );
@@ -237,7 +248,11 @@ namespace HauntedPSX.RenderPipelines.PSX.Runtime
                     dimension: TextureDimension.Tex2D,
                     depthBufferBits: DepthBits.Depth24,
                     isShadowMap: true, // This is not actually a shadow map RT. This is a workaround for force the RTHandleSystem to not allocate a stencil texture. This is necessary because WebGL does not support the hardcoded R8 UInt stencil format.
+#if UNITY_2021_2_OR_NEWER
+                    msaaSamples: context.rasterizationMSAASamples,
+#else
                     enableMSAA: context.rasterizationMSAASamples != MSAASamples.None,
+#endif
                     useDynamicScale: false,
                     name: "Rasterization RT Maybe MSAA Depth Stencil"
                 );
